@@ -13071,6 +13071,7 @@ int build_graphs(BundleData* bdata) {
 	GVec<int> merge; // remembers merged groups
 	GVec<int> equalcolor; // remembers colors for the same bundle
 	GVec<int> *readgroup=new GVec<int>[readlist.Count()]; // remebers groups for each read; don't forget to delete it when no longer needed
+	// parameter -e ; for mergeMode includes estimated coverage sum in the merged transcripts
 	GVec<int> guidepred; // for eonly keeps the prediction number associated with a guide
 	GArray<GEdge> guideedge; // 0: negative starts; 1 positive starts
 	/*GPVec<GPtFeature>& feature = bdata->ptfs; // these are point features (confirmed starts/stops)
@@ -13084,7 +13085,9 @@ int build_graphs(BundleData* bdata) {
 
 	//fprintf(stderr,"build_graphs with %d guides\n",guides.Count());
 
-
+	/*****************************
+	 ** this part is for setting guides for introns are covered by at least one read. 
+	 *****************************/
 	if(guides.Count()) {
 
 		guideedge.setSorted(true);
@@ -13107,8 +13110,7 @@ int build_graphs(BundleData* bdata) {
 						break;
 					}
 				}
-			}
-			else {
+			} else {
 				for(int i=0;i<tdata->t_introns.Count();i++) {
 					if(!tdata->t_introns[i]->rcount) {
 						covered=false;
@@ -13118,7 +13120,9 @@ int build_graphs(BundleData* bdata) {
 			}
 
 			if(covered) {
-
+				// 1 if used by read bundles (present in keepguides) 
+				// 2 if all introns are covered by at least one read
+				// 3 if it is stored to be printed
 				tdata->in_bundle=2;
 				int s=-1; // unknown strand
 				if(guides[g]->strand=='+') s=1; // guide on positive strand
@@ -13128,6 +13132,7 @@ int build_graphs(BundleData* bdata) {
 
 				int uses=s;
 				if(s<0) uses=0;
+				// guide edge
 				GEdge ge(guides[g]->start,guides[g]->exons[0]->end,uses);
 				int idx=guideedge.IndexOf(ge);
 
@@ -13160,8 +13165,10 @@ int build_graphs(BundleData* bdata) {
 		}
 	}
 
-	// this part is for adjusting leftsupport and rightsupport when considering all junctions that start at a given point
-	// sort junctions -> junctions are sorted already according with their start, but not their end
+	/*****************************
+	 ** this part is for adjusting leftsupport and rightsupport when considering all junctions that start at a given point
+	 ** sort junctions -> junctions are sorted already according with their start, but not their end
+	 *****************************/
 	GList<CJunction> ejunction(junction);
 	ejunction.setFreeItem(false);
 	if(ejunction.Count()) ejunction.setSorted(juncCmpEnd);
@@ -13309,8 +13316,10 @@ int build_graphs(BundleData* bdata) {
 
 	//fprintf(stderr,"junction support computed\n");
 
-	if(higherr) { // there are some reads that contain very bad junctions -> need to find better closest junctions
-
+	/*****************************
+	 ** there are some reads that contain very bad junctions -> need to find better closest junctions
+	 *****************************/
+	if(higherr) { 
 		uint juncsupport=junctionsupport;
 		if(longreads)
 			juncsupport=sserror;
@@ -13362,8 +13371,7 @@ int build_graphs(BundleData* bdata) {
 					}
 				}
 			}
-		}
-		else {
+		} else {
 
 			float tolerance=1-ERROR_PERC;
 
@@ -13556,6 +13564,9 @@ int build_graphs(BundleData* bdata) {
 #endif
 */
 
+	/*****************************
+	 ** junctions filtering & sort
+	 *****************************/
 	//float fraglen=0;
 	//uint fragno=0;
 
@@ -13854,7 +13865,10 @@ int build_graphs(BundleData* bdata) {
 
 	//if(fragno) fraglen/=fragno;
 
-	// merge groups that are close together or __groups that are within the same exon of a reference gene__
+	/*****************************
+	 ** 'merge_fwd_groups' function
+	 ** 	merge groups that are close together or __groups that are within the same exon of a reference gene__
+	 *****************************/
 	if(bundledist || (guides.Count() && !longreads)) {
 		for(int sno=0;sno<3;sno++) {
 			CGroup *lastgroup=NULL;
@@ -13911,9 +13925,10 @@ int build_graphs(BundleData* bdata) {
 #endif
 */
 
-	// ### form bundles here
-
-    // first do color assignment
+	/*****************************
+	 ** form bundles here
+     ** first do color assignment
+	 *****************************/
 	for (int i=0;i<3;i++) currgroup[i]=startgroup[i];
 	CGroup *prevgroup[3]={NULL,NULL,NULL};
 
@@ -13925,7 +13940,10 @@ int build_graphs(BundleData* bdata) {
 
 
 	// each unstranded group needs to remember what proportion of stranded group it overlaps so that it can distribute reads later on -> maybe I can do this in the following while?
-
+	/*****************************
+	 ** 'set_strandcol' function
+     ** 	set the color of strands
+	 *****************************/
 	while(currgroup[0]!=NULL || currgroup[1]!=NULL || currgroup[2]!=NULL) { // there are still groups to process
 
 		int nextgr=get_min_start(currgroup); // gets the index of currgroup with the left most begining
@@ -14057,7 +14075,11 @@ int build_graphs(BundleData* bdata) {
     */
 
 
-	// create bundles : bundles collect connected groups (with same color)
+
+	/*****************************
+	 ** 'create_bundle' & 'create_bundle' functions. 
+	 ** 	create bundles : bundles collect connected groups (with same color)
+	 *****************************/
 	for (int i=0;i<3;i++) {
 		currgroup[i]=startgroup[i];
 		prevgroup[i]=NULL;
@@ -14150,8 +14172,10 @@ int build_graphs(BundleData* bdata) {
 	} // while(currgroup[0]!=NULL || currgroup[1]!=NULL || currgroup[2]!=NULL)
 
 
-	// Clean up no longer needed variables
-	// group.Clear(); maybe I still need this?
+	/*****************************
+	 ** Clean up no longer needed variables
+	 ** group.Clear(); maybe I still need this?
+	 *****************************/
 	equalcolor.Clear();
 	eqposcol.Clear();
 	eqnegcol.Clear();
@@ -14165,7 +14189,10 @@ int build_graphs(BundleData* bdata) {
 #endif
 */
 
-	// next variables are in order to remember if I get guide coverage
+	/*****************************
+	 ** 'get_covered' function
+	 ** 	next variables are in order to remember if I get guide coverage
+	 *****************************/
 	GVec<int>* bnodeguides=NULL;
 	if(bundle[1].Count() && bnode[1].Count()) {
 		bnodeguides = new GVec<int>[bnode[1].Count()];
@@ -14210,8 +14237,10 @@ int build_graphs(BundleData* bdata) {
 
 	int geneno=0;
 
-
-    // ### predict transcripts for unstranded bundles here
+	/*****************************
+	 ** 'CPrediction': constructor
+	 **		predict transcripts for unstranded bundles here
+	 *****************************/
 	//if(fraglen)
 
 	int g=0;
@@ -14339,8 +14368,11 @@ int build_graphs(BundleData* bdata) {
     //fprintf(stderr,"Done with unstranded bundles\n");
     if (bnodeguides) delete[] bnodeguides;
 
-	// ### build graphs for stranded bundles here
-    if(startgroup[0]!=NULL || startgroup[2]!=NULL) { //# there are stranded groups to process
+	/*****************************
+	 ** 'create_graph', 'construct_treepat'
+	 ** 	build graphs for stranded bundles here
+	 *****************************/
+    if(startgroup[0]!=NULL || startgroup[2]!=NULL) {  // Condition 1: there are stranded groups to process
 
     	// I don't need the groups here anymore : I only use their numbers
     	// group.Clear(); // I will need the proportions later on
@@ -14359,7 +14391,7 @@ int build_graphs(BundleData* bdata) {
     	int bno[2]={0,0};
 
 
-    	// build graph structure
+    	// 	** 1. build graph structure
     	for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
 
         	// guides appear to be sorted by start --> CHECK THIS!!
@@ -14492,9 +14524,9 @@ int build_graphs(BundleData* bdata) {
     	}
 
 
-    	// because of this going throu
-    	// compute probabilities for stranded bundles
-
+    	// 	** 1. compute probabilities for stranded bundles
+		// 		'get_fragment_pattern' function
+    	// 			because of this going throu
     	for (int n=0;n<readlist.Count();n++) {
 
 	  /*if(readlist[n]->unitig) { // super-reads are unpaired
@@ -14536,8 +14568,8 @@ int build_graphs(BundleData* bdata) {
     	group.Clear();
 
 
-
-    	// parse graph
+    	// 	** 1. parse graph
+		// 		'process_refguides' & 'process_transfrags' & 'find_transcripts' & 'free_treepat'
     	for(int s=0;s<2;s++) {
 
     		for(int b=0;b<bno[s];b++) {
@@ -14613,7 +14645,6 @@ int build_graphs(BundleData* bdata) {
     				//}
     				for(int g=0;g<guidetrf.Count();g++) delete guidetrf[g].trf;
 
-
     				/*
     				{ //DEBUG ONLY
     					printTime(stderr);
@@ -14628,8 +14659,6 @@ int build_graphs(BundleData* bdata) {
     				GMessage("\t\tM(after processed transcripts):build_graphs memory usage: rsm=%6.1fMB vm=%6.1fMB\n",rsm/1024,vm/1024);
 #endif
 */
-
-
     			}
     			// clean up what can be cleaned
     			if(tr2no[s][b]) free_treepat(tr2no[s][b]);
@@ -14644,7 +14673,7 @@ int build_graphs(BundleData* bdata) {
     	}
 
 	} // end if(startgroup[0]!=NULL || startgroup[2]!=NULL)
-    else {
+    else { 	// Condition 2: no stranded groups to process
 
     	delete [] readgroup;
     	// clean up readgroup, bundle
@@ -17465,7 +17494,6 @@ uint find_midhash(int refstart,int start,int end,GVec<float>* bpcov) {
 	return(midpoint);
 }
 */
-
 
 int printResults(BundleData* bundleData, int geneno, GStr& refname) {
 
