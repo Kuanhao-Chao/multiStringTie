@@ -46,6 +46,24 @@ extern bool includecov;
 extern bool retained_intron;
 
 extern FILE* f_out;
+
+
+
+
+
+/******************
+ **  KH Adding 
+ ******************/
+extern FILE* f_dot_out;
+/******************
+ **  END KH Adding 
+ ******************/
+
+
+
+
+
+
 extern GStr label;
 
 static GStr _id("", 256); //to prevent repeated reallocation for each parsed read
@@ -2918,6 +2936,9 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 
 
 
+
+
+
 int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bnode,
 		GList<CJunction>& junction,GList<CJunction>& ejunction,GVec<CGraphinfo> **bundle2graph,
 		GPVec<CGraphnode> **no2gnode,GPVec<CTransfrag> **transfrag,GIntHash<int> **gpos,BundleData* bdata,
@@ -2927,6 +2948,11 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
  **  KH Adding 
  ****************/
 fprintf(stdout, "Start 'create_graph'\n");
+/****************
+ **  END KH Adding 
+ ****************/
+
+
 
 	GVec<float>* bpcov = bdata ? bdata->bpcov : NULL; // I might want to use a different type of data for bpcov to save memory in the case of very long bundles
 
@@ -2946,6 +2972,10 @@ fprintf(stdout, "Start 'create_graph'\n");
 		fprintf(stderr,"eJunctions[%d][%d]: ",s,g);
 		for(int i=0;i<njunctions;i++) fprintf(stderr," %d-%d:%d",ejunction[i]->start,ejunction[i]->end,ejunction[i]->strand);
 		fprintf(stderr,"\n");
+
+		// fprintf(stderr,"bundle2graph[%d][%d]: ",s,g);
+		// for(int i=0;i<(*bundle2graph)->Count();i++) fprintf(stderr," %d-%d",(**bundle2graph)[i].ngraph,(**bundle2graph)[i].nodeno);
+		// fprintf(stderr,"\n");
 	}
 	*/
 
@@ -3680,6 +3710,33 @@ fprintf(stdout, "Start 'create_graph'\n");
 		}
 	}
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	/*****************************
 	 ** 'traverse_dfs' function
 	 ** 	finished reading bundle -> now create the parents' and children's patterns
@@ -3692,7 +3749,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 	traverse_dfs(s,g,source,sink,parents,graphno,visit,no2gnode,transfrag,edgeno,gpos,lastgpos);
 	fprintf(stderr,"done traversing with edgeno=%d lastgpos=%d\n",edgeno,lastgpos);
 
-	// /*
+	/*
 	{ //DEBUG ONLY
 		fprintf(stderr,"after traverse:\n");
 		for(int i=0;i<graphno;i++) {
@@ -3703,13 +3760,79 @@ fprintf(stdout, "Start 'create_graph'\n");
 			fprintf(stderr,"\n");
 		}
 	}
-	// */
+	*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+/****************
+ **  KH Adding 
+ ****************/
+fprintf(stdout, "Start writing out DOT file!!\n");
+	fprintf(stderr,"after traverse:\n");
+	fprintf(stderr,"strict digraph %d_%d_%d {\n", refstart, s, g);
+	// graphno: number of nodes in graph.
+	for(int i=0;i<graphno;i++) {
+		// fprintf(stderr,"Node %d with parents:",i);
+		for(int c=0;c<no2gnode[s][g][i]->child.Count();c++) {
+			fprintf(stderr,"\t %d -> ",i);
+			
+			fprintf(stderr, " %d\n", no2gnode[s][g][i]->child[c]);
+			// fprintf(stderr,"%d [cov:%d capacity:%d rate:%d];\n",no2gnode[s][g][i]->child[c], no2gnode[s][g][i]->cov, no2gnode[s][g][i]->capacity, no2gnode[s][g][i]->rate);
+		}
+	}
+	fprintf(stderr,"}\n");
+fprintf(stdout, "End of writing out DOT file!!\n");
+/****************
+ **  END KH Adding 
+ ****************/
+
+
 
 	// delete variables created here, like e.g. ends; do I need to delete the GVec<int> elements created too?
 	ends.Clear();
 
 	return(graphno);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 void get_read_pattern(int s, float readcov,GVec<int> &rgno, float rprop,GVec<int> *rnode,
@@ -14438,6 +14561,7 @@ int build_graphs(BundleData* bdata) {
 
 	/*****************************
 	 ** 'create_graph', 'construct_treepat'
+	 **    Defining parameters here!!!!
 	 ** 	build graphs for stranded bundles here
 	 *****************************/
     if(startgroup[0]!=NULL || startgroup[2]!=NULL) {  // Condition 1: there are stranded groups to process
