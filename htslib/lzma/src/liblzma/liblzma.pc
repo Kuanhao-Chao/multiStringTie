@@ -5,10 +5,10 @@
 # You can do whatever you want with this file.
 #
 
-prefix=/Users/chaokuan-hao/Documents/Tools/multiStringTie/htslib/xlibs
-exec_prefix=/Users/chaokuan-hao/Documents/Tools/multiStringTie/htslib/xlibs
-libdir=/Users/chaokuan-hao/Documents/Tools/multiStringTie/htslib/xlibs/lib
-includedir=/Users/chaokuan-hao/Documents/Tools/multiStringTie/htslib/xlibs/include
+prefix=/home/kh.chao/Projects/stringtie/htslib/xlibs
+exec_prefix=/home/kh.chao/Projects/stringtie/htslib/xlibs
+libdir=/home/kh.chao/Projects/stringtie/htslib/xlibs/lib
+includedir=/home/kh.chao/Projects/stringtie/htslib/xlibs/include
 
 Name: liblzma
 Description: General purpose data compression library

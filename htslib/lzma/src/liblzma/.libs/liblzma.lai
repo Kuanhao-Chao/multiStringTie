@@ -14,7 +14,7 @@ library_names=''
 old_library='liblzma.a'
 
 # Linker flags that cannot go in dependency_libs.
-inherited_linker_flags='  -pthread'
+inherited_linker_flags=' -pthread'
 
 # Libraries that this one depends upon.
 dependency_libs=' -lpthread'
@@ -38,4 +38,4 @@ dlopen=''
 dlpreopen=''
 
 # Directory that this library needs to be installed in:
-libdir='/Users/chaokuan-hao/Documents/Tools/multiStringTie/htslib/xlibs/lib'
+libdir='/home/kh.chao/Projects/stringtie/htslib/xlibs/lib'
