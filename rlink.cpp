@@ -2638,7 +2638,10 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 
 	//fprintf(stderr,"start with edgeno=%d\n",edgeno);
 
-	GVec<CGJunc> kjunc; // scan all junctions and keep the ones that are in the graph and I can potentially delete
+	/*****************************
+	 ** scan all junctions and keep the ones that are in the graph and I can potentially delete. (kjunc)
+	 *****************************/
+	GVec<CGJunc> kjunc; 
 	int n=1; // first node in graph
 	for(int i=0;i<junction.Count();i++) {
 		if(junction[i]->start>no2gnode[s][g][graphno-1]->start) break; // all future junctions are out of the graph
@@ -2660,9 +2663,11 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 			}
 		}
 	}
-
 	kjunc.Sort(gjuncCmp);
 
+	/*****************************
+	 ** Create inodes and add inton node GVec.
+	 *****************************/
 	GVec<CGNode> node;
 	for(int i=0;i<graphno;i++) {
 		bool sinklink=false;
@@ -2698,7 +2703,10 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 	}
 	end code ***/
 
-	/*** code that estimates new graphno ***/
+	/*****************************
+	 ** code that estimates new graphno
+	 ** 	'delete_connection', 'count_kept_nodes'
+	 *****************************/
 	int estimate_graphno=graphno;
 	while(estimate_graphno > allowed_nodes && i<kjunc.Count()) {
 		delete_connection(node,kjunc[i].leftnode,kjunc[i].rightnode,no2gnode[s][g],edgeno,estimate_graphno);
@@ -2723,10 +2731,10 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
     */
 
 	// there was a part here to re-create lost children likns, e.g. for 1->2->3 delete link from 1->2 and from 2->3. 1 might still want to link to 3
-
-	// I might need to recreate links to source though
-
-	// re-number nodes that are kept from 1 to new_graphno instead
+	/*****************************
+	 ** re-number nodes that are kept from 1 to new_graphno instead
+	 ** I might need to recreate links to source though
+	 *****************************/
 	i=1;
 	for(int n=1;n<graphno;n++) {
 		if(node[n].keep) {
@@ -2753,10 +2761,10 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 		}
 	}
 
-
-	// redo the structures in the graph to reflect the new node numbering
-	// structures to deal with: graphnode->child, graphnode->parent (and edgeno), no2gnode, bundle2graph -> this also needs to be addressed in get_fragment/read_pattern
-
+	/*****************************
+	 ** redo the structures in the graph to reflect the new node numbering
+	 ** structures to deal with: graphnode->child, graphnode->parent (and edgeno), no2gnode, bundle2graph -> this also needs to be addressed in get_fragment/read_pattern
+	 *****************************/
 	for(int n=graphno-1;n>0;n--) { // I am doing it from last node to first in order for the deletions to be meaningful
 		CGraphnode *inode=no2gnode[s][g][n];
 		if(node[n].keep) {
@@ -2796,7 +2804,9 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 		}
 	}
 
-	// deal with the source
+	/*****************************
+	 ** deal with the source
+	 *****************************/
 	CGraphnode *source=no2gnode[s][g][0];
 	for(int c=source->child.Count()-1;c>=0;c--) {
 		if(node[source->child[c]].keep) { // if I keep it I have to give it the new id
@@ -2808,7 +2818,9 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 		}
 	}
 
-	// deal with the sink --> do I have sink??
+	/*****************************
+	 ** deal with the sink --> do I have sink??
+	 *****************************/
 	for(int p=sink->parent.Count()-1;p>=0;p--) {
 		if(node[sink->parent[p]].keep) { // if I keep it I have to give it the new id
 			sink->parent[p]=node[sink->parent[p]].id;
@@ -2819,6 +2831,9 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 		}
 	}
 
+	/*****************************
+	 ** deal with future transcript fragments.
+	 *****************************/
 	for(int i=0;i<futuretr.Count();i+=3) {
 		int n1=int(futuretr[i]);
 		int n2=int(futuretr[i+1]);
@@ -2846,6 +2861,9 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 
 	}
 
+	/*****************************
+	 ** deal with final bundle2graph
+	 *****************************/
 	for(i=0;i<bnodecount;i++) {
 		for(int b=bundle2graph[s][i].Count()-1;b>=0;b--) {
 			if(bundle2graph[s][i][b].ngraph==g) {
@@ -2859,7 +2877,7 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 		}
 	}
 
-	/*
+	// /*
 	{ //DEBUG ONLY
 		for(int i=0;i<new_graphno;i++) {
 			fprintf(stderr,"Node %d with parents:",i);
@@ -2870,15 +2888,45 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 		}
 	}
 	fprintf(stderr,"new edgeno=%d\n",edgeno);
-	*/
+	// */
 
 	return(new_graphno);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bnode,
 		GList<CJunction>& junction,GList<CJunction>& ejunction,GVec<CGraphinfo> **bundle2graph,
 		GPVec<CGraphnode> **no2gnode,GPVec<CTransfrag> **transfrag,GIntHash<int> **gpos,BundleData* bdata,
 		int &edgeno,int &lastgpos,GArray<GEdge>& guideedge, int refend=0){
+
+/****************
+ **  KH Adding 
+ ****************/
+fprintf(stdout, "Start 'create_graph'\n");
 
 	GVec<float>* bpcov = bdata ? bdata->bpcov : NULL; // I might want to use a different type of data for bpcov to save memory in the case of very long bundles
 
@@ -2888,7 +2936,7 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 
 	int njunctions=junction.Count();
 
-	//fprintf(stderr,"Start graph[%d][%d] with %d edgeno and lastgpos=%d\n",s,g,edgeno,lastgpos);
+	fprintf(stderr,"Start graph[%d][%d] with %d edgeno and lastgpos=%d\n",s,g,edgeno,lastgpos);
 
 	/*
 	{ // DEBUG ONLY
@@ -2901,6 +2949,9 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 	}
 	*/
 
+	/*****************************
+	 ** Check start & end of bundle nodes (swap if necessary)
+	 *****************************/
 	int nge=0;
 	bool processguide=false;
 	CBundlenode *bundlenode=bnode[bundle->startnode];
@@ -2924,8 +2975,11 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 	int graphno=1; // number of nodes in graph
 	//GHash<GVec<int>* > ends; // keeps ids of all nodes ending at a certain position; OR ALL NODES THAT ARE LINKED BY JUNCTIONS TO A CERTAIN POSITION
     GIntHash< GVec<int>* > ends;
-	GVec<float> futuretr;
+	GVec<float> futuretr; //future transfrags
 
+	/*****************************
+	 ** I have a bunch of junctions at the start for which I need to create ends
+	 *****************************/
 	if(mergeMode) { // I have a bunch of junctions at the start for which I need to create ends
 
 		while(njs<njunctions && !junction[njs]->start ) { // remember ends here for source node
@@ -2947,12 +3001,15 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 
 	//int seenjunc=0;
 
+	/*****************************
+	 ** 'create_graphnode' function
+	 ** 	Process nodes in the bundle.
+	 *****************************/
 	int f=0; // feature index
-
 	uint bundle_end=bnode[bundle->lastnodeid]->end;
 	while(bundlenode!=NULL) {
 
-		//fprintf(stderr,"process bundlenode %d-%d:%d bpcov_count=%d refstart=%d\n",bundlenode->start,bundlenode->end,s,bpcov->Count(),refstart);
+		fprintf(stderr,"process bundlenode %d-%d:%d bpcov_count=%d refstart=%d\n",bundlenode->start,bundlenode->end,s,bpcov->Count(),refstart);
 
 	    uint currentstart=bundlenode->start; // current start is bundlenode's start
 	    uint endbundle=bundlenode->end; // initialize end with bundlenode's end for now
@@ -3116,8 +3173,8 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 	    				}
 	    			}
 	    		}
-	    		//for(int i=0;i<lstart.Count();i++) fprintf(stderr,"s=%d start at coord %d with cov=%f\n",s,lstart[i].predno,lstart[i].cov);
-	    		//for(int i=0;i<lend.Count();i++) fprintf(stderr,"s=%d end at coord %d with cov=%f\n",s,lend[i].predno,lend[i].cov);
+	    		for(int i=0;i<lstart.Count();i++) fprintf(stderr,"s=%d start at coord %d with cov=%f\n",s,lstart[i].predno,lstart[i].cov);
+	    		for(int i=0;i<lend.Count();i++) fprintf(stderr,"s=%d end at coord %d with cov=%f\n",s,lend[i].predno,lend[i].cov);
 
 	    	}
 	    }
@@ -3143,7 +3200,7 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 	    	}
 	    }
 
-	    //fprintf(stderr,"create graph 1\n");
+	    fprintf(stderr,"create graph 1\n");
 	    CGraphnode *graphnode=create_graphnode(s,g,currentstart,endbundle,graphno,bundlenode,bundle2graph,no2gnode); // creates a $graphno graphnode  with start at bundle start, and end at bundle end
 	    graphno++;
 
@@ -3158,7 +3215,7 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 	    			graphnode->parent.Add(node->nodeid); // this node has as parent the previous node
 	    			// COUNT EDGE HERE
 	    			edgeno++;
-	    			//fprintf(stderr,"1 Edge %d-%d, edgeno=%d\n",node->nodeid,graphnode->nodeid,edgeno);
+	    			fprintf(stderr,"1 Edge %d-%d, edgeno=%d\n",node->nodeid,graphnode->nodeid,edgeno);
 	    		}
 	    	}
 	    	else { // I haven't seen nodes before that finish here (maybe due to error correction?) => link to source
@@ -3166,7 +3223,7 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 		    	graphnode->parent.Add(source->nodeid); // this node has source as parent
 		    	// COUNT EDGE HERE
 		    	edgeno++;
-		    	//fprintf(stderr,"2 Edge 0-%d, edgeno=%d\n",graphnode->nodeid,edgeno);
+		    	fprintf(stderr,"2 Edge 0-%d, edgeno=%d\n",graphnode->nodeid,edgeno);
 	    	}
 	    }
 	    else { // this node comes from source directly
@@ -3174,7 +3231,7 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 	    	graphnode->parent.Add(source->nodeid); // this node has source as parent
 	    	// COUNT EDGE HERE
 			edgeno++;
-			//fprintf(stderr,"3 Edge 0-%d, edgeno=%d\n",graphnode->nodeid,edgeno);
+			fprintf(stderr,"3 Edge 0-%d, edgeno=%d\n",graphnode->nodeid,edgeno);
 	    }
 
 
@@ -3204,8 +3261,8 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 	    		}
 	    	}
 
-	    	//fprintf(stderr,"minjunction=%d\n",minjunction);
-	    	//if(nje<njunctions) fprintf(stderr,"Found junction:%d-%d(%d)\n",ejunction[nje]->start,ejunction[nje]->end,ejunction[nje]->strand);
+	    	fprintf(stderr,"minjunction=%d\n",minjunction);
+	    	if(nje<njunctions) fprintf(stderr,"Found junction:%d-%d(%d)\n",ejunction[nje]->start,ejunction[nje]->end,ejunction[nje]->strand);
 
 	    	if(minjunction == 0 ) { // found a start junction here
 
@@ -3247,7 +3304,7 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 	    				}
 	    			}
 	    		}
-	    		//if(trim && !processguide && !mergeMode) graphnode=trimnode(s,g,refstart,junction[njs]->start,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);// do something to find intermediate nodes; alternatively, I could only do this for end nodes
+	    		// if(trim && !processguide && !mergeMode) graphnode=trimnode(s,g,refstart,junction[njs]->start,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);// do something to find intermediate nodes; alternatively, I could only do this for end nodes
 	    		else if(longreads && (lstart.Count() || lend.Count())) graphnode=longtrim(s,g,refstart,junction[njs]->start,nls,nle,dropcov,true,lstart,lend,
 							graphnode,source,sink,futuretr,graphno,bpcov,bundlenode,bundle2graph,no2gnode,edgeno);
 	    		if(trim && !longreads && !mergeMode) graphnode=trimnode_all(s,g,refstart,junction[njs]->start,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);// do something to find intermediate nodes; alternatively, I could only do this for end nodes
@@ -3302,7 +3359,7 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 	    				nextnode->parent.Add(graphnode->nodeid);// make graphnode a parent of nextnode
 	    				// COUNT EDGE HERE
 	    				edgeno++;
-	    				//fprintf(stderr,"4 Edge %d-%d, edgeno=%d nextnode: %u-%u pos=%d\n",graphnode->nodeid,nextnode->nodeid,edgeno,nextnode->start,nextnode->end,pos);
+	    				fprintf(stderr,"4 Edge %d-%d, edgeno=%d nextnode: %u-%u pos=%d\n",graphnode->nodeid,nextnode->nodeid,edgeno,nextnode->start,nextnode->end,pos);
 	    				graphnode=nextnode;
 	    			}
 	    		}
@@ -3365,7 +3422,7 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 
 	    			// COUNT EDGE HERE
 	    			edgeno++;
-	    			//fprintf(stderr,"5 Edge %d-%d, edgeno=%d\n",graphnode->nodeid,nextnode->nodeid,edgeno);
+	    			fprintf(stderr,"5 Edge %d-%d, edgeno=%d\n",graphnode->nodeid,nextnode->nodeid,edgeno);
 
 	    			graphnode=nextnode;
 	    		}
@@ -3379,7 +3436,7 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 	    			graphnode->parent.Add(node->nodeid); // this node has as parent the previous node
 	    			// COUNT EDGE HERE
 	    			edgeno++;
-	    			//fprintf(stderr,"6 Edge %d-%d, edgeno=%d\n",node->nodeid,graphnode->nodeid,edgeno);
+	    			fprintf(stderr,"6 Edge %d-%d, edgeno=%d\n",node->nodeid,graphnode->nodeid,edgeno);
 	    		}
 	    	}
 
@@ -3428,15 +3485,18 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 	    	graphnode->end=endbundle;
 	    	// COUNT EDGE HERE (this is an edge to sink)
 	    	edgeno++;
-	    	//fprintf(stderr,"7 Edge to sink from %d, edgeno=%d\n",graphnode->nodeid,edgeno);
+	    	fprintf(stderr,"7 Edge to sink from %d, edgeno=%d\n",graphnode->nodeid,edgeno);
 	    }
 
 	    bundlenode=bundlenode->nextnode; // advance to next bundle
 	} // end while(bundlenode!=NULL)
 
-	//fprintf(stderr,"graphno=%d\n",graphno);
+	fprintf(stderr,"graphno=%d\n",graphno);
 
-	// add source/sink links for very high coverage drops
+	/*****************************
+	 ** 'get_cov_sign' function
+	 ** 	add source/sink links for very high coverage drops
+	 *****************************/
 	if(!mergeMode) for(int i=1;i<graphno;i++) {
 		float icov=0;
 		if(i>1 && no2gnode[s][g][i]->parent[0]) { // node i has parents, and does not come from source => might need to be linked to source
@@ -3462,7 +3522,7 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 				futuretr.Add(tmp);
 				tmp=(icov-parcov)/DROP;
 				futuretr.Add(tmp);
-				//fprintf(stderr,"Add link to source from node %d with abundance %f\n",i,tmp);
+				fprintf(stderr,"Add link to source from node %d with abundance %f\n",i,tmp);
 				edgeno++;
 			}
 		}
@@ -3502,7 +3562,10 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 		}
 	}
 
-	// here I know graphno => I can see if it's too big
+	/*****************************
+	 ** 'prune_graph_nodes' function
+	 ** 	here I know graphno => I can see if it's too big
+	 *****************************/
 	if(!mergeMode && graphno>allowed_nodes) { // TODO: define allowed_nodes as a default in stringtie.cpp that varies with the memory
 		graphno=prune_graph_nodes(graphno,s,g,bundle2graph,bnode.Count(),no2gnode,junction,edgeno,futuretr,sink);
 	}
@@ -3518,10 +3581,13 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 		}
 	}
 
-	//fprintf(stderr,"This graph has %d nodes and %d edges and starts at lastpos=%d\n",graphno,edgeno,graphno);
+	fprintf(stderr,"This graph has %d nodes and %d edges and starts at lastpos=%d\n",graphno,edgeno,graphno);
 	lastgpos=graphno; // nodes are from 0 to graphno-1, so the first "available" position in GBitVec is graphno
 
-	// now I can create the future transfrags because I know graphno
+	/*****************************
+	 ** 'CTransfrag' constructor
+	 ** 	now I can create the future transfrags because I know graphno
+	 *****************************/
 	for(int i=0;i<futuretr.Count();i+=3) {
 		// add links between node and sink
 		int n1=int(futuretr[i]);
@@ -3590,13 +3656,13 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 			}
 			CTransfrag *tr=new CTransfrag(nodes,trpat,futuretr[i+2]);
 
-			/*
+			// /*
 			{ // DEBUG ONLY
 				fprintf(stderr,"Add future transfrag[%d][%d]= %d with %d nodes n1=%d n2=%d graphno=%d, abundance=%f and pattern",s,g,transfrag[s][g].Count(),tr->nodes.Count(),n1,n2,graphno,futuretr[i+2]);
 				//printBitVec(trpat);
 				fprintf(stderr,"\n");
 			}
-			*/
+			// */
 
 			/*if(mixedMode) {
 				tr->abundance*=2;
@@ -3614,16 +3680,19 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 		}
 	}
 
-	// finished reading bundle -> now create the parents' and children's patterns
+	/*****************************
+	 ** 'traverse_dfs' function
+	 ** 	finished reading bundle -> now create the parents' and children's patterns
+	 *****************************/
 	GVec<bool> visit;
 	visit.Resize(graphno);
 	GBitVec parents(graphno+edgeno);
 
-	//fprintf(stderr,"traverse graph[%d][%d] now with %d nodes, %d edges and lastgpos=%d....\n",s,g,graphno,edgeno,lastgpos);//edgeno=0;
+	fprintf(stderr,"traverse graph[%d][%d] now with %d nodes, %d edges and lastgpos=%d....\n",s,g,graphno,edgeno,lastgpos);//edgeno=0;
 	traverse_dfs(s,g,source,sink,parents,graphno,visit,no2gnode,transfrag,edgeno,gpos,lastgpos);
-	//fprintf(stderr,"done traversing with edgeno=%d lastgpos=%d\n",edgeno,lastgpos);
+	fprintf(stderr,"done traversing with edgeno=%d lastgpos=%d\n",edgeno,lastgpos);
 
-	/*
+	// /*
 	{ //DEBUG ONLY
 		fprintf(stderr,"after traverse:\n");
 		for(int i=0;i<graphno;i++) {
@@ -3634,13 +3703,12 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 			fprintf(stderr,"\n");
 		}
 	}
-	*/
+	// */
 
 	// delete variables created here, like e.g. ends; do I need to delete the GVec<int> elements created too?
 	ends.Clear();
 
 	return(graphno);
-
 }
 
 
