@@ -47,20 +47,13 @@ extern bool retained_intron;
 
 extern FILE* f_out;
 
-
-
-
-
-/******************
+/****************
  **  KH Adding 
- ******************/
-extern FILE* f_dot_out;
-/******************
+****************/
+extern FILE* uinigraph_out;
+/****************
  **  END KH Adding 
- ******************/
-
-
-
+****************/
 
 
 
@@ -3779,18 +3772,18 @@ fprintf(stdout, "Start 'create_graph'\n");
  ****************/
 fprintf(stdout, "Start writing out DOT file!!\n");
 	fprintf(stderr,"after traverse:\n");
-	fprintf(stderr,"strict digraph %d_%d_%d {\n", refstart, s, g);
+
+	fprintf(uinigraph_out,"strict digraph %d_%d_%d {\n", refstart, s, g);
 	// graphno: number of nodes in graph.
 	for(int i=0;i<graphno;i++) {
 		// fprintf(stderr,"Node %d with parents:",i);
 		for(int c=0;c<no2gnode[s][g][i]->child.Count();c++) {
-			fprintf(stderr,"\t %d -> ",i);
-			
-			fprintf(stderr, " %d\n", no2gnode[s][g][i]->child[c]);
+			fprintf(uinigraph_out,"\t %d -> ",i);			
+			fprintf(uinigraph_out, " %d\n", no2gnode[s][g][i]->child[c]);
 			// fprintf(stderr,"%d [cov:%d capacity:%d rate:%d];\n",no2gnode[s][g][i]->child[c], no2gnode[s][g][i]->cov, no2gnode[s][g][i]->capacity, no2gnode[s][g][i]->rate);
 		}
 	}
-	fprintf(stderr,"}\n");
+	fprintf(uinigraph_out,"}\n");
 fprintf(stdout, "End of writing out DOT file!!\n");
 /****************
  **  END KH Adding 

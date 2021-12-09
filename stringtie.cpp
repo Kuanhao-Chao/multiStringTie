@@ -131,6 +131,14 @@ FILE* c_out=NULL;
 #ifdef B_DEBUG
  FILE* dbg_out=NULL;
 #endif
+/****************
+ **  KH Adding 
+ ****************/
+FILE* uinigraph_out = NULL;
+GStr uinigraphfname("./universal_graph.dot"); 
+/****************
+ **  END KH Adding 
+ ****************/
 
 GStr outfname;
 GStr out_dir;
@@ -305,7 +313,25 @@ int waitForData(BundleData* bundles);
 
 TInputFiles bamreader;
 
+
+
+
+
+
+
+
+
 int main(int argc, char* argv[]) {
+	/****************
+	 **  KH Adding 
+	****************/
+	// Writing out universal DOT file.
+	uinigraph_out = fopen(uinigraphfname.chars(), "w");
+	fprintf(uinigraph_out,"Hello world!");
+	/****************
+	 **  END KH Adding 
+	****************/
+
 	/*****************************
 	 * Process arguments.
 	 *****************************/
@@ -970,6 +996,16 @@ int main(int argc, char* argv[]) {
 #ifdef GMEMTRACE
  	if(verbose) GMessage(" Max bundle memory: %6.1fMB for bundle %s\n", maxMemRS/1024, maxMemBundle.chars());
 #endif
+
+
+/****************
+ **  KH Adding 
+ ****************/
+	fclose(uinigraph_out);
+/****************
+ **  END KH Adding 
+ ****************/
+
 } // -- END main
 
 
