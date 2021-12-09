@@ -327,7 +327,6 @@ int main(int argc, char* argv[]) {
 	****************/
 	// Writing out universal DOT file.
 	uinigraph_out = fopen(uinigraphfname.chars(), "w");
-	fprintf(uinigraph_out,"Hello world!");
 	/****************
 	 **  END KH Adding 
 	****************/
@@ -652,6 +651,9 @@ int main(int argc, char* argv[]) {
 			new_bundle=true; //fake a new start (end of last bundle)
 		}
 
+		/*****************************
+		 * Condition to start processing reads in the previous bundle
+		 *****************************/
 		if (new_bundle || chr_changed) {
 			hashread.Clear();
 			if (bundle->readlist.Count()>0) { // process reads in previous bundle
@@ -824,9 +826,11 @@ int main(int argc, char* argv[]) {
 			bundle->end=currentend;
 		} //<---- new bundle started
 
+		/*****************************
+		 * current read extends the bundle
+		 * 	this might not happen if a longer guide had already been added to the bundle
+		 *****************************/
 		if (currentend<(int)brec->end) {
-			//current read extends the bundle
-			//this might not happen if a longer guide had already been added to the bundle
 			currentend=brec->end;
 			if (guides) { //add any newly overlapping guides to bundle
 				bool cend_changed;
@@ -850,8 +854,13 @@ int main(int argc, char* argv[]) {
 		} //adjusted currentend and checked for overlapping reference transcripts
 		GReadAlnData alndata(brec, 0, nh, hi, tinfo);
 		bool ovlpguide=bundle->evalReadAln(alndata, xstrand);
-		if(!eonly || ovlpguide) { // in eonly case consider read only if it overlaps guide
-			//check for overlaps with ref transcripts which may set xstrand
+
+		/*****************************
+		 * in eonly case consider read only if it overlaps guide
+		 * 	check for overlaps with ref transcripts which may set xstrand
+		 *****************************/
+		// eonly: for mergeMode includes estimated coverage sum in the merged transcripts
+		if(!eonly || ovlpguide) {
 			if (xstrand=='+') alndata.strand=1;
 			else if (xstrand=='-') alndata.strand=-1;
 			//GMessage("%s\t%c\t%d\thi=%d\n",brec->name(), xstrand, alndata.strand,hi);
@@ -1530,9 +1539,9 @@ void processBundle(BundleData* bundle) {
 	}
 
 	if (verbose) {
-		#ifndef NOTHREADS
-				GLockGuard<GFastMutex> lock(logMutex);
-		#endif
+#ifndef NOTHREADS
+		GLockGuard<GFastMutex> lock(logMutex);
+#endif
 	  /*
 	  SumReads+=bundle->sumreads;
 	  SumFrag+=bundle->sumfrag;
@@ -1544,20 +1553,20 @@ void processBundle(BundleData* bundle) {
 	  fprintf(stderr,"Number of fragments in bundle: %g with length %g\n",bundle->num_fragments,bundle->frag_len);
 	  fprintf(stderr,"Number of fragments in bundle: %g with sum %g\n",bundle->num_fragments,bundle->frag_len);
 	  */
-	  printTime(stderr);
-	  GMessage("^bundle %s:%d-%d done (%d processed potential transcripts).\n",bundle->refseq.chars(),
-	  		bundle->start, bundle->end, bundle->pred.Count());
-	#ifdef GMEMTRACE
-		    double vm,rsm;
-		    get_mem_usage(vm, rsm);
-		    GMessage("\t\tfinal memory usage: %6.1fMB\n",rsm/1024);
-		    if (rsm>maxMemRS) {
-			    maxMemRS=rsm;
-			    maxMemVM=vm;
-			    maxMemBundle.format("%s:%d-%d(%d)", bundle->refseq.chars(), bundle->start, bundle->end, bundle->readlist.Count());
-		    }
-	#endif
-	    }
+		printTime(stderr);
+		GMessage("^bundle %s:%d-%d done (%d processed potential transcripts).\n",bundle->refseq.chars(),
+				bundle->start, bundle->end, bundle->pred.Count());
+#ifdef GMEMTRACE
+		double vm,rsm;
+		get_mem_usage(vm, rsm);
+		GMessage("\t\tfinal memory usage: %6.1fMB\n",rsm/1024);
+		if (rsm>maxMemRS) {
+			maxMemRS=rsm;
+			maxMemVM=vm;
+			maxMemBundle.format("%s:%d-%d(%d)", bundle->refseq.chars(), bundle->start, bundle->end, bundle->readlist.Count());
+		}
+#endif
+	}
 	bundle->Clear();
 }
 
@@ -1729,7 +1738,7 @@ void writeUnbundledGuides(GVec<GRefData>& refdata, FILE* fout, FILE* gout) {
 			RC_TData &td = *(RC_TData*) (t.uptr);
 			if (td.in_bundle) {
 				if (gout && m==crefd.rnas.Count()-1)
-						writeUnbundledGenes(geneabs, crefd.gseq_name, gout);
+					writeUnbundledGenes(geneabs, crefd.gseq_name, gout);
 				continue;
 			}
 			//write these guides to output

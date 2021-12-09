@@ -431,7 +431,7 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 	*/
 
 	if((int)brec.end>currentend) {
-			currentend=brec.end;
+		currentend=brec.end;
 	  	bdata.end=currentend;
 	}
 
@@ -3770,21 +3770,22 @@ fprintf(stdout, "Start 'create_graph'\n");
 /****************
  **  KH Adding 
  ****************/
-fprintf(stdout, "Start writing out DOT file!!\n");
+	fprintf(stdout, "Start writing out DOT file!!\n");
 	fprintf(stderr,"after traverse:\n");
 
-	fprintf(uinigraph_out,"strict digraph %d_%d_%d {\n", refstart, s, g);
+	fprintf(uinigraph_out,"strict digraph %d_%d_%d {", refstart, s, g);
 	// graphno: number of nodes in graph.
 	for(int i=0;i<graphno;i++) {
 		// fprintf(stderr,"Node %d with parents:",i);
 		for(int c=0;c<no2gnode[s][g][i]->child.Count();c++) {
-			fprintf(uinigraph_out,"\t %d -> ",i);			
-			fprintf(uinigraph_out, " %d\n", no2gnode[s][g][i]->child[c]);
-			// fprintf(stderr,"%d [cov:%d capacity:%d rate:%d];\n",no2gnode[s][g][i]->child[c], no2gnode[s][g][i]->cov, no2gnode[s][g][i]->capacity, no2gnode[s][g][i]->rate);
+			fprintf(uinigraph_out,"%d->",i);			
+			// fprintf(uinigraph_out, "%d", no2gnode[s][g][i]->child[c]);
+			fprintf(uinigraph_out,"%d[cov:%f capacity:%f rate:%f];",no2gnode[s][g][i]->child[c], no2gnode[s][g][i]->cov, no2gnode[s][g][i]->capacity, no2gnode[s][g][i]->rate);
 		}
 	}
+
 	fprintf(uinigraph_out,"}\n");
-fprintf(stdout, "End of writing out DOT file!!\n");
+	fprintf(stdout, "End of writing out DOT file!!\n");
 /****************
  **  END KH Adding 
  ****************/
@@ -13258,14 +13259,16 @@ int build_graphs(BundleData* bdata) {
 	// parameter -e ; for mergeMode includes estimated coverage sum in the merged transcripts
 	GVec<int> guidepred; // for eonly keeps the prediction number associated with a guide
 	GArray<GEdge> guideedge; // 0: negative starts; 1 positive starts
-	/*GPVec<GPtFeature>& feature = bdata->ptfs; // these are point features (confirmed starts/stops)
+	// /*
+	GPVec<GPtFeature>& feature = bdata->ptfs; // these are point features (confirmed starts/stops)
 
 	for(int i=0;i<feature.Count();i++) {
 		if(feature[i]->ftype==GPFT_TSS)
 			fprintf(stderr,"TSS at position %d on strand %d\n",feature[i]->coord,feature[i]->strand);
 		if(feature[i]->ftype==GPFT_CPAS)
 			fprintf(stderr,"CPAS at position %d on strand %d\n",feature[i]->coord,feature[i]->strand);
-	}*/
+	}
+	// */
 
 	//fprintf(stderr,"build_graphs with %d guides\n",guides.Count());
 
