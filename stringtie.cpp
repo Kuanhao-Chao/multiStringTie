@@ -341,6 +341,22 @@ int main(int argc, char* argv[]) {
 	args.printError(USAGE, true);
 	processOptions(args);
 
+	fprintf(stderr, "outfname\n");
+	fprintf(stderr, outfname);
+	fprintf(stderr, "out_dir\n");
+	fprintf(stderr, out_dir);
+	fprintf(stderr, "tmp_path\n");
+	fprintf(stderr, tmp_path);
+	fprintf(stderr, "cram_ref\n");
+	fprintf(stderr, cram_ref);
+	fprintf(stderr, "tmpfname\n");
+	fprintf(stderr, tmpfname);
+	fprintf(stderr, "genefname\n");
+	fprintf(stderr, genefname);
+	fprintf(stderr, "traindir\n");
+	fprintf(stderr, traindir);
+
+
 	GVec<GRefData> refguides; // plain vector with transcripts for each chromosome
 
 	GArray<GRefPtData> refpts(true, true); // sorted,unique array of refseq point-features data
@@ -657,7 +673,7 @@ int main(int argc, char* argv[]) {
 				}
 				bundle->gseq=faseq->copyRange(bundle->start, bundle->end, false, true);
 			}
-	#ifndef NOTHREADS
+#ifndef NOTHREADS
 			//push this in the bundle queue where it'll be picked up by the threads
 			DBGPRINT2("##> Locking queueMutex to push loaded bundle into the queue (bundle.start=%d)\n", bundle->start);
 			int qCount=0;
@@ -689,24 +705,24 @@ int main(int argc, char* argv[]) {
 			}
 			queueMutex.unlock();
 
-	#else //no threads
+#else //no threads
 			//Num_Fragments+=bundle->num_fragments;
 			//Frag_Len+=bundle->frag_len;
 			processBundle(bundle);
-	#endif
+#endif
 			// ncluster++; used it for debug purposes only
 			} //have alignments to process
 			else { //no read alignments in this bundle?
-	#ifndef NOTHREADS
+#ifndef NOTHREADS
 			dataMutex.lock();
 			DBGPRINT2("##> dataMutex locked for bundle #%d clearing..\n", bundle->idx);
-	#endif
+#endif
 			bundle->Clear();
-	#ifndef NOTHREADS
+#ifndef NOTHREADS
 			dataClear.Push(bundle->idx);
 			DBGPRINT2("##> dataMutex unlocking as dataClear got pushed idx #%d\n", bundle->idx);
 			dataMutex.unlock();
-	#endif
+#endif
 			} //nothing to do with this bundle
 
 			if (chr_changed) {
@@ -948,6 +964,7 @@ int main(int argc, char* argv[]) {
 					}
 					for(int i=0;i<nl;i++) {
 						fgetline(linebuf,linebuflen,ftmp_in);
+						// fprintf(stderr,linebuf);
 						if(!i) {
 							//linebuf[strlen(line)-1]='\0';
 							fprintf(f_out,"%s",linebuf);
@@ -1309,49 +1326,50 @@ void processOptions(GArgs& args) {
 	//deferred creation of output path
 	outfname="stdout";
 	out_dir="./";
-	 if (!tmpfname.is_empty() && tmpfname!="-") {
-		 if (tmpfname[0]=='.' && tmpfname[1]=='/')
-			 tmpfname.cut(0,2);
-		 outfname=tmpfname;
-		 int pidx=outfname.rindex('/');
-		 if (pidx>=0) {//path given
-			 out_dir=outfname.substr(0,pidx+1);
-			 tmpfname=outfname.substr(pidx+1);
-		 }
-	 }
-	 else { // stdout
-		tmpfname=outfname;
-		char *stime=sprintTime();
-		tmpfname.tr(":","-");
-		tmpfname+='.';
-		tmpfname+=stime;
-	 }
-	 if (out_dir!="./") {
-		 if (fileExists(out_dir.chars())==0) {
-			//directory does not exist, create it
-			if (Gmkdir(out_dir.chars()) && !fileExists(out_dir.chars())) {
-				GError("Error: cannot create directory %s!\n", out_dir.chars());
-			}
-		 }
-	 }
+	if (!tmpfname.is_empty() && tmpfname!="-") {
+		if (tmpfname[0]=='.' && tmpfname[1]=='/')
+			tmpfname.cut(0,2);
+		outfname=tmpfname;
+		int pidx=outfname.rindex('/');
+		if (pidx>=0) {//path given
+			out_dir=outfname.substr(0,pidx+1);
+			tmpfname=outfname.substr(pidx+1);
+		}
+	}
+	else { // stdout
+	tmpfname=outfname;
+	char *stime=sprintTime();
+	tmpfname.tr(":","-");
+	tmpfname+='.';
+	tmpfname+=stime;
+	}
+	if (out_dir!="./") {
+		if (fileExists(out_dir.chars())==0) {
+		//directory does not exist, create it
+		if (Gmkdir(out_dir.chars()) && !fileExists(out_dir.chars())) {
+			GError("Error: cannot create directory %s!\n", out_dir.chars());
+		}
+		}
+	}
+
 	 if (!genefname.is_empty()) {
-		 if (genefname[0]=='.' && genefname[1]=='/')
-		 			 genefname.cut(0,2);
-	 //attempt to create the gene abundance path
-		 GStr genefdir("./");
-		 int pidx=genefname.rindex('/');
-		 if (pidx>=0) { //get the path part
-				 genefdir=genefname.substr(0,pidx+1);
-				 //genefname=genefname.substr(pidx+1);
-		 }
-		 if (genefdir!="./") {
-			 if (fileExists(genefdir.chars())==0) {
+		if (genefname[0]=='.' && genefname[1]=='/')
+			genefname.cut(0,2);
+	//attempt to create the gene abundance path
+		GStr genefdir("./");
+		int pidx=genefname.rindex('/');
+		if (pidx>=0) { //get the path part
+			genefdir=genefname.substr(0,pidx+1);
+			//genefname=genefname.substr(pidx+1);
+		}
+		if (genefdir!="./") {
+			if (fileExists(genefdir.chars())==0) {
 				//directory does not exist, create it
 				if (Gmkdir(genefdir.chars()) || !fileExists(genefdir.chars())) {
 					GError("Error: cannot create directory %s!\n", genefdir.chars());
 				}
-			 }
-		 }
+			}
+		}
 
 	 }
 
