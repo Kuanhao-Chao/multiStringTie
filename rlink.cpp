@@ -14744,8 +14744,14 @@ int build_graphs(BundleData* bdata) {
     			if(single_count>epsilon) {
     				get_fragment_pattern(readlist,n,-1,single_count,readgroup,merge,group2bundle,bundle2graph,graphno,edgeno,gpos,no2gnode,transfrag,tr2no,group);
     			}
+				// Get the read count for each node 
 			//}
     	}
+
+//  DOT file outut here 
+//  not capacity and rate 
+//  only edge weight
+
 
 
 /*
@@ -14796,6 +14802,9 @@ int build_graphs(BundleData* bdata) {
     				//process transfrags to eliminate noise, and set compatibilities, and node memberships
     				process_transfrags(s,graphno[s][b],edgeno[s][b],no2gnode[s][b],transfrag[s][b],tr2no[s][b],gpos[s][b],guidetrf,pred,trflong);
     				//get_trf_long(graphno[s][b],edgeno[s][b], gpos[s][b],no2gnode[s][b],transfrag[s][b],geneno,s,pred,trflong);
+
+
+
 
     				// /*
     				{ //DEBUG ONLY
