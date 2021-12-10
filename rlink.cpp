@@ -2,10 +2,11 @@
 #include "GBitVec.h"
 #include <float.h>
 
-//#define GMEMTRACE 1  //debugging memory allocation
+#define GMEMTRACE 1  //debugging memory allocation
 #ifdef GMEMTRACE
 #include "proc_mem.h"
 #endif
+
 
 #define BSIZE 10000 // bundle size
 
@@ -3767,28 +3768,28 @@ fprintf(stdout, "Start 'create_graph'\n");
 
 
 
-/****************
- **  KH Adding 
- ****************/
-	fprintf(stdout, "Start writing out DOT file!!\n");
-	fprintf(stderr,"after traverse:\n");
+// /****************
+//  **  KH Adding 
+//  ****************/
+// 	fprintf(stdout, "Start writing out DOT file!!\n");
+// 	fprintf(stderr,"after traverse:\n");
 
-	fprintf(uinigraph_out,"strict digraph %d_%d_%d {", refstart, s, g);
-	// graphno: number of nodes in graph.
-	for(int i=0;i<graphno;i++) {
-		// fprintf(stderr,"Node %d with parents:",i);
-		for(int c=0;c<no2gnode[s][g][i]->child.Count();c++) {
-			fprintf(uinigraph_out,"%d->",i);			
-			// fprintf(uinigraph_out, "%d", no2gnode[s][g][i]->child[c]);
-			fprintf(uinigraph_out,"%d[cov:%f capacity:%f rate:%f];",no2gnode[s][g][i]->child[c], no2gnode[s][g][i]->cov, no2gnode[s][g][i]->capacity, no2gnode[s][g][i]->rate);
-		}
-	}
+// 	fprintf(uinigraph_out,"strict digraph %d_%d_%d {", refstart, s, g);
+// 	// graphno: number of nodes in graph.
+// 	for(int i=0;i<graphno;i++) {
+// 		// fprintf(stderr,"Node %d with parents:",i);
+// 		for(int c=0;c<no2gnode[s][g][i]->child.Count();c++) {
+// 			fprintf(uinigraph_out,"%d->",i);			
+// 			// fprintf(uinigraph_out, "%d", no2gnode[s][g][i]->child[c]);
+// 			fprintf(uinigraph_out,"%d[cov:%f capacity:%f rate:%f];",no2gnode[s][g][i]->child[c], no2gnode[s][g][i]->cov, no2gnode[s][g][i]->capacity, no2gnode[s][g][i]->rate);
+// 		}
+// 	}
 
-	fprintf(uinigraph_out,"}\n");
-	fprintf(stdout, "End of writing out DOT file!!\n");
-/****************
- **  END KH Adding 
- ****************/
+// 	fprintf(uinigraph_out,"}\n");
+// 	fprintf(stdout, "End of writing out DOT file!!\n");
+// /****************
+//  **  END KH Adding 
+//  ****************/
 
 
 
@@ -4027,11 +4028,15 @@ void free_treepat(CTreePat *t){
 
 CTreePat *construct_treepat(int gno, GIntHash<int>& gpos,GPVec<CTransfrag>& transfrag) {
 
-	// create root CTreePat first
+	/**********************
+	 ** create root CTreePat first
+	 **********************/
 	CTreePat *root=new CTreePat(0,gno-1); // if links from source to nodes are desired source==1 and all nodes are treated as +1
 
-	// now construct all child CTreePat's
-	//fprintf(stderr,"There are %d transfrags\n",transfrag.Count());
+	/**********************
+	 ** now construct all child CTreePat's
+	 **********************/
+	fprintf(stderr,"There are %d transfrags\n",transfrag.Count());
 	for(int t=0;t<transfrag.Count();t++)
 		if(transfrag[t]->nodes[0]){ // don't include transfrags from source -> not needed
 			CTreePat *tree=root;
@@ -4096,9 +4101,12 @@ CTreePat *construct_treepat(int gno, GIntHash<int>& gpos,GPVec<CTransfrag>& tran
 void print_pattern(CTreePat *tree,GStr& pattern,int gno) {
 	if(!tree) return;
 	pattern+=tree->nodeno;
+	fprintf(stderr,"pat outside: %s\n",pattern.chars());
 
 	if(tree->tr) {
 		fprintf(stderr,"pat: %s %f\n",pattern.chars(),tree->tr->abundance);
+		fprintf(stderr,"pattern: %s\n",pattern.chars());
+		fprintf(stderr,"abundance: %f\n",tree->tr->abundance);
 	}
 
 	for(int i=0;i<tree->childno;i++)
@@ -14642,7 +14650,9 @@ int build_graphs(BundleData* bdata) {
     				*/
 
     				// here I can add something in stringtie to lower the mintranscript len if there are guides?
-
+					/*****************************
+					 ** bundle is worth processing: it might be that there are small transfrags from source to sink that are worth processing
+					 *****************************/
     				if(bundle[sno][b]->cov &&
     						(((bundle[sno][b]->multi/bundle[sno][b]->cov)<=mcov && bundle[sno][b]->len >= mintranscriptlen)
     								||nolap)) { // bundle is worth processing: it might be that there are small transfrags from source to sink that are worth processing
@@ -14668,14 +14678,43 @@ int build_graphs(BundleData* bdata) {
 
     					if(graphno[s][b]) tr2no[s][b]=construct_treepat(graphno[s][b],gpos[s][b],transfrag[s][b]);
     					else tr2no[s][b]=NULL;
+
+/****************
+ **  KH Adding 
+ ****************/
+	fprintf(stdout, "Start writing out DOT file!!\n");
+	fprintf(stderr,"after traverse:\n");
+
+	fprintf(uinigraph_out,"strict digraph %d_%d_%d {", refstart, s, b);
+	// graphno[s][b]: number of nodes in graph.
+	if(graphno[s][b]) {
+		for(int nd=1;nd<graphno[s][b]-1;nd++)
+			fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f capacity=%f rate=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov, no2gnode[s][b][nd]->capacity, no2gnode[s][b][nd]->rate);
+
+		for(int nd=0;nd<graphno[s][b];nd++) {
+			// fprintf(stderr,"Node %d with parents:",i);
+			for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
+				fprintf(uinigraph_out,"%d->",nd);			
+				fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
+			}
+		}
+	}
+	fprintf(uinigraph_out,"}\n");
+	fprintf(stdout, "End of writing out DOT file!!\n");
+/****************
+ **  END KH Adding 
+ ****************/
     				}
     				else tr2no[s][b]=NULL;
     			}
     		}
     	}
-    	//fprintf(stderr,"Done creating graphs\n");
+    	fprintf(stderr,"Done creating graphs\n");
 
-    	/*
+
+
+
+    	// /*
     	{ // DEBUG ONLY
     		printTime(stderr);
     		for(int s=0;s<2;s++) {
@@ -14687,12 +14726,12 @@ int build_graphs(BundleData* bdata) {
     					for(int nd=1;nd<graphno[s][b]-1;nd++)
     						fprintf(stderr," %d(%d-%d)",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end);
     					fprintf(stderr,"\n");
-    					//print_pattern(tr2no[s][b],pat,graphno[s][b]);
+    					print_pattern(tr2no[s][b],pat,graphno[s][b]);
     				}
     			}
     		}
     	}
-    	*/
+    	// */
 
 
 /*
@@ -14712,9 +14751,11 @@ int build_graphs(BundleData* bdata) {
     	}
 
 
-    	// 	** 1. compute probabilities for stranded bundles
-		// 		'get_fragment_pattern' function
-    	// 			because of this going throu
+		/*****************************
+		 ** 1. compute probabilities for stranded bundles
+		 **    'get_fragment_pattern' function
+		 **        because of this going throu
+		 *****************************/
     	for (int n=0;n<readlist.Count();n++) {
 
 	  /*if(readlist[n]->unitig) { // super-reads are unpaired
@@ -14756,18 +14797,20 @@ int build_graphs(BundleData* bdata) {
     	group.Clear();
 
 
-    	// 	** 1. parse graph
-		// 		'process_refguides' & 'process_transfrags' & 'find_transcripts' & 'free_treepat'
+		/*****************************
+		 ** 1. parse graph
+		 **    'process_refguides' & 'process_transfrags' & 'find_transcripts' & 'free_treepat'
+		 *****************************/
     	for(int s=0;s<2;s++) {
 
     		for(int b=0;b<bno[s];b++) {
-    			//fprintf(stderr,"Process graph[%d][%d] with %d nodes\n",s,b,graphno[s][b]);
+    			fprintf(stderr,"Process graph[%d][%d] with %d nodes\n",s,b,graphno[s][b]);
     			if(graphno[s][b]) {
 
     				// include source to guide starts links
     				GVec<CGuide> guidetrf;
 
-    				/*
+    				// /*
     				{ // DEBUG ONLY
     					fprintf(stderr,"process refguides for s=%d b=%d edgeno=%d gno=%d lastgpos=%d guidescount=%d\n",s,b,edgeno[s][b],graphno[s][b],lastgpos[s][b],guides.Count());
     					fprintf(stderr,"There are %d nodes for graph[%d][%d]:\n",graphno[s][b],s,b);
@@ -14780,7 +14823,7 @@ int build_graphs(BundleData* bdata) {
     						fprintf(stderr,"\n");
     					}
     				}
-    				*/
+    				// */
 
     				if(guides.Count()) process_refguides(graphno[s][b],edgeno[s][b],gpos[s][b],lastgpos[s][b],no2gnode[s][b],transfrag[s][b],s,guidetrf,bdata);
 
@@ -14789,7 +14832,7 @@ int build_graphs(BundleData* bdata) {
     				process_transfrags(s,graphno[s][b],edgeno[s][b],no2gnode[s][b],transfrag[s][b],tr2no[s][b],gpos[s][b],guidetrf,pred,trflong);
     				//get_trf_long(graphno[s][b],edgeno[s][b], gpos[s][b],no2gnode[s][b],transfrag[s][b],geneno,s,pred,trflong);
 
-    				/*
+    				// /*
     				{ //DEBUG ONLY
     					//printTime(stderr);
     					fprintf(stderr,"There are %d nodes for graph[%d][%d]:\n",graphno[s][b],s,b);
@@ -14814,7 +14857,7 @@ int build_graphs(BundleData* bdata) {
     					}
 
     				}
-    				*/
+    				// */
 
 /*
 #ifdef GMEMTRACE
@@ -14824,7 +14867,7 @@ int build_graphs(BundleData* bdata) {
 #endif
 */
 
-    				//fprintf(stderr,"guidetrf no=%d\n",guidetrf.Count());
+    				fprintf(stderr,"guidetrf no=%d\n",guidetrf.Count());
 
     				//if(!longreads) {
     				// find transcripts now
@@ -14833,12 +14876,12 @@ int build_graphs(BundleData* bdata) {
     				//}
     				for(int g=0;g<guidetrf.Count();g++) delete guidetrf[g].trf;
 
-    				/*
+    				// /*
     				{ //DEBUG ONLY
     					printTime(stderr);
     					fprintf(stderr,"Processed transcripts for s=%d b=%d\n",s,b);
     				}
-    				*/
+    				// */
 
 /*
 #ifdef GMEMTRACE
@@ -14880,7 +14923,7 @@ int build_graphs(BundleData* bdata) {
 #endif
 */
 
-    /*
+    // /*
     { // DEBUG ONLY
     	for(int i=0;i<pred.Count();i++) {
     		if(pred[i]->t_eq) fprintf(stderr,"%s ",pred[i]->t_eq->getID());
@@ -14889,7 +14932,7 @@ int build_graphs(BundleData* bdata) {
     		fprintf(stderr,"\n");
     	}
     }
-    */
+    // */
 
     // don't forget to clean up the allocated data here
     return(geneno);
