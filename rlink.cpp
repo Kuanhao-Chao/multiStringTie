@@ -3756,43 +3756,6 @@ fprintf(stdout, "Start 'create_graph'\n");
 	}
 	*/
 
-
-
-
-
-
-
-
-
-
-
-
-
-// /****************
-//  **  KH Adding 
-//  ****************/
-// 	fprintf(stdout, "Start writing out DOT file!!\n");
-// 	fprintf(stderr,"after traverse:\n");
-
-// 	fprintf(uinigraph_out,"strict digraph %d_%d_%d {", refstart, s, g);
-// 	// graphno: number of nodes in graph.
-// 	for(int i=0;i<graphno;i++) {
-// 		// fprintf(stderr,"Node %d with parents:",i);
-// 		for(int c=0;c<no2gnode[s][g][i]->child.Count();c++) {
-// 			fprintf(uinigraph_out,"%d->",i);			
-// 			// fprintf(uinigraph_out, "%d", no2gnode[s][g][i]->child[c]);
-// 			fprintf(uinigraph_out,"%d[cov:%f capacity:%f rate:%f];",no2gnode[s][g][i]->child[c], no2gnode[s][g][i]->cov, no2gnode[s][g][i]->capacity, no2gnode[s][g][i]->rate);
-// 		}
-// 	}
-
-// 	fprintf(uinigraph_out,"}\n");
-// 	fprintf(stdout, "End of writing out DOT file!!\n");
-// /****************
-//  **  END KH Adding 
-//  ****************/
-
-
-
 	// delete variables created here, like e.g. ends; do I need to delete the GVec<int> elements created too?
 	ends.Clear();
 
@@ -14699,11 +14662,13 @@ int build_graphs(BundleData* bdata) {
 			}
 		}
 	}
+
 	fprintf(uinigraph_out,"}\n");
 	fprintf(stdout, "End of writing out DOT file!!\n");
 /****************
  **  END KH Adding 
  ****************/
+
     				}
     				else tr2no[s][b]=NULL;
     			}
@@ -14837,7 +14802,7 @@ int build_graphs(BundleData* bdata) {
     					//printTime(stderr);
     					fprintf(stderr,"There are %d nodes for graph[%d][%d]:\n",graphno[s][b],s,b);
     					for(int i=0;i<graphno[s][b];i++) {
-    						fprintf(stderr,"%d (%d-%d): %f len=%d cov=%f",i,no2gnode[s][b][i]->start,no2gnode[s][b][i]->end,no2gnode[s][b][i]->cov,no2gnode[s][b][i]->len(),no2gnode[s][b][i]->cov/no2gnode[s][b][i]->len());
+    						fprintf(stderr,"%d (%d-%d): %f len=%d cov=%f capacity=%f rate=%f",i,no2gnode[s][b][i]->start,no2gnode[s][b][i]->end,no2gnode[s][b][i]->cov,no2gnode[s][b][i]->len(),no2gnode[s][b][i]->cov/no2gnode[s][b][i]->len(), no2gnode[s][b][i]->capacity, no2gnode[s][b][i]->rate);
     						fprintf(stderr," parents:");
     						for(int j=0;j<no2gnode[s][b][i]->parent.Count();j++) fprintf(stderr," %d",no2gnode[s][b][i]->parent[j]);
     						fprintf(stderr," children:");
