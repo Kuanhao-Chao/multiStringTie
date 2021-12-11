@@ -364,7 +364,7 @@ struct CReadAln:public GSeg {
 	//DEBUG ONLY:
 	// GStr name;
 	char strand; // 1, 0 (unkown), -1 (reverse)
-	short int nh;
+	short int nh;			// number of reported alignments that contain the query in the current record.
 	uint len;
 	float read_count;       // keeps count for all reads (including paired and unpaired)
 	bool unitig:1;			// set if read come from an unitig

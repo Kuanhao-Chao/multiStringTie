@@ -2958,7 +2958,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 
 	fprintf(stderr,"Start graph[%d][%d] with %d edgeno and lastgpos=%d\n",s,g,edgeno,lastgpos);
 
-	/*
+	// /*
 	{ // DEBUG ONLY
 		fprintf(stderr,"Junctions[%d][%d]: ",s,g);
 		for(int i=0;i<njunctions;i++) fprintf(stderr," %d-%d:%d",junction[i]->start,junction[i]->end,junction[i]->strand);
@@ -2971,7 +2971,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 		// for(int i=0;i<(*bundle2graph)->Count();i++) fprintf(stderr," %d-%d",(**bundle2graph)[i].ngraph,(**bundle2graph)[i].nodeno);
 		// fprintf(stderr,"\n");
 	}
-	*/
+	// */
 
 	/*****************************
 	 ** Check start & end of bundle nodes (swap if necessary)
@@ -4310,10 +4310,12 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 		GVec<CGraphinfo> **bundle2graph,GVec<int> *graphno,GVec<int> *edgeno, GIntHash<int> **gpos,GPVec<CGraphnode> **no2gnode,
 		GPVec<CTransfrag> **transfrag,CTreePat ***tr2no,GPVec<CGroup> &group) {
 
-	/*fprintf(stderr,"get fragment for read[%d]:%d-%d-%d-%d-%f with pair[%d] and longread=%d and exons: ",n,readlist[n]->start,readlist[n]->end,int(readlist[n]->strand),readlist[n]->nh,readlist[n]->read_count,np,readlist[n]->longread);
+	/*
+	fprintf(stderr,"get fragment for read[%d]:%d-%d-%d-%d-%f with pair[%d] and longread=%d and exons: ",n,readlist[n]->start,readlist[n]->end,int(readlist[n]->strand),readlist[n]->nh,readlist[n]->read_count,np,readlist[n]->longread);
 	for(int i=0;i<readlist[n]->segs.Count();i++) fprintf(stderr," %d-%d",readlist[n]->segs[i].start,readlist[n]->segs[i].end);
 	if(np>-1) for(int i=0;i<readlist[np]->segs.Count();i++) fprintf(stderr," %d-%d",readlist[np]->segs[i].start,readlist[np]->segs[i].end);
-	fprintf(stderr,"\n");*/
+	fprintf(stderr,"\n");
+	*/
 	uint rstart=readlist[n]->start; // this only works for unpaired long reads -> I will have to take into account the pair if I want to do it for all reads
 	uint rend=readlist[n]->end;
 	if(np>-1 && readlist[np]->end>rend) rend=readlist[np]->end;
@@ -14550,7 +14552,9 @@ int build_graphs(BundleData* bdata) {
     	int bno[2]={0,0};
 
 
-    	// 	** 1. build graph structure
+		/*****************************
+		 ** 1. build graph structure
+		 *****************************/
     	for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
 
         	// guides appear to be sorted by start --> CHECK THIS!!
@@ -14641,35 +14645,6 @@ int build_graphs(BundleData* bdata) {
 
     					if(graphno[s][b]) tr2no[s][b]=construct_treepat(graphno[s][b],gpos[s][b],transfrag[s][b]);
     					else tr2no[s][b]=NULL;
-
-// /****************
-//  **  KH Adding 
-//  ****************/
-// 	fprintf(stdout, "Start writing out DOT file!!\n");
-// 	fprintf(stderr,"after traverse:\n");
-
-// 	fprintf(uinigraph_out,"strict digraph %d_%d_%d {", refstart, s, b);
-// 	// graphno[s][b]: number of nodes in graph.
-// 	if(graphno[s][b]) {
-// 		for(int nd=1;nd<graphno[s][b]-1;nd++)
-// 			fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f capacity=%f rate=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov, no2gnode[s][b][nd]->capacity, no2gnode[s][b][nd]->rate);
-
-// 		for(int nd=0;nd<graphno[s][b];nd++) {
-// 			// fprintf(stderr,"Node %d with parents:",i);
-// 			for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
-// 				fprintf(uinigraph_out,"%d->",nd);			
-// 				fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
-// 			}
-// 		}
-// 	}
-
-// 	fprintf(uinigraph_out,"}\n");
-// 	fprintf(stdout, "End of writing out DOT file!!\n");
-// /****************
-//  **  END KH Adding 
-//  ****************/
-
-
     				}
     				else tr2no[s][b]=NULL;
     			}
@@ -14677,10 +14652,7 @@ int build_graphs(BundleData* bdata) {
     	}
     	fprintf(stderr,"Done creating graphs\n");
 
-
-
-
-    	// /*
+    	/*
     	{ // DEBUG ONLY
     		printTime(stderr);
     		for(int s=0;s<2;s++) {
@@ -14697,8 +14669,7 @@ int build_graphs(BundleData* bdata) {
     			}
     		}
     	}
-    	// */
-
+    	*/
 
 /*
 #ifdef GMEMTRACE
@@ -14708,6 +14679,7 @@ int build_graphs(BundleData* bdata) {
 #endif
 */
 
+		// Move the data cleaning after writing out the DOT file.
 		// // I can clean up some data here:
     	// for(int sno=0;sno<3;sno++) {
     	// 	int n=bnode[sno].Count();
@@ -14718,12 +14690,11 @@ int build_graphs(BundleData* bdata) {
 
 
 		/*****************************
-		 ** 1. compute probabilities for stranded bundles
+		 ** 2. compute probabilities for stranded bundles
 		 **    'get_fragment_pattern' function
 		 **        because of this going throu
 		 *****************************/
     	for (int n=0;n<readlist.Count();n++) {
-
 	  /*if(readlist[n]->unitig) { // super-reads are unpaired
     			float srcov=0;
     			for(int i=0;i<readlist[n]->segs.Count();i++)
@@ -14749,58 +14720,54 @@ int build_graphs(BundleData* bdata) {
 			//}
     	}
 
-//  DOT file outut here 
-//  not capacity and rate 
-//  only edge weight
-for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-    int s=sno/2; // adjusted strand due to ignoring neutral strand
-	// fprintf(stderr, ">>>> sno[%d]: ", sno);
-	for(int b=0;b<bundle[sno].Count();b++) {
-	// fprintf(stderr, ">>>> sno[%d][%d]: ", sno, b);
-/****************
- **  KH Adding 
- ****************/
-		fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
-		fprintf(stderr,"after traverse:\n");
 
-// uinigraph_out
-		if(graphno[s][b]) {
-			fprintf(uinigraph_out,"strict digraph %d_%d_%d {", refstart, s, b);
-			// graphno[s][b]: number of nodes in graph.
-			if(graphno[s][b]) {
-				for(int nd=1;nd<graphno[s][b]-1;nd++)
-					fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov);
+		/*****************************
+		 ** 3. Write out global splice graph in DOT format
+		*****************************/
+		/****************
+		 **  KH Adding 
+		****************/
+		//  DOT file outut here 
+		//  not capacity and rate 
+		//  only edge weight
+		for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+			int s=sno/2; // adjusted strand due to ignoring neutral strand
+			for(int b=0;b<bundle[sno].Count();b++) {
+				fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
+				fprintf(stderr,"after traverse:\n");
+				if(graphno[s][b]) {
+					fprintf(uinigraph_out,"strict digraph %d_%d_%d {", refstart, s, b);
+					// graphno[s][b]: number of nodes in graph.
+					if(graphno[s][b]) {
+						for(int nd=1;nd<graphno[s][b]-1;nd++)
+							fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov);
 
-				for(int nd=0;nd<graphno[s][b];nd++) {
-					// fprintf(stderr,"Node %d with parents:",i);
-					for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
-						fprintf(uinigraph_out,"%d->",nd);			
-						fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
+						for(int nd=0;nd<graphno[s][b];nd++) {
+							// fprintf(stderr,"Node %d with parents:",i);
+							for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
+								fprintf(uinigraph_out,"%d->",nd);			
+								fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
+							}
+						}
 					}
+					fprintf(uinigraph_out,"}\n");
 				}
 			}
-			fprintf(uinigraph_out,"}\n");
 		}
-	}
-/****************
- **  END KH Adding 
- ****************/
-}
+		/****************
+		 **  END KH Adding 
+		****************/
 
 
-
-
-		// I can clean up some data here:
+		/*****************************
+		 ** 4. I can clean up some data here:
+		*****************************/
     	for(int sno=0;sno<3;sno++) {
     		int n=bnode[sno].Count();
     		for(int b=0;b<n;b++) delete bnode[sno][b];
     		bnode[sno].Clear();
     		bundle[sno].Clear();
     	}
-
-
-
-
 
 /*
 #ifdef GMEMTRACE
@@ -14817,7 +14784,7 @@ for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have ju
 
 
 		/*****************************
-		 ** 1. parse graph
+		 ** 5. parse graph
 		 **    'process_refguides' & 'process_transfrags' & 'find_transcripts' & 'free_treepat'
 		 *****************************/
     	for(int s=0;s<2;s++) {
