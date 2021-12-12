@@ -158,11 +158,18 @@ endif
 
 OBJS += rlink.o tablemaker.o tmerge.o multist.o
 
-all release static static-cpp debug: stringtie${EXE}
-memcheck memdebug tsan tcheck thrcheck: stringtie${EXE}
-memuse memusage memtrace: stringtie${EXE}
-prof profile: stringtie${EXE}
-nothreads: stringtie${EXE}
+############################
+## KH ADD: compiling multistringtie
+all release static static-cpp debug: stringtie${EXE} multistringtie${EXE}
+memcheck memdebug tsan tcheck thrcheck: stringtie${EXE} multistringtie${EXE}
+memuse memusage memtrace: stringtie${EXE} multistringtie${EXE}
+prof profile: stringtie${EXE} multistringtie${EXE}
+nothreads: stringtie${EXE} multistringtie${EXE}
+
+multi: multistringtie${EXE}
+multistringtie.o : $(GDIR)/GBitVec.h $(GDIR)/GHashMap.hh $(GDIR)/GSam.h
+## END of KH ADD
+############################
 
 stringtie.o : $(GDIR)/GBitVec.h $(GDIR)/GHashMap.hh $(GDIR)/GSam.h
 rlink.o : rlink.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
@@ -176,6 +183,15 @@ multist.o : multist.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
 ${HTSLIB}/libhts.a:
 	cd ${HTSLIB} && ./build_lib.sh
 
+############################
+## KH ADD
+multistringtie${EXE}: ${HTSLIB}/libhts.a $(OBJS) multistringtie.o
+	${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
+	@echo
+	${DBG_WARN}
+## END of KH ADD
+############################
+
 stringtie${EXE}: ${HTSLIB}/libhts.a $(OBJS) stringtie.o
 	${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 	@echo
@@ -187,9 +203,13 @@ test demo tests: stringtie${EXE}
 # target for removing all object files
 
 #	echo $(PATH)
+############################
+## KH ADD
 clean:
 	${RM} stringtie${EXE} stringtie.o*  $(OBJS)
-	${RM} core.*
+	${RM} core.*  multistringtie${EXE} multistringtie.o*
+## END of KH ADD
+############################
 ##allclean cleanAll cleanall:
 ##	cd ${BAM} && make clean
 ##	${RM} stringtie${EXE} stringtie.o* $(OBJS)
