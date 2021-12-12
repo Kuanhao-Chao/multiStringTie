@@ -1,6 +1,7 @@
 //#define GFF_DEBUG 1 //debugging guides loading
 #include "rlink.h"
 #include "tmerge.h"
+#include "multist.h"
 #ifndef NOTHREADS
 #include "GThreads.h"
 #endif
@@ -313,6 +314,7 @@ int waitForData(BundleData* bundles);
 
 TInputFiles bamreader;
 
+DOTInputFile dotreader;
 
 
 
@@ -368,6 +370,8 @@ int main(int argc, char* argv[]) {
 	GVec<int> alncounts(30); //keep track of the number of read alignments per chromosome [gseq_id]
 
 	int bamcount=bamreader.start(); //setup and open input files
+	dotreader.start(); //setup and open DOT input file
+
 #ifndef GFF_DEBUG
 	if (bamcount<1) {
 		GError("%sError: no input files provided!\n",USAGE);

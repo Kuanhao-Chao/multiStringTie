@@ -9,6 +9,20 @@
 #include "time.h"
 #include "tablemaker.h"
 #include "GHashMap.hh"
+#include <fstream>
+
+struct UniSpliceGraph {
+    GVec<CGraphinfo> *bundle2graph[2]; // should I keep the neutral strand for consistency ? -> remember not to delete it
+    GVec<int> graphno[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
+    GVec<int> edgeno[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+    // GVec<int> trnumber[2]; // how many transfrags are on a strand s, in a graph g -> I can find out this from transfrag[s][g].Count()
+    // int ngraph[2]={0,0};   // how many graphs are in each strand: negative (0), or positive(1) -> keep one for each bundle
+    GPVec<CTransfrag> *transfrag[2]; // for each transfrag t on a strand s, in a graph g, transfrag[s][g][t] gives it's abundance and it's pattern
+    GPVec<CGraphnode> *no2gnode[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+    CTreePat **tr2no[2]; // for each graph g, on a strand s, tr2no[s][g] keeps the tree pattern structure for quick retrieval of the index t of a tansfrag
+    GIntHash<int> *gpos[2]; // for each graph g, on a strand s, gpos[s][g] keeps the hash between edges and positions in the bitvec associated to a pattern
+    GVec<int> lastgpos[2];
+};
 
 class DOTReader;
 class DOTWriter;
@@ -18,14 +32,11 @@ class DOTRecord {
    friend class DOTWriter;
    
    public:
-      
+      UniSpliceGraph uni_Splice_Graph;
       DOTRecord();
 
       void init() {
-      }
-
-      const DOTRecord& operator=(GSamRecord& r) {
-         return *this;
+         clear();
       }
 
       void clear() {
@@ -36,33 +47,48 @@ class DOTRecord {
       }
 
       void parse_error(const char* s) {
-      GError("DOT parsing error: %s\n", s);
+         GError("DOT parsing error: %s\n", s);
       }
 };
 
 class DOTReader {
    public:
       const char* fname;
-      void bopen() {
+      ifstream ifile_dot;
+      bool dotopen(const char* filename) {
+	      if (ifile_dot.is_open()) {
+            return ifile_dot.is_open();
+         } else {
+            GError("Error: could not open the dot file %s \n",filename);
+         }
       }
 
-      DOTReader() {
-         bopen();
+      DOTReader(const char* fn) {
+         ifile_dot(fn);
+         bool dot_open;
+         dot_open = dotopen(fn);
       }
 
       const char* fileName() {
          return fname;
       }
 
-      void bclose() {
+      void dotclose() {
+         ifile_dot.close();
+         // if (hts_file) {
+         //       if (hdr!=NULL) sam_hdr_destroy(hdr);
+         //       hdr=NULL;
+         //    hts_close(hts_file);
+         //    hts_file=NULL;
+         // }
       }
 
       ~DOTReader() {
-         bclose();
+         dotclose();
          GFREE(fname);
       }
       
-      //the caller has to FREE the created GSamRecord
+      //the caller has to FREE the created DOTRecord
       DOTRecord* next() {
          return NULL;
       }
@@ -81,10 +107,6 @@ class DOTWriter {
    void create() {
      create();
    }
-
-//    DOTWriter() {
-//       create();
-//    }
 
    DOTWriter() {
    }
@@ -148,18 +170,7 @@ class DOTWriter {
 /*********************************
  * graph-related data structure.
  *********************************/
-struct UniSpliceGraph {
-    GVec<CGraphinfo> *bundle2graph[2]; // should I keep the neutral strand for consistency ? -> remember not to delete it
-    GVec<int> graphno[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
-    GVec<int> edgeno[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
-    // GVec<int> trnumber[2]; // how many transfrags are on a strand s, in a graph g -> I can find out this from transfrag[s][g].Count()
-    // int ngraph[2]={0,0};   // how many graphs are in each strand: negative (0), or positive(1) -> keep one for each bundle
-    GPVec<CTransfrag> *transfrag[2]; // for each transfrag t on a strand s, in a graph g, transfrag[s][g][t] gives it's abundance and it's pattern
-    GPVec<CGraphnode> *no2gnode[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
-    CTreePat **tr2no[2]; // for each graph g, on a strand s, tr2no[s][g] keeps the tree pattern structure for quick retrieval of the index t of a tansfrag
-    GIntHash<int> *gpos[2]; // for each graph g, on a strand s, gpos[s][g] keeps the hash between edges and positions in the bitvec associated to a pattern
-    GVec<int> lastgpos[2];
-};
+
 // struct CGraphinfo {
 // 	int ngraph;
 // 	int nodeno;
@@ -184,60 +195,29 @@ struct UniSpliceGraph {
 // 			nodeid(id),cov(nodecov),capacity(cap),rate(r),child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){}
 // };
 
-struct DOTInputRecord {
-   DOTRecord* brec;
-   int fidx; //index in files and readers
-   bool operator<(DOTInputRecord& o) {
-         //decreasing location sort
-         DOTRecord& r1=*brec;
-         DOTRecord& r2=*(o.brec);
-         //int refcmp=strcmp(r1.refName(),r2.refName());
-         // int refcmp=mergeMode ? strcmp(r1.refName(),r2.refName()) : r1.refId()-r2.refId();
-         // if (refcmp==0) {
-         // //higher coords first
-         // if (r1.start!=r2.start)
-         //       return (r1.start>r2.start);
-         // else {
-         //    if (r1.end!=r2.end)
-         //       return (r1.end>r2.end);
-         //    else if (fidx==o.fidx)
-         //          return (strcmp(r1.name(), r2.name())>0);
-         //       else return fidx>o.fidx;
-         // }
-         // }
-         // else { //use header order
-         //    return (refcmp>0);
-         // }
-         return false;
-	}
-	bool operator==(DOTInputRecord& o) {
-      DOTRecord& r1=*brec;
-      DOTRecord& r2=*(o.brec);
-      return false;
-   //  return ( strcmp(r1.refName(),r2.refName())==0 && r1.start==r2.start && r1.end==r2.end
-   // 		 && fidx==o.fidx && strcmp(r1.name(),r2.name())==0);
-	}
+// struct DOTInputRecord {
+//    DOTRecord* brec;
+//    int fidx; //index in files and readers
 
-	DOTInputRecord(DOTRecord* b=NULL, int i=0):brec(b),fidx(i) {}
-	~DOTInputRecord() {
-		delete brec;
-	}
-};
+// 	DOTInputRecord(DOTRecord* b=NULL, int i=0):brec(b),fidx(i) {}
+// 	~DOTInputRecord() {
+// 		delete brec;
+// 	}
+// };
+
 
 struct DOTInputFile {
    protected:
-      DOTInputRecord* crec;
+      DOTRecord* crec;
    public:
-      DOTReader reader;
+      DOTReader* reader;
       GStr file; //same order
       GStr tmpfile; //all the temp files created by this
-      DOTInputRecord recs; //next record for each
-      DOTInputFile();
-      // DOTInputFile():crec(NULL), readers(true), files(), tmpfiles(),
-      // 		recs(true, true, true) { }
-      void Add(const char* fn);
+      // GList<DOTInputRecord> recs; //next record for each
+      DOTInputFile():crec(NULL), reader(), file(), tmpfile() { }
+      // void Add(const char* fn);
       int count() { return 1; }
-      int start(); //open all files, load 1 record from each
+      void start(); //open all files, load 1 record from each
       DOTRecord* next();
       void stop();
 };

@@ -404,12 +404,12 @@ class GSamReader {
 
    void bclose() {
       if (hts_file) {
-   	    if (hdr!=NULL) sam_hdr_destroy(hdr);
-   	    hdr=NULL;
-        hts_close(hts_file);
-        hts_file=NULL;
-        }
-    }
+            if (hdr!=NULL) sam_hdr_destroy(hdr);
+            hdr=NULL;
+         hts_close(hts_file);
+         hts_file=NULL;
+      }
+   }
 
    ~GSamReader() {
       if (b_next) bam_destroy1(b_next);
