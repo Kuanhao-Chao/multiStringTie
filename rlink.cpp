@@ -2889,7 +2889,7 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 		}
 	}
 
-	// /*
+	/*
 	{ //DEBUG ONLY
 		for(int i=0;i<new_graphno;i++) {
 			fprintf(stderr,"Node %d with parents:",i);
@@ -2900,7 +2900,7 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 		}
 	}
 	fprintf(stderr,"new edgeno=%d\n",edgeno);
-	// */
+	*/
 
 	return(new_graphno);
 }
@@ -2941,7 +2941,7 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 /****************
  **  KH Adding 
  ****************/
-fprintf(stdout, "Start 'create_graph'\n");
+// fprintf(stdout, "Start 'create_graph'\n");
 /****************
  **  END KH Adding 
  ****************/
@@ -2956,9 +2956,9 @@ fprintf(stdout, "Start 'create_graph'\n");
 
 	int njunctions=junction.Count();
 
-	fprintf(stderr,"Start graph[%d][%d] with %d edgeno and lastgpos=%d\n",s,g,edgeno,lastgpos);
+	// fprintf(stderr,"Start graph[%d][%d] with %d edgeno and lastgpos=%d\n",s,g,edgeno,lastgpos);
 
-	// /*
+	/*
 	{ // DEBUG ONLY
 		fprintf(stderr,"Junctions[%d][%d]: ",s,g);
 		for(int i=0;i<njunctions;i++) fprintf(stderr," %d-%d:%d",junction[i]->start,junction[i]->end,junction[i]->strand);
@@ -2971,7 +2971,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 		// for(int i=0;i<(*bundle2graph)->Count();i++) fprintf(stderr," %d-%d",(**bundle2graph)[i].ngraph,(**bundle2graph)[i].nodeno);
 		// fprintf(stderr,"\n");
 	}
-	// */
+	*/
 
 	/*****************************
 	 ** Check start & end of bundle nodes (swap if necessary)
@@ -3033,7 +3033,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 	uint bundle_end=bnode[bundle->lastnodeid]->end;
 	while(bundlenode!=NULL) {
 
-		fprintf(stderr,"process bundlenode %d-%d:%d bpcov_count=%d refstart=%d\n",bundlenode->start,bundlenode->end,s,bpcov->Count(),refstart);
+		// fprintf(stderr,"process bundlenode %d-%d:%d bpcov_count=%d refstart=%d\n",bundlenode->start,bundlenode->end,s,bpcov->Count(),refstart);
 
 	    uint currentstart=bundlenode->start; // current start is bundlenode's start
 	    uint endbundle=bundlenode->end; // initialize end with bundlenode's end for now
@@ -3224,7 +3224,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 	    	}
 	    }
 
-	    fprintf(stderr,"create graph 1\n");
+	    // fprintf(stderr,"create graph 1\n");
 	    CGraphnode *graphnode=create_graphnode(s,g,currentstart,endbundle,graphno,bundlenode,bundle2graph,no2gnode); // creates a $graphno graphnode  with start at bundle start, and end at bundle end
 	    graphno++;
 
@@ -3239,7 +3239,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 	    			graphnode->parent.Add(node->nodeid); // this node has as parent the previous node
 	    			// COUNT EDGE HERE
 	    			edgeno++;
-	    			fprintf(stderr,"1 Edge %d-%d, edgeno=%d\n",node->nodeid,graphnode->nodeid,edgeno);
+	    			// fprintf(stderr,"1 Edge %d-%d, edgeno=%d\n",node->nodeid,graphnode->nodeid,edgeno);
 	    		}
 	    	}
 	    	else { // I haven't seen nodes before that finish here (maybe due to error correction?) => link to source
@@ -3247,7 +3247,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 		    	graphnode->parent.Add(source->nodeid); // this node has source as parent
 		    	// COUNT EDGE HERE
 		    	edgeno++;
-		    	fprintf(stderr,"2 Edge 0-%d, edgeno=%d\n",graphnode->nodeid,edgeno);
+		    	// fprintf(stderr,"2 Edge 0-%d, edgeno=%d\n",graphnode->nodeid,edgeno);
 	    	}
 	    }
 	    else { // this node comes from source directly
@@ -3255,7 +3255,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 	    	graphnode->parent.Add(source->nodeid); // this node has source as parent
 	    	// COUNT EDGE HERE
 			edgeno++;
-			fprintf(stderr,"3 Edge 0-%d, edgeno=%d\n",graphnode->nodeid,edgeno);
+			// fprintf(stderr,"3 Edge 0-%d, edgeno=%d\n",graphnode->nodeid,edgeno);
 	    }
 
 
@@ -3285,8 +3285,8 @@ fprintf(stdout, "Start 'create_graph'\n");
 	    		}
 	    	}
 
-	    	fprintf(stderr,"minjunction=%d\n",minjunction);
-	    	if(nje<njunctions) fprintf(stderr,"Found junction:%d-%d(%d)\n",ejunction[nje]->start,ejunction[nje]->end,ejunction[nje]->strand);
+	    	// fprintf(stderr,"minjunction=%d\n",minjunction);
+	    	// if(nje<njunctions) fprintf(stderr,"Found junction:%d-%d(%d)\n",ejunction[nje]->start,ejunction[nje]->end,ejunction[nje]->strand);
 
 	    	if(minjunction == 0 ) { // found a start junction here
 
@@ -3383,7 +3383,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 	    				nextnode->parent.Add(graphnode->nodeid);// make graphnode a parent of nextnode
 	    				// COUNT EDGE HERE
 	    				edgeno++;
-	    				fprintf(stderr,"4 Edge %d-%d, edgeno=%d nextnode: %u-%u pos=%d\n",graphnode->nodeid,nextnode->nodeid,edgeno,nextnode->start,nextnode->end,pos);
+	    				// fprintf(stderr,"4 Edge %d-%d, edgeno=%d nextnode: %u-%u pos=%d\n",graphnode->nodeid,nextnode->nodeid,edgeno,nextnode->start,nextnode->end,pos);
 	    				graphnode=nextnode;
 	    			}
 	    		}
@@ -3446,7 +3446,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 
 	    			// COUNT EDGE HERE
 	    			edgeno++;
-	    			fprintf(stderr,"5 Edge %d-%d, edgeno=%d\n",graphnode->nodeid,nextnode->nodeid,edgeno);
+	    			// fprintf(stderr,"5 Edge %d-%d, edgeno=%d\n",graphnode->nodeid,nextnode->nodeid,edgeno);
 
 	    			graphnode=nextnode;
 	    		}
@@ -3460,7 +3460,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 	    			graphnode->parent.Add(node->nodeid); // this node has as parent the previous node
 	    			// COUNT EDGE HERE
 	    			edgeno++;
-	    			fprintf(stderr,"6 Edge %d-%d, edgeno=%d\n",node->nodeid,graphnode->nodeid,edgeno);
+	    			// fprintf(stderr,"6 Edge %d-%d, edgeno=%d\n",node->nodeid,graphnode->nodeid,edgeno);
 	    		}
 	    	}
 
@@ -3509,13 +3509,13 @@ fprintf(stdout, "Start 'create_graph'\n");
 	    	graphnode->end=endbundle;
 	    	// COUNT EDGE HERE (this is an edge to sink)
 	    	edgeno++;
-	    	fprintf(stderr,"7 Edge to sink from %d, edgeno=%d\n",graphnode->nodeid,edgeno);
+	    	// fprintf(stderr,"7 Edge to sink from %d, edgeno=%d\n",graphnode->nodeid,edgeno);
 	    }
 
 	    bundlenode=bundlenode->nextnode; // advance to next bundle
 	} // end while(bundlenode!=NULL)
 
-	fprintf(stderr,"graphno=%d\n",graphno);
+	// fprintf(stderr,"graphno=%d\n",graphno);
 
 	/*****************************
 	 ** 'get_cov_sign' function
@@ -3546,7 +3546,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 				futuretr.Add(tmp);
 				tmp=(icov-parcov)/DROP;
 				futuretr.Add(tmp);
-				fprintf(stderr,"Add link to source from node %d with abundance %f\n",i,tmp);
+				// fprintf(stderr,"Add link to source from node %d with abundance %f\n",i,tmp);
 				edgeno++;
 			}
 		}
@@ -3605,7 +3605,7 @@ fprintf(stdout, "Start 'create_graph'\n");
 		}
 	}
 
-	fprintf(stderr,"This graph has %d nodes and %d edges and starts at lastpos=%d\n",graphno,edgeno,graphno);
+	// fprintf(stderr,"This graph has %d nodes and %d edges and starts at lastpos=%d\n",graphno,edgeno,graphno);
 	lastgpos=graphno; // nodes are from 0 to graphno-1, so the first "available" position in GBitVec is graphno
 
 	/*****************************
@@ -3680,13 +3680,13 @@ fprintf(stdout, "Start 'create_graph'\n");
 			}
 			CTransfrag *tr=new CTransfrag(nodes,trpat,futuretr[i+2]);
 
-			// /*
+			/*
 			{ // DEBUG ONLY
 				fprintf(stderr,"Add future transfrag[%d][%d]= %d with %d nodes n1=%d n2=%d graphno=%d, abundance=%f and pattern",s,g,transfrag[s][g].Count(),tr->nodes.Count(),n1,n2,graphno,futuretr[i+2]);
 				//printBitVec(trpat);
 				fprintf(stderr,"\n");
 			}
-			// */
+			*/
 
 			/*if(mixedMode) {
 				tr->abundance*=2;
@@ -3739,9 +3739,9 @@ fprintf(stdout, "Start 'create_graph'\n");
 	visit.Resize(graphno);
 	GBitVec parents(graphno+edgeno);
 
-	fprintf(stderr,"traverse graph[%d][%d] now with %d nodes, %d edges and lastgpos=%d....\n",s,g,graphno,edgeno,lastgpos);//edgeno=0;
+	// fprintf(stderr,"traverse graph[%d][%d] now with %d nodes, %d edges and lastgpos=%d....\n",s,g,graphno,edgeno,lastgpos);//edgeno=0;
 	traverse_dfs(s,g,source,sink,parents,graphno,visit,no2gnode,transfrag,edgeno,gpos,lastgpos);
-	fprintf(stderr,"done traversing with edgeno=%d lastgpos=%d\n",edgeno,lastgpos);
+	// fprintf(stderr,"done traversing with edgeno=%d lastgpos=%d\n",edgeno,lastgpos);
 
 	/*
 	{ //DEBUG ONLY
@@ -13232,7 +13232,7 @@ int build_graphs(BundleData* bdata) {
 	// parameter -e ; for mergeMode includes estimated coverage sum in the merged transcripts
 	GVec<int> guidepred; // for eonly keeps the prediction number associated with a guide
 	GArray<GEdge> guideedge; // 0: negative starts; 1 positive starts
-	// /*
+	/*
 	GPVec<GPtFeature>& feature = bdata->ptfs; // these are point features (confirmed starts/stops)
 
 	for(int i=0;i<feature.Count();i++) {
@@ -13241,7 +13241,7 @@ int build_graphs(BundleData* bdata) {
 		if(feature[i]->ftype==GPFT_CPAS)
 			fprintf(stderr,"CPAS at position %d on strand %d\n",feature[i]->coord,feature[i]->strand);
 	}
-	// */
+	*/
 
 	//fprintf(stderr,"build_graphs with %d guides\n",guides.Count());
 
@@ -14790,13 +14790,13 @@ int build_graphs(BundleData* bdata) {
     	for(int s=0;s<2;s++) {
 
     		for(int b=0;b<bno[s];b++) {
-    			fprintf(stderr,"Process graph[%d][%d] with %d nodes\n",s,b,graphno[s][b]);
+    			// fprintf(stderr,"Process graph[%d][%d] with %d nodes\n",s,b,graphno[s][b]);
     			if(graphno[s][b]) {
 
     				// include source to guide starts links
     				GVec<CGuide> guidetrf;
 
-    				// /*
+    				/*
     				{ // DEBUG ONLY
     					fprintf(stderr,"process refguides for s=%d b=%d edgeno=%d gno=%d lastgpos=%d guidescount=%d\n",s,b,edgeno[s][b],graphno[s][b],lastgpos[s][b],guides.Count());
     					fprintf(stderr,"There are %d nodes for graph[%d][%d]:\n",graphno[s][b],s,b);
@@ -14809,7 +14809,7 @@ int build_graphs(BundleData* bdata) {
     						fprintf(stderr,"\n");
     					}
     				}
-    				// */
+    				*/
 
     				if(guides.Count()) process_refguides(graphno[s][b],edgeno[s][b],gpos[s][b],lastgpos[s][b],no2gnode[s][b],transfrag[s][b],s,guidetrf,bdata);
 
@@ -14821,7 +14821,7 @@ int build_graphs(BundleData* bdata) {
 
 
 
-    				// /*
+    				/*
     				{ //DEBUG ONLY
     					//printTime(stderr);
     					fprintf(stderr,"There are %d nodes for graph[%d][%d]:\n",graphno[s][b],s,b);
@@ -14846,7 +14846,7 @@ int build_graphs(BundleData* bdata) {
     					}
 
     				}
-    				// */
+    				*/
 
 /*
 #ifdef GMEMTRACE
@@ -14856,7 +14856,7 @@ int build_graphs(BundleData* bdata) {
 #endif
 */
 
-    				fprintf(stderr,"guidetrf no=%d\n",guidetrf.Count());
+    				// fprintf(stderr,"guidetrf no=%d\n",guidetrf.Count());
 
     				//if(!longreads) {
     				// find transcripts now
@@ -14865,12 +14865,12 @@ int build_graphs(BundleData* bdata) {
     				//}
     				for(int g=0;g<guidetrf.Count();g++) delete guidetrf[g].trf;
 
-    				// /*
+    				/*
     				{ //DEBUG ONLY
     					printTime(stderr);
     					fprintf(stderr,"Processed transcripts for s=%d b=%d\n",s,b);
     				}
-    				// */
+    				*/
 
 /*
 #ifdef GMEMTRACE
@@ -14912,7 +14912,7 @@ int build_graphs(BundleData* bdata) {
 #endif
 */
 
-    // /*
+    /*
     { // DEBUG ONLY
     	for(int i=0;i<pred.Count();i++) {
     		if(pred[i]->t_eq) fprintf(stderr,"%s ",pred[i]->t_eq->getID());
@@ -14921,7 +14921,7 @@ int build_graphs(BundleData* bdata) {
     		fprintf(stderr,"\n");
     	}
     }
-    // */
+    */
 
     // don't forget to clean up the allocated data here
     return(geneno);

@@ -10,6 +10,8 @@
 #include "tablemaker.h"
 #include "GHashMap.hh"
 #include <fstream>
+#include <regex>
+#include <string>
 
 struct UniSpliceGraph {
     GVec<CGraphinfo> *bundle2graph[2]; // should I keep the neutral strand for consistency ? -> remember not to delete it
@@ -64,9 +66,7 @@ class DOTReader {
       }
 
       DOTReader(const char* fn) {
-         ifile_dot(fn);
-         bool dot_open;
-         dot_open = dotopen(fn);
+         ifile_dot.open(fn);
       }
 
       const char* fileName() {
@@ -90,9 +90,68 @@ class DOTReader {
       
       //the caller has to FREE the created DOTRecord
       DOTRecord* next() {
-         return NULL;
-      }
+         // Example from: https://www.codegrepper.com/code-examples/cpp/remove+all+spaces+from+string+c%2B%2B
+         string line;
+         getline(ifile_dot, line);         
+         // line.erase(remove(line.begin(), line.end(), ' '), line.end());
+         fprintf(stderr, "line: %s \n", line.c_str());
+         // if (regex_match(line, regex("(strict\\s+)(digraph\\s+)([0-9]*)(_)([0-9]*)(_)([0-9]*\\s+)(.*)(->)(.*)(\\[label=)(.*)(\\];)"))) {
+         // regex rgx("(\\w+)->(\\w+)\\[label=(\\w+)\\];");
 
+         string delimiter = "{";
+         size_t pos = 0;
+         string token;
+         while ((pos = line.find(delimiter)) != string::npos) {
+            token = line.substr(0, pos);
+            // std::cout << token << std::endl;
+            fprintf(stderr, "token: %s\n", token.c_str());
+            regex title_rgx("strict\\s+digraph\\s+(\\w+)_(\\w+)_(\\w+)");
+            smatch match;
+            fprintf(stderr, "line: %s \n", line.c_str());
+            if (regex_search(token, match, title_rgx)) {
+               string refstart = match[1];
+               string s = match[2];
+               string b = match[2];
+               fprintf(stderr, "refstart: %s\n", refstart.c_str());
+               fprintf(stderr, "s: %s\n", s.c_str());
+               fprintf(stderr, "b: %s\n", b.c_str());
+            }
+
+            line.erase(0, pos + delimiter.length());
+            break;
+         }
+
+         delimiter = ";";
+         pos = 0;
+         token = "";
+         while ((pos = line.find(delimiter)) != string::npos) {
+            token = line.substr(0, pos);
+            // std::cout << token << std::endl;
+            fprintf(stderr, "token: %s\n", token.c_str());
+
+            regex node_rgx("(\\w+)\\[+start=(\\w+)\\s+end=(\\w+)\\s+cov=(\\w+)");
+            regex edge_rgx("(\\w+)->(\\w+)");
+            smatch match;
+            if (regex_search(token, match, node_rgx)) {
+               string node = match[1];
+               string start = match[2];
+               string end = match[3];
+               string cov = match[4];
+               fprintf(stderr, "node : %s\n", node.c_str());
+               fprintf(stderr, "start : %s\n", start.c_str());
+               fprintf(stderr, "end : %s\n", end.c_str());
+               fprintf(stderr, "cov : %s\n", cov.c_str());
+            }
+            if (regex_search(token, match, edge_rgx)) {
+               string head = match[1];
+               string tail = match[2];
+               fprintf(stderr, "head : %s\n", head.c_str());
+               fprintf(stderr, "tail : %s\n", tail.c_str());
+            }
+
+            line.erase(0, pos + delimiter.length());
+         }
+      }
       bool next(DOTRecord& rec) {
          return false;
       }
@@ -208,16 +267,16 @@ class DOTWriter {
 
 struct DOTInputFile {
    protected:
-      DOTRecord* crec;
+      DOTRecord* rec;
    public:
       DOTReader* reader;
       GStr file; //same order
       GStr tmpfile; //all the temp files created by this
       // GList<DOTInputRecord> recs; //next record for each
-      DOTInputFile():crec(NULL), reader(), file(), tmpfile() { }
+      DOTInputFile():rec(NULL), reader(), file(), tmpfile() { }
       // void Add(const char* fn);
       int count() { return 1; }
-      void start(); //open all files, load 1 record from each
+      bool start(const char* fn); //open all files, load 1 record from each
       DOTRecord* next();
       void stop();
 };
