@@ -151,6 +151,8 @@ class DOTReader {
 
             line.erase(0, pos + delimiter.length());
          }
+
+         return NULL;
       }
       bool next(DOTRecord& rec) {
          return false;
