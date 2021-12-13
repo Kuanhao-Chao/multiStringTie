@@ -34,10 +34,11 @@ stringtie <in.bam ..> [-G <guide_gff>] [-l <prefix>] [-o <out.gtf>] [-p <cpus>]\
  [-v] [-a <min_anchor_len>] [-m <min_len>] [-j <min_anchor_cov>] [-f <min_iso>]\n\
  [-c <min_bundle_cov>] [-g <bdist>] [-u] [-L] [-e] [--viral] [-E <err_margin>]\n\
  [--ptf <f_tab>] [-x <seqid,..>] [-A <gene_abund.out>] [-h] {-B|-b <dir_path>}\n\
- [--mix] [--conservative] [--rf] [--fr]\n\
+ [--universal_splice_graph] [--mix] [--conservative] [--rf] [--fr]\n\
 Assemble RNA-Seq alignments into potential transcripts.\n\
 Options:\n\
  --version : print just the version at stdout and exit\n\
+ --universal_splice_graph : output the universal splice graph in DOT foramt for each bundle.\n\
  --conservative : conservative transcript assembly, same as -t -c 1.5 -f 0.05\n\
  --mix : both short and long read data alignments are provided\n\
         (long read alignments must be the 2nd BAM/CRAM input file)\n\
@@ -135,7 +136,8 @@ FILE* c_out=NULL;
  **  KH Adding 
  ****************/
 FILE* uinigraph_out = NULL;
-GStr uinigraphfname("./universal_graph.dot"); 
+GStr uinigraphfname; 
+// GStr uinigraphfname("./universal_graph.dot"); 
 /****************
  **  END KH Adding 
  ****************/
@@ -149,6 +151,7 @@ GStr genefname;
 GStr traindir; // training directory for CDS option
 bool guided=false;
 bool trim=true;
+bool universal_splice_graph=false;
 bool viral=false;
 bool eonly=false; // parameter -e ; for mergeMode includes estimated coverage sum in the merged transcripts
 bool longreads=false;
@@ -322,39 +325,39 @@ TInputFiles bamreader;
 
 
 int main(int argc, char* argv[]) {
-	/****************
-	 **  KH Adding 
-	****************/
-	// Writing out universal DOT file.
-	uinigraph_out = fopen(uinigraphfname.chars(), "w");
-	/****************
-	 **  END KH Adding 
-	****************/
-
 	/*****************************
 	 * Process arguments.
 	 *****************************/
 	GArgs args(argc, argv,
-	"debug;help;version;viral;conservative;mix;ref=;cram-ref=cds=;keeptmp;rseq=;ptf=;bam;fr;rf;merge;"
+	"debug;help;version;universal_splice_graph;viral;conservative;mix;ref=;cram-ref=cds=;keeptmp;rseq=;ptf=;bam;fr;rf;merge;"
 	"exclude=zihvteuLRx:n:j:s:D:G:C:S:l:m:o:a:j:c:f:p:g:P:M:Bb:A:E:F:T:");
 	args.printError(USAGE, true);
 	processOptions(args);
 
-	fprintf(stderr, "outfname\n");
-	fprintf(stderr, outfname);
-	fprintf(stderr, "out_dir\n");
-	fprintf(stderr, out_dir);
-	fprintf(stderr, "tmp_path\n");
-	fprintf(stderr, tmp_path);
-	fprintf(stderr, "cram_ref\n");
-	fprintf(stderr, cram_ref);
-	fprintf(stderr, "tmpfname\n");
-	fprintf(stderr, tmpfname);
-	fprintf(stderr, "genefname\n");
-	fprintf(stderr, genefname);
-	fprintf(stderr, "traindir\n");
-	fprintf(stderr, traindir);
 
+	/****************
+	 **  KH Adding 
+	****************/
+	if (universal_splice_graph) {
+		// Writing out universal DOT file.
+		GStr universal_splice_graph_prefix = outfname.copy();		
+		if (outfname.endsWith(".gtf")) {
+			universal_splice_graph_prefix.chomp(".gtf");
+		}
+		uinigraphfname = universal_splice_graph_prefix + "_universal_splice_graph.dot";
+		uinigraph_out = fopen(uinigraphfname.chars(), "w");
+		fprintf(stderr, "uinigraphfname: %s\n", uinigraphfname.chars());
+	}
+	/****************
+	 **  END KH Adding 
+	****************/
+	fprintf(stderr, "outfname: %s\n", outfname.chars());
+	fprintf(stderr, "out_dir: %s\n", out_dir.chars());
+	fprintf(stderr, "tmp_path: %s\n", tmp_path.chars());
+	fprintf(stderr, "cram_ref: %s\n", cram_ref.chars());
+	fprintf(stderr, "tmpfname: %s\n", tmpfname.chars());
+	fprintf(stderr, "genefname: %s\n", genefname.chars());
+	fprintf(stderr, "traindir: %s\n", traindir.chars());
 
 	GVec<GRefData> refguides; // plain vector with transcripts for each chromosome
 
@@ -1027,7 +1030,9 @@ int main(int argc, char* argv[]) {
 /****************
  **  KH Adding 
  ****************/
-	fclose(uinigraph_out);
+	if (universal_splice_graph) {
+		fclose(uinigraph_out);
+	}
 /****************
  **  END KH Adding 
  ****************/
@@ -1057,7 +1062,10 @@ void processOptions(GArgs& args) {
 	   fprintf(stdout,"%s\n",VERSION);
 	   exit(0);
 	}
-
+	
+	if (args.getOpt("universal_splice_graph")) {
+		universal_splice_graph=true;
+	}
 
 	if (args.getOpt("viral")) {
 		viral=true;

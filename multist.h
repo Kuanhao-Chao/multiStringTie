@@ -14,17 +14,110 @@
 #include <string>
 
 struct UniSpliceGraph {
-    GVec<CGraphinfo> *bundle2graph[2]; // should I keep the neutral strand for consistency ? -> remember not to delete it
-    GVec<int> graphno[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
-    GVec<int> edgeno[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
-    // GVec<int> trnumber[2]; // how many transfrags are on a strand s, in a graph g -> I can find out this from transfrag[s][g].Count()
-    // int ngraph[2]={0,0};   // how many graphs are in each strand: negative (0), or positive(1) -> keep one for each bundle
-    GPVec<CTransfrag> *transfrag[2]; // for each transfrag t on a strand s, in a graph g, transfrag[s][g][t] gives it's abundance and it's pattern
-    GPVec<CGraphnode> *no2gnode[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
-    CTreePat **tr2no[2]; // for each graph g, on a strand s, tr2no[s][g] keeps the tree pattern structure for quick retrieval of the index t of a tansfrag
-    GIntHash<int> *gpos[2]; // for each graph g, on a strand s, gpos[s][g] keeps the hash between edges and positions in the bitvec associated to a pattern
-    GVec<int> lastgpos[2];
+   protected:
+      //  Do not need
+   	GPVec<CBundle> bundle[3]; // all bundles on all strands: 0,1,2
+      //  Do not need
+   	GPVec<CBundlenode> bnode[3]; // last bnodes on all strands: 0,1,2 for each bundle : this might be the key for overalps
+      //  Do not need
+    	int bno[2]={0,0};
+
+
+      int refstart;
+	   int refend;
+      int s;
+      int g_idx;
+      GVec<int> graphno[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
+      GVec<int> edgeno[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+      GPVec<CGraphnode> *no2gnode[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+
+
+
+
+      GVec<CGraphinfo> *bundle2graph[2]; // should I keep the neutral strand for consistency ? -> remember not to delete it
+      //  Do not need
+      GPVec<CTransfrag> *transfrag[2]; // for each transfrag t on a strand s, in a graph g, transfrag[s][g][t] gives it's abundance and it's pattern
+    	// GPVec<CMTransfrag> *mgt[2]; // merged super-transfrags
+
+      CTreePat **tr2no[2]; // for each graph g, on a strand s, tr2no[s][g] keeps the tree pattern structure for quick retrieval of the index t of a tansfrag
+      GIntHash<int> *gpos[2]; // for each graph g, on a strand s, gpos[s][g] keeps the hash between edges and positions in the bitvec associated to a pattern
+      GVec<int> lastgpos[2];
+   public:
+   // s: strand (0 = negative strand; 1 = unknown strand; 2 = positive strand // 0(-),1(.),2(+))
+   // b: all bundles on all strands: 0,1,2
+   	UniSpliceGraph():refstart(0), refend(0), s(NULL), g_idx(NULL) { 
+         //    // build graph structure
+         //    for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+
+         //       int s=sno/2; // adjusted strand due to ignoring neutral strand
+         //       //char strnd='-';
+         //       //if(s) strnd='+';
+
+         //       bundle2graph[s]=NULL;
+         //       if(bnode[sno].Count()) bundle2graph[s]=new GVec<CGraphinfo>[bnode[sno].Count()];
+         //       transfrag[s]=NULL;
+         //       // mgt[s]=NULL;
+         //       no2gnode[s]=NULL;
+         //       tr2no[s]=NULL;
+         //       gpos[s]=NULL;
+
+         //       if(bundle[sno].Count()) {
+         //          transfrag[s]=new GPVec<CTransfrag>[bundle[sno].Count()]; // for each bundle I have a graph ? only if I don't ignore the short bundles
+         //          // mgt[s]=new GPVec<CMTransfrag>[bundle[sno].Count()];
+         //          no2gnode[s]=new GPVec<CGraphnode>[bundle[sno].Count()];
+
+         //          gpos[s]=new GIntHash<int>[bundle[sno].Count()];
+
+
+         //          GCALLOC(tr2no[s],bundle[sno].Count()*sizeof(CTreePat *));
+         //          bno[s]=bundle[sno].Count();
+
+         //          for(int b=0;b<bundle[sno].Count();b++) {
+         //             graphno[s].cAdd(0);
+         //             edgeno[s].cAdd(0);
+         //             lastgpos[s].cAdd(0);
+
+         //             /*
+         //             { // DEBUG ONLY
+         //             if(bundle[sno][b]->nread) {
+         //                fprintf(stderr,"proc bundle[%d][%d] %f/%f is %f len=%d\n",sno,b,bundle[sno][b]->multi,bundle[sno][b]->nread,(float)bundle[sno][b]->multi/bundle[sno][b]->nread,bundle[sno][b]->len);
+         //             } }
+         //             */
+
+         //             // after the graph is created, I need to do 'predict transcripts for unstranded bundles here'
+         //             /*****************************
+         //              ** I need to come up with my own `create_unisplicegraph`
+         //              *****************************/
+         //             // create graph
+         //             GArray<GEdge> unused;
+         //             graphno[s][b]=create_graph(refstart,s,b,bundle[sno][b],bnode[sno],junction,ejunction,
+         //                   bundle2graph,no2gnode,transfrag,gpos,NULL,edgeno[s][b],lastgpos[s][b],unused,refend);
+
+         //             if(graphno[s][b]) tr2no[s][b]=construct_treepat(graphno[s][b],gpos[s][b],transfrag[s][b]);
+         //             else tr2no[s][b]=NULL;
+
+         //             // for(int i=0; i<transfrag[s][b].Count();i++) {
+         //             //    CMTransfrag *tr=new CMTransfrag(transfrag[s][b][i]); // transfrags that are created in the graph process can not be associated with any read
+         //             //    mgt[s][b].Add(tr);
+         //             // }
+
+         //          }
+         //       }
+         //    }
+         }
+   // after the graph is created, I need to do 'predict transcripts for unstranded bundles here'
+   /*****************************
+	 ** 'CPrediction': constructor
+	 **		predict transcripts for unstranded bundles here
+	 *****************************/
+
+   // And then, I need to parse the graph here
+   /*****************************
+    ** 5. parse graph
+    **    'process_refguides' & 'process_transfrags' & 'find_transcripts' & 'free_treepat'
+    *****************************/
 };
+      
 
 class DOTReader;
 class DOTWriter;
@@ -90,6 +183,14 @@ class DOTReader {
       
       //the caller has to FREE the created DOTRecord
       DOTRecord* next() {
+
+         // Three target Vector to be created.
+         GVec<int> graphno[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
+         GVec<int> edgeno[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+         GPVec<CGraphnode> *no2gnode[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+
+
+
          // Example from: https://www.codegrepper.com/code-examples/cpp/remove+all+spaces+from+string+c%2B%2B
          string line;
          getline(ifile_dot, line);         
@@ -101,30 +202,61 @@ class DOTReader {
          string delimiter = "{";
          size_t pos = 0;
          string token;
+
+
+
+         for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+            int s=sno/2; // adjusted strand due to ignoring neutral strand
+    		   no2gnode[s]=NULL;
+         }
+
+
+         int refstart = 0;
+         int refend = 0;
+         int s = 0;
+         int g_idx = 0;
          while ((pos = line.find(delimiter)) != string::npos) {
             token = line.substr(0, pos);
             // std::cout << token << std::endl;
             fprintf(stderr, "token: %s\n", token.c_str());
-            regex title_rgx("strict\\s+digraph\\s+(\\w+)_(\\w+)_(\\w+)");
+            regex title_rgx("strict\\s+digraph\\s+(\\w+)_(\\w+)_(\\w+)_(\\w+)");
             smatch match;
             fprintf(stderr, "line: %s \n", line.c_str());
             if (regex_search(token, match, title_rgx)) {
-               string refstart = match[1];
-               string s = match[2];
-               string b = match[2];
-               fprintf(stderr, "refstart: %s\n", refstart.c_str());
-               fprintf(stderr, "s: %s\n", s.c_str());
-               fprintf(stderr, "b: %s\n", b.c_str());
+               refstart = stoi(match[1]);
+               refend = stoi(match[2]);
+               s = stoi(match[3]);
+               g_idx = stoi(match[4]);
+               fprintf(stderr, "refstart: %d\n", refstart);
+               fprintf(stderr, "refstart: %d\n", refend);
+               fprintf(stderr, "s: %d\n", s);
+               fprintf(stderr, "g_idx: %d\n", g_idx);
             }
 
             line.erase(0, pos + delimiter.length());
             break;
          }
 
+
+    		// no2gnode[s]=new GPVec<CGraphnode>[bundle[sno].Count()];
          delimiter = ";";
          pos = 0;
          token = "";
+
+         // Add the source first.
+         // CGraphnode* source=new CGraphnode(0,0,0);
+         // no2gnode[s][g_idx].Add(source);
+	      // CGraphnode* sink=new CGraphnode();
+
+
+
          while ((pos = line.find(delimiter)) != string::npos) {
+            int node = 0;
+            int start = 0;
+            int end = 0;
+            int cov = 0;
+            int head = 0;
+            int tail = 0;
             token = line.substr(0, pos);
             // std::cout << token << std::endl;
             fprintf(stderr, "token: %s\n", token.c_str());
@@ -133,23 +265,24 @@ class DOTReader {
             regex edge_rgx("(\\w+)->(\\w+)");
             smatch match;
             if (regex_search(token, match, node_rgx)) {
-               string node = match[1];
-               string start = match[2];
-               string end = match[3];
-               string cov = match[4];
-               fprintf(stderr, "node : %s\n", node.c_str());
-               fprintf(stderr, "start : %s\n", start.c_str());
-               fprintf(stderr, "end : %s\n", end.c_str());
-               fprintf(stderr, "cov : %s\n", cov.c_str());
+               node = stoi(match[1]);
+               start = stoi(match[2]);
+               end = stoi(match[3]);
+               cov = stoi(match[4]);
+               fprintf(stderr, "node : %d\n", node);
+               fprintf(stderr, "start : %d\n", start);
+               fprintf(stderr, "end : %d\n", end);
+               fprintf(stderr, "cov : %d\n", cov);
             }
             if (regex_search(token, match, edge_rgx)) {
-               string head = match[1];
-               string tail = match[2];
-               fprintf(stderr, "head : %s\n", head.c_str());
-               fprintf(stderr, "tail : %s\n", tail.c_str());
+               head = stoi(match[1]);
+               tail = stoi(match[2]);
+               fprintf(stderr, "head : %d\n", head);
+               fprintf(stderr, "tail : %d\n", tail);
             }
-
             line.erase(0, pos + delimiter.length());
+
+            // no2gnode
          }
 
          return NULL;

@@ -52,6 +52,7 @@ extern FILE* f_out;
  **  KH Adding 
 ****************/
 extern FILE* uinigraph_out;
+extern bool universal_splice_graph;
 /****************
  **  END KH Adding 
 ****************/
@@ -3020,7 +3021,6 @@ int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bn
 			}
 			njs++;
 		}
-
 	}
 
 	//int seenjunc=0;
@@ -5200,8 +5200,10 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 	}
 	*/
 
-	// add all guide patterns to the set of transfrags so that I can have a "backbone" for each guide
-	// I need this because there might be an incompatible transfrag connecting the nodes in the guide
+	/****************************************
+	 ** add all guide patterns to the set of transfrags so that I can have a "backbone" for each guide
+	 ** I need this because there might be an incompatible transfrag connecting the nodes in the guide 
+	 ****************************************/
 	//fprintf(stderr,"There are %d guides\n",guidetrf.Count());
 	for(int i=0;i<guidetrf.Count();i++) if(guidetrf[i].trf->guide){
 
@@ -5305,7 +5307,9 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 	}
 
 	GPVec<CTransfrag> srfrag(false);
-	// eliminate transfrags below threshold (they represent noise) if they don't come from source
+	/****************************************
+	 ** eliminate transfrags below threshold (they represent noise) if they don't come from source
+	 ****************************************/
 	if(!eliminate_transfrags_under_thr(gno,gpos,transfrag,tr2no,trthr,srfrag) && srfrag.Count()) { // long transfrags but only to source/sink
 		srfrag.Clear();
 	}
@@ -5970,10 +5974,15 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 	}
 
 
-	// add edges between disconnected parent-child nodes
+	/****************************************
+	 ** add edges between disconnected parent-child nodes
+	 ****************************************/
 	for(int t=0;t<transfrag.Count();t++) allpat=allpat | transfrag[t]->pattern;
 
-	for(int i=1;i<gno-1;i++) { // for all nodes check if there is a connection to child
+	/****************************************
+	 ** for all nodes check if there is a connection to child
+	 ****************************************/
+	for(int i=1;i<gno-1;i++) { 
 		CGraphnode *n=no2gnode[i];
 		for(int c=0;c<n->child.Count();c++) {
 			int *pos=gpos[edge(i,n->child[c],gno)];
@@ -5992,7 +6001,9 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 		}
 	}
 
-	// sort transfrag with smallest being the one that has the most nodes, and ties are decided by the abundance (largest abundance first); last transfrags all have 1 node
+	/****************************************
+	 ** sort transfrag with smallest being the one that has the most nodes, and ties are decided by the abundance (largest abundance first); last transfrags all have 1 node
+	 ****************************************/
 	if(trsort)
 		transfrag.Sort(trCmp);
 
@@ -6019,7 +6030,9 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 	GVec<int> incompletetrf; //remembers incomplete transfrags (the ones that don't have edges between two consecutive nodes
 
 
-	// create compatibilities
+	/****************************************
+	 ** create compatibilities
+	 ****************************************/
 	for(int t1=0;t1<transfrag.Count();t1++) { // transfrags are processed in increasing order -> important for the later considerations
 
 		// update nodes
@@ -6097,9 +6110,11 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 	}
 
 
-	// set source-to-child transfrag abundances: optional in order not to keep these abundances too low:
-	// update the abundances of the transfrags coming in from source and going to a node that doesn't have other parents than source
-	// * this part was removed to improve performance
+	/****************************************
+	 **  set source-to-child transfrag abundances: optional in order not to keep these abundances too low:
+	 **  update the abundances of the transfrags coming in from source and going to a node that doesn't have other parents than source
+	 **  * this part was removed to improve performance
+	 ****************************************/
 	CGraphnode *source=no2gnode[0];
 	for(int i=0;i<source->child.Count();i++) {
 		float abundance=0;
@@ -13216,6 +13231,7 @@ void continue_read(GList<CReadAln>& readlist,int n,int idx) {
 
 int build_graphs(BundleData* bdata) {
 	int refstart = bdata->start;
+	int refend = bdata->end+1;
 	GList<CReadAln>& readlist = bdata->readlist;
 	GList<CJunction>& junction = bdata->junction;
 	GPVec<GffObj>& guides = bdata->keepguides;
@@ -14529,7 +14545,6 @@ int build_graphs(BundleData* bdata) {
     if (bnodeguides) delete[] bnodeguides;
 
 	/*****************************
-	 ** 'create_graph', 'construct_treepat'
 	 **    Defining parameters here!!!!
 	 ** 	build graphs for stranded bundles here
 	 *****************************/
@@ -14554,6 +14569,7 @@ int build_graphs(BundleData* bdata) {
 
 		/*****************************
 		 ** 1. build graph structure
+	 	 **     'create_graph', 'construct_treepat'
 		 *****************************/
     	for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
 
@@ -14695,7 +14711,7 @@ int build_graphs(BundleData* bdata) {
 		 **        because of this going throu
 		 *****************************/
     	for (int n=0;n<readlist.Count();n++) {
-	  /*if(readlist[n]->unitig) { // super-reads are unpaired
+	  	/*if(readlist[n]->unitig) { // super-reads are unpaired
     			float srcov=0;
     			for(int i=0;i<readlist[n]->segs.Count();i++)
     				srcov+=get_cov(1,readlist[n]->segs[i].start-refstart,readlist[n]->segs[i].end-refstart,bpcov)/readlist[n]->segs[i].len();
@@ -14727,30 +14743,35 @@ int build_graphs(BundleData* bdata) {
 		/****************
 		 **  KH Adding 
 		****************/
-		//  DOT file outut here 
-		//  not capacity and rate 
-		//  only edge weight
-		for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-			int s=sno/2; // adjusted strand due to ignoring neutral strand
-			for(int b=0;b<bundle[sno].Count();b++) {
-				fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
-				fprintf(stderr,"after traverse:\n");
-				if(graphno[s][b]) {
-					fprintf(uinigraph_out,"strict digraph %d_%d_%d {", refstart, s, b);
-					// graphno[s][b]: number of nodes in graph.
+		if (universal_splice_graph) {
+			//  DOT file outut here 
+			//  not capacity and rate 
+			//  only edge weight
+			for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+				int s=sno/2; // adjusted strand due to ignoring neutral strand
+				int g_idx = 0;
+				for(int b=0;b<bundle[sno].Count();b++) {
+					fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
+					fprintf(stderr,"after traverse:\n");
 					if(graphno[s][b]) {
-						for(int nd=1;nd<graphno[s][b]-1;nd++)
-							fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov);
+						fprintf(uinigraph_out,"strict digraph %d_%d_%d_%d {", refstart, refend, s, g_idx);
+						// graphno[s][b]: number of nodes in graph.
+						if(graphno[s][b]) {
+							for(int nd=1;nd<graphno[s][b]-1;nd++)
+								fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov);
 
-						for(int nd=0;nd<graphno[s][b];nd++) {
-							// fprintf(stderr,"Node %d with parents:",i);
-							for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
-								fprintf(uinigraph_out,"%d->",nd);			
-								fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
+							for(int nd=0;nd<graphno[s][b];nd++) {
+								// fprintf(stderr,"Node %d with parents:",i);
+								for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
+									fprintf(uinigraph_out,"%d->",nd);			
+									fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
+								}
 							}
 						}
+						fprintf(uinigraph_out,"}\n");
+						g_idx += 1;
+						fprintf(stderr,"g_idx: %d\n", g_idx);
 					}
-					fprintf(uinigraph_out,"}\n");
 				}
 			}
 		}
