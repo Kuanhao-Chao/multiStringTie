@@ -22,26 +22,26 @@ srcdir = .
 top_srcdir = ..
 
 
-prefix = /home/kh.chao/Projects/stringtie/htslib/xlibs
+prefix = /Users/chaokuan-hao/Documents/Projects/stringtie/htslib/xlibs
 exec_prefix = ${prefix}
 datarootdir = ${prefix}/share
 datadir = ${datarootdir}
 localedir = ${datarootdir}/locale
 gettextsrcdir = $(datadir)/gettext/po
 
-INSTALL = /usr/bin/install -c
+INSTALL = /usr/local/bin/ginstall -c
 INSTALL_DATA = ${INSTALL} -m 644
 
 # We use $(mkdir_p).
 # In automake <= 1.9.x, $(mkdir_p) is defined either as "mkdir -p --" or as
 # "$(mkinstalldirs)" or as "$(install_sh) -d". For these automake versions,
-# ${SHELL} /home/kh.chao/Projects/stringtie/htslib/lzma/build-aux/install-sh does not start with $(SHELL), so we add it.
+# ${SHELL} /Users/chaokuan-hao/Documents/Projects/stringtie/htslib/lzma/build-aux/install-sh does not start with $(SHELL), so we add it.
 # In automake >= 1.10, $(MKDIR_P) is derived from ${MKDIR_P}, which is defined
 # either as "/path/to/mkdir -p" or ".../install-sh -c -d". For these automake
 # versions, $(mkinstalldirs) and $(install_sh) are unused.
-mkinstalldirs = $(SHELL) ${SHELL} /home/kh.chao/Projects/stringtie/htslib/lzma/build-aux/install-sh -d
-install_sh = $(SHELL) ${SHELL} /home/kh.chao/Projects/stringtie/htslib/lzma/build-aux/install-sh
-MKDIR_P = /usr/bin/mkdir -p
+mkinstalldirs = $(SHELL) ${SHELL} /Users/chaokuan-hao/Documents/Projects/stringtie/htslib/lzma/build-aux/install-sh -d
+install_sh = $(SHELL) ${SHELL} /Users/chaokuan-hao/Documents/Projects/stringtie/htslib/lzma/build-aux/install-sh
+MKDIR_P = /usr/local/bin/gmkdir -p
 mkdir_p = $(MKDIR_P)
 
 # When building gettext-tools, we prefer to use the built programs
@@ -49,17 +49,17 @@ mkdir_p = $(MKDIR_P)
 # are cross compiling.
 CROSS_COMPILING = @CROSS_COMPILING@
 
-GMSGFMT_ = /usr/bin/msgfmt
-GMSGFMT_no = /usr/bin/msgfmt
-GMSGFMT_yes = /usr/bin/msgfmt
+GMSGFMT_ = /usr/local/bin/msgfmt
+GMSGFMT_no = /usr/local/bin/msgfmt
+GMSGFMT_yes = /usr/local/bin/msgfmt
 GMSGFMT = $(GMSGFMT_$(USE_MSGCTXT))
-XGETTEXT_ = /usr/bin/xgettext
-XGETTEXT_no = /usr/bin/xgettext
-XGETTEXT_yes = /usr/bin/xgettext
+XGETTEXT_ = /usr/local/bin/xgettext
+XGETTEXT_no = /usr/local/bin/xgettext
+XGETTEXT_yes = /usr/local/bin/xgettext
 XGETTEXT = $(XGETTEXT_$(USE_MSGCTXT))
-MSGMERGE = /usr/bin/msgmerge
-MSGMERGE_UPDATE = /usr/bin/msgmerge --update
-MSGMERGE_FOR_MSGFMT_OPTION = --no-fuzzy-matching --no-location --quiet
+MSGMERGE = /usr/local/bin/msgmerge
+MSGMERGE_UPDATE = /usr/local/bin/msgmerge --update
+MSGMERGE_FOR_MSGFMT_OPTION = --for-msgfmt
 MSGINIT = msginit
 MSGCONV = msgconv
 MSGFILTER = msgfilter

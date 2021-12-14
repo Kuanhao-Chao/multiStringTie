@@ -34,15 +34,15 @@
 
 /* Define to 1 if you have the Mac OS X function CFLocaleCopyCurrent in the
    CoreFoundation framework. */
-/* #undef HAVE_CFLOCALECOPYCURRENT */
+#define HAVE_CFLOCALECOPYCURRENT 1
 
 /* Define to 1 if you have the Mac OS X function
    CFLocaleCopyPreferredLanguages in the CoreFoundation framework. */
-/* #undef HAVE_CFLOCALECOPYPREFERREDLANGUAGES */
+#define HAVE_CFLOCALECOPYPREFERREDLANGUAGES 1
 
 /* Define to 1 if you have the Mac OS X function CFPreferencesCopyAppValue in
    the CoreFoundation framework. */
-/* #undef HAVE_CFPREFERENCESCOPYAPPVALUE */
+#define HAVE_CFPREFERENCESCOPYAPPVALUE 1
 
 /* Define to 1 if crc32 integrity check is enabled. */
 #define HAVE_CHECK_CRC32 1
@@ -69,7 +69,7 @@
 
 /* Define to 1 if you have the declaration of `program_invocation_name', and
    to 0 if you don't. */
-#define HAVE_DECL_PROGRAM_INVOCATION_NAME 1
+#define HAVE_DECL_PROGRAM_INVOCATION_NAME 0
 
 /* Define to 1 if any of HAVE_DECODER_foo have been defined. */
 #define HAVE_DECODERS 1
@@ -189,13 +189,13 @@
 #define HAVE_MF_HC4 1
 
 /* Define to 1 if getopt.h declares extern int optreset. */
-/* #undef HAVE_OPTRESET */
+#define HAVE_OPTRESET 1
 
 /* Define to 1 if you have the `posix_fadvise' function. */
-#define HAVE_POSIX_FADVISE 1
+/* #undef HAVE_POSIX_FADVISE */
 
 /* Define to 1 if you have the `pthread_condattr_setclock' function. */
-#define HAVE_PTHREAD_CONDATTR_SETCLOCK 1
+/* #undef HAVE_PTHREAD_CONDATTR_SETCLOCK */
 
 /* Have PTHREAD_PRIO_INHERIT. */
 #define HAVE_PTHREAD_PRIO_INHERIT 1
@@ -240,13 +240,13 @@
 /* #undef HAVE_STRUCT_STAT_ST_ATIMENSEC */
 
 /* Define to 1 if `st_atimespec.tv_nsec' is a member of `struct stat'. */
-/* #undef HAVE_STRUCT_STAT_ST_ATIMESPEC_TV_NSEC */
+#define HAVE_STRUCT_STAT_ST_ATIMESPEC_TV_NSEC 1
 
 /* Define to 1 if `st_atim.st__tim.tv_nsec' is a member of `struct stat'. */
 /* #undef HAVE_STRUCT_STAT_ST_ATIM_ST__TIM_TV_NSEC */
 
 /* Define to 1 if `st_atim.tv_nsec' is a member of `struct stat'. */
-#define HAVE_STRUCT_STAT_ST_ATIM_TV_NSEC 1
+/* #undef HAVE_STRUCT_STAT_ST_ATIM_TV_NSEC */
 
 /* Define to 1 if `st_uatime' is a member of `struct stat'. */
 /* #undef HAVE_STRUCT_STAT_ST_UATIME */
@@ -366,7 +366,7 @@
 
 /* Define to 1 if the number of available CPU cores can be detected with
    sched_getaffinity() */
-#define TUKLIB_CPUCORES_SCHED_GETAFFINITY 1
+/* #undef TUKLIB_CPUCORES_SCHED_GETAFFINITY */
 
 /* Define to 1 if the number of available CPU cores can be detected with
    sysconf(_SC_NPROCESSORS_ONLN) or sysconf(_SC_NPROC_ONLN). */
@@ -374,7 +374,7 @@
 
 /* Define to 1 if the number of available CPU cores can be detected with
    sysctl(). */
-/* #undef TUKLIB_CPUCORES_SYSCTL */
+#define TUKLIB_CPUCORES_SYSCTL 1
 
 /* Define to 1 if the system supports fast unaligned access to 16-bit and
    32-bit integers. */
