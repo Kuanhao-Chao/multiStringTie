@@ -128,7 +128,7 @@ class DOTRecord {
    
    public:
       UniSpliceGraph uni_Splice_Graph;
-      DOTRecord();
+      DOTRecord() {};
 
       void init() {
          clear();
@@ -192,101 +192,106 @@ class DOTReader {
 
 
          // Example from: https://www.codegrepper.com/code-examples/cpp/remove+all+spaces+from+string+c%2B%2B
-         string line;
-         getline(ifile_dot, line);         
-         // line.erase(remove(line.begin(), line.end(), ' '), line.end());
-         fprintf(stderr, "line: %s \n", line.c_str());
-         // if (regex_match(line, regex("(strict\\s+)(digraph\\s+)([0-9]*)(_)([0-9]*)(_)([0-9]*\\s+)(.*)(->)(.*)(\\[label=)(.*)(\\];)"))) {
-         // regex rgx("(\\w+)->(\\w+)\\[label=(\\w+)\\];");
-
-         string delimiter = "{";
-         size_t pos = 0;
-         string token;
-
-
-
-         for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-            int s=sno/2; // adjusted strand due to ignoring neutral strand
-    		   no2gnode[s]=NULL;
-         }
-
-
-         int refstart = 0;
-         int refend = 0;
-         int s = 0;
-         int g_idx = 0;
-         while ((pos = line.find(delimiter)) != string::npos) {
-            token = line.substr(0, pos);
-            // std::cout << token << std::endl;
-            fprintf(stderr, "token: %s\n", token.c_str());
-            regex title_rgx("strict\\s+digraph\\s+(\\w+)_(\\w+)_(\\w+)_(\\w+)");
-            smatch match;
+         string line;  
+         if (getline(ifile_dot, line)) {
+            // line.erase(remove(line.begin(), line.end(), ' '), line.end());
             fprintf(stderr, "line: %s \n", line.c_str());
-            if (regex_search(token, match, title_rgx)) {
-               refstart = stoi(match[1]);
-               refend = stoi(match[2]);
-               s = stoi(match[3]);
-               g_idx = stoi(match[4]);
-               fprintf(stderr, "refstart: %d\n", refstart);
-               fprintf(stderr, "refstart: %d\n", refend);
-               fprintf(stderr, "s: %d\n", s);
-               fprintf(stderr, "g_idx: %d\n", g_idx);
+            // if (regex_match(line, regex("(strict\\s+)(digraph\\s+)([0-9]*)(_)([0-9]*)(_)([0-9]*\\s+)(.*)(->)(.*)(\\[label=)(.*)(\\];)"))) {
+            // regex rgx("(\\w+)->(\\w+)\\[label=(\\w+)\\];");
+
+            string delimiter = "{";
+            size_t pos = 0;
+            string token;
+
+
+
+            for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+               int s=sno/2; // adjusted strand due to ignoring neutral strand
+               no2gnode[s]=NULL;
             }
 
-            line.erase(0, pos + delimiter.length());
-            break;
-         }
 
+            int refstart = 0;
+            int refend = 0;
+            int s = 0;
+            int g_idx = 0;
+            while ((pos = line.find(delimiter)) != string::npos) {
+               token = line.substr(0, pos);
+               // std::cout << token << std::endl;
+               fprintf(stderr, "token: %s\n", token.c_str());
+               regex title_rgx("strict\\s+digraph\\s+(\\w+)_(\\w+)_(\\w+)_(\\w+)");
+               smatch match;
+               fprintf(stderr, "line: %s \n", line.c_str());
+               if (regex_search(token, match, title_rgx)) {
+                  refstart = stoi(match[1]);
+                  refend = stoi(match[2]);
+                  s = stoi(match[3]);
+                  g_idx = stoi(match[4]);
+                  fprintf(stderr, "refstart: %d\n", refstart);
+                  fprintf(stderr, "refstart: %d\n", refend);
+                  fprintf(stderr, "s: %d\n", s);
+                  fprintf(stderr, "g_idx: %d\n", g_idx);
+               }
 
-    		// no2gnode[s]=new GPVec<CGraphnode>[bundle[sno].Count()];
-         delimiter = ";";
-         pos = 0;
-         token = "";
-
-         // Add the source first.
-         // CGraphnode* source=new CGraphnode(0,0,0);
-         // no2gnode[s][g_idx].Add(source);
-	      // CGraphnode* sink=new CGraphnode();
-
-
-
-         while ((pos = line.find(delimiter)) != string::npos) {
-            int node = 0;
-            int start = 0;
-            int end = 0;
-            int cov = 0;
-            int head = 0;
-            int tail = 0;
-            token = line.substr(0, pos);
-            // std::cout << token << std::endl;
-            fprintf(stderr, "token: %s\n", token.c_str());
-
-            regex node_rgx("(\\w+)\\[+start=(\\w+)\\s+end=(\\w+)\\s+cov=(\\w+)");
-            regex edge_rgx("(\\w+)->(\\w+)");
-            smatch match;
-            if (regex_search(token, match, node_rgx)) {
-               node = stoi(match[1]);
-               start = stoi(match[2]);
-               end = stoi(match[3]);
-               cov = stoi(match[4]);
-               fprintf(stderr, "node : %d\n", node);
-               fprintf(stderr, "start : %d\n", start);
-               fprintf(stderr, "end : %d\n", end);
-               fprintf(stderr, "cov : %d\n", cov);
+               line.erase(0, pos + delimiter.length());
+               break;
             }
-            if (regex_search(token, match, edge_rgx)) {
-               head = stoi(match[1]);
-               tail = stoi(match[2]);
-               fprintf(stderr, "head : %d\n", head);
-               fprintf(stderr, "tail : %d\n", tail);
+
+
+            // no2gnode[s]=new GPVec<CGraphnode>[bundle[sno].Count()];
+            delimiter = ";";
+            pos = 0;
+            token = "";
+
+            // Add the source first.
+            // CGraphnode* source=new CGraphnode(0,0,0);
+            // no2gnode[s][g_idx].Add(source);
+            // CGraphnode* sink=new CGraphnode();
+
+
+
+            while ((pos = line.find(delimiter)) != string::npos) {
+               int node = 0;
+               int start = 0;
+               int end = 0;
+               int cov = 0;
+               int head = 0;
+               int tail = 0;
+               token = line.substr(0, pos);
+               // std::cout << token << std::endl;
+               fprintf(stderr, "token: %s\n", token.c_str());
+
+               regex node_rgx("(\\w+)\\[+start=(\\w+)\\s+end=(\\w+)\\s+cov=(\\w+)");
+               regex edge_rgx("(\\w+)->(\\w+)");
+               smatch match;
+               if (regex_search(token, match, node_rgx)) {
+                  node = stoi(match[1]);
+                  start = stoi(match[2]);
+                  end = stoi(match[3]);
+                  cov = stoi(match[4]);
+                  fprintf(stderr, "node : %d\n", node);
+                  fprintf(stderr, "start : %d\n", start);
+                  fprintf(stderr, "end : %d\n", end);
+                  fprintf(stderr, "cov : %d\n", cov);
+               }
+               if (regex_search(token, match, edge_rgx)) {
+                  head = stoi(match[1]);
+                  tail = stoi(match[2]);
+                  fprintf(stderr, "head : %d\n", head);
+                  fprintf(stderr, "tail : %d\n", tail);
+               }
+               line.erase(0, pos + delimiter.length());
+
+               // no2gnode
             }
-            line.erase(0, pos + delimiter.length());
 
-            // no2gnode
-         }
-
-         return NULL;
+            DOTRecord* new_drec = new DOTRecord();         
+            return new_drec;
+         } else {    
+            return NULL;        
+         }   
       }
+
       bool next(DOTRecord& rec) {
          return false;
       }

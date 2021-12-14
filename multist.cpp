@@ -15,9 +15,9 @@ bool DOTInputFile::start(const char* fn) {
 	this -> reader = new DOTReader(this -> file);
     bool is_dot_open;
 	is_dot_open = this -> reader -> dotopen(this -> file);
-	if (is_dot_open) {
-		this -> rec = this -> reader->next();
-	}
+	// if (is_dot_open) {
+	// 	this -> rec = this -> reader->next();
+	// }
 	return is_dot_open;
 
     // DOTRecord* brec=this -> reader->next();
@@ -26,8 +26,8 @@ bool DOTInputFile::start(const char* fn) {
 
 DOTRecord* DOTInputFile::next() {
 	//must free old current record first
-	delete rec;
-	rec=NULL;
+	delete this -> rec;
+	this -> rec=NULL;
 	this -> rec = this->reader->next();
 	return this -> rec;
     // if (recs.Count()>0) {

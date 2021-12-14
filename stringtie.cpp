@@ -348,9 +348,6 @@ int main(int argc, char* argv[]) {
 		uinigraph_out = fopen(uinigraphfname.chars(), "w");
 		fprintf(stderr, "uinigraphfname: %s\n", uinigraphfname.chars());
 	}
-	/****************
-	 **  END KH Adding 
-	****************/
 	fprintf(stderr, "outfname: %s\n", outfname.chars());
 	fprintf(stderr, "out_dir: %s\n", out_dir.chars());
 	fprintf(stderr, "tmp_path: %s\n", tmp_path.chars());
@@ -358,6 +355,9 @@ int main(int argc, char* argv[]) {
 	fprintf(stderr, "tmpfname: %s\n", tmpfname.chars());
 	fprintf(stderr, "genefname: %s\n", genefname.chars());
 	fprintf(stderr, "traindir: %s\n", traindir.chars());
+	/****************
+	 **  END KH Adding 
+	****************/
 
 	GVec<GRefData> refguides; // plain vector with transcripts for each chromosome
 
