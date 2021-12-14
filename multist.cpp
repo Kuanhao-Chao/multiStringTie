@@ -20,19 +20,21 @@ bool DOTInputFile::start(const char* fn) {
 	// }
 	return is_dot_open;
 
-    // DOTRecord* brec=this -> reader->next();
+    // UniSpliceGraph* brec=this -> reader->next();
 }
 
 
-DOTRecord* DOTInputFile::next() {
+UniSpliceGraph* DOTInputFile::next() {
 	//must free old current record first
 	delete this -> rec;
 	this -> rec=NULL;
 	this -> rec = this->reader->next();
+	this -> updateUniSpliceGraphs();
+	// uni_splice_graphs
 	return this -> rec;
     // if (recs.Count()>0) {
     // 	crec=recs.Pop();//lowest coordinate
-    	// DOTRecord* rnext = this->reader->next();
+    	// UniSpliceGraph* rnext = this->reader->next();
     	// if (rnext)
     	// 	recs.Add(new DOTInputRecord(rnext, crec->fidx));
     	// return crec->brec;
@@ -49,5 +51,9 @@ void DOTInputFile::stop() {
 //  if (!keepTempFiles) {
     unlink(tmpfile.chars());
 //  }
+}
+
+void DOTInputFile::updateUniSpliceGraphs() {
+	uni_splice_graphs -> AddGraph(uni_splice_graphs, rec);
 }
 

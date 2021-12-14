@@ -12,99 +12,98 @@
 #include <fstream>
 #include <regex>
 #include <string>
+#include <typeinfo>
 
 struct UniSpliceGraph {
    protected:
-      //  Do not need
-   	GPVec<CBundle> bundle[3]; // all bundles on all strands: 0,1,2
-      //  Do not need
-   	GPVec<CBundlenode> bnode[3]; // last bnodes on all strands: 0,1,2 for each bundle : this might be the key for overalps
-      //  Do not need
-    	int bno[2]={0,0};
-
-
       int refstart;
 	   int refend;
       int s;
       int g_idx;
-      GVec<int> graphno[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
-      GVec<int> edgeno[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
-      GPVec<CGraphnode> *no2gnode[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
 
-
-
-
-      GVec<CGraphinfo> *bundle2graph[2]; // should I keep the neutral strand for consistency ? -> remember not to delete it
-      //  Do not need
-      GPVec<CTransfrag> *transfrag[2]; // for each transfrag t on a strand s, in a graph g, transfrag[s][g][t] gives it's abundance and it's pattern
-    	// GPVec<CMTransfrag> *mgt[2]; // merged super-transfrags
-
-      CTreePat **tr2no[2]; // for each graph g, on a strand s, tr2no[s][g] keeps the tree pattern structure for quick retrieval of the index t of a tansfrag
-      GIntHash<int> *gpos[2]; // for each graph g, on a strand s, gpos[s][g] keeps the hash between edges and positions in the bitvec associated to a pattern
-      GVec<int> lastgpos[2];
+      int graphno;  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
+      int edgeno;  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+      GPVec<CGraphnode>* no2gnode; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
    public:
    // s: strand (0 = negative strand; 1 = unknown strand; 2 = positive strand // 0(-),1(.),2(+))
    // b: all bundles on all strands: 0,1,2
-   	UniSpliceGraph():refstart(0), refend(0), s(NULL), g_idx(NULL) { 
-         //    // build graph structure
-         //    for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+   	UniSpliceGraph(int refstart_i=0, int refend_i=0, int s_is=0, int g_idx_i=0):refstart(refstart_i),refend(refend_i),s(s_is),g_idx(g_idx_i) { 
+    		no2gnode = new GPVec<CGraphnode>;
+         // fprintf(stderr, "no2gnode print test %d: ", no2gnode);
+         CGraphnode* source=new CGraphnode(0,0,0);
+         no2gnode -> Add(source);
+         fprintf(stderr, "no2gnode[0]->nodeid %d: \n", no2gnode->Get(0)->nodeid);
+         graphno = 0;
+         edgeno = 0;
+      }
 
-         //       int s=sno/2; // adjusted strand due to ignoring neutral strand
-         //       //char strnd='-';
-         //       //if(s) strnd='+';
-
-         //       bundle2graph[s]=NULL;
-         //       if(bnode[sno].Count()) bundle2graph[s]=new GVec<CGraphinfo>[bnode[sno].Count()];
-         //       transfrag[s]=NULL;
-         //       // mgt[s]=NULL;
-         //       no2gnode[s]=NULL;
-         //       tr2no[s]=NULL;
-         //       gpos[s]=NULL;
-
-         //       if(bundle[sno].Count()) {
-         //          transfrag[s]=new GPVec<CTransfrag>[bundle[sno].Count()]; // for each bundle I have a graph ? only if I don't ignore the short bundles
-         //          // mgt[s]=new GPVec<CMTransfrag>[bundle[sno].Count()];
-         //          no2gnode[s]=new GPVec<CGraphnode>[bundle[sno].Count()];
-
-         //          gpos[s]=new GIntHash<int>[bundle[sno].Count()];
-
-
-         //          GCALLOC(tr2no[s],bundle[sno].Count()*sizeof(CTreePat *));
-         //          bno[s]=bundle[sno].Count();
-
-         //          for(int b=0;b<bundle[sno].Count();b++) {
-         //             graphno[s].cAdd(0);
-         //             edgeno[s].cAdd(0);
-         //             lastgpos[s].cAdd(0);
-
-         //             /*
-         //             { // DEBUG ONLY
-         //             if(bundle[sno][b]->nread) {
-         //                fprintf(stderr,"proc bundle[%d][%d] %f/%f is %f len=%d\n",sno,b,bundle[sno][b]->multi,bundle[sno][b]->nread,(float)bundle[sno][b]->multi/bundle[sno][b]->nread,bundle[sno][b]->len);
-         //             } }
-         //             */
-
-         //             // after the graph is created, I need to do 'predict transcripts for unstranded bundles here'
-         //             /*****************************
-         //              ** I need to come up with my own `create_unisplicegraph`
-         //              *****************************/
-         //             // create graph
-         //             GArray<GEdge> unused;
-         //             graphno[s][b]=create_graph(refstart,s,b,bundle[sno][b],bnode[sno],junction,ejunction,
-         //                   bundle2graph,no2gnode,transfrag,gpos,NULL,edgeno[s][b],lastgpos[s][b],unused,refend);
-
-         //             if(graphno[s][b]) tr2no[s][b]=construct_treepat(graphno[s][b],gpos[s][b],transfrag[s][b]);
-         //             else tr2no[s][b]=NULL;
-
-         //             // for(int i=0; i<transfrag[s][b].Count();i++) {
-         //             //    CMTransfrag *tr=new CMTransfrag(transfrag[s][b][i]); // transfrags that are created in the graph process can not be associated with any read
-         //             //    mgt[s][b].Add(tr);
-         //             // }
-
-         //          }
-         //       }
-         //    }
+      void AddNode(int refstart_i, int refend_i, int start, int end, int node_id) {
+         if (refstart_i == refstart && refend_i == refend) {
+            CGraphnode* new_node=new CGraphnode(start, end, node_id); // start,end,nodeno
+            no2gnode -> Add(new_node);
+            fprintf(stderr, "Node size: %d\n ", no2gnode->Count());
+            graphno += 1;
          }
+      }
+
+      void AddSink(int refstart_i, int refend_i) {
+         if (refstart_i == refstart && refend_i == refend) {
+            CGraphnode* sink=new CGraphnode(0,0,graphno+1);
+            no2gnode->Add(sink);
+            fprintf(stderr, "sink Node size: %d\n ", no2gnode->Count());
+            fprintf(stderr, "no2gnode[0]->nodeid %d: \n", no2gnode->Get(graphno+1)->nodeid);
+         }
+      }
+
+      void AddEdge(int refstart_i, int refend_i, int head, int tail) {
+         if (refstart_i == refstart && refend_i == refend) {
+            // no2gnode[head];
+            // fprintf(stderr, "no2gnode[0]->nodeid %d: ", no2gnode->Get(head));
+            no2gnode->Get(head)->child.Add(tail);
+            no2gnode->Get(tail)->parent.Add(head);
+
+            // GBitVec childpat;
+            // GBitVec parentpat;
+
+            edgeno+=1;
+         }
+      }
+
+      void PrintGraph() {
+         { //DEBUG ONLY
+            fprintf(stderr,"after traverse:\n");
+            for(int i=1;i<graphno+1;i++) {
+               fprintf(stderr,"Node %d with parents:",i);
+               for(int p=0;p<no2gnode->Get(i)->parent.Count();p++) fprintf(stderr," %d",no2gnode->Get(i)->parent[p]);
+               fprintf(stderr," and children:");
+               for(int c=0;c<no2gnode->Get(i)->child.Count();c++) fprintf(stderr," %d",no2gnode->Get(i)->child[c]);
+               fprintf(stderr,"\n");
+            }
+         }
+      }
+
+      int get_refstart() {
+         return refstart;
+      }
+      int get_refend() {
+         return refend;
+      }
+      int get_s() {
+         return s;
+      }
+      int get_g_idx() {
+         return g_idx;
+      }
+      int get_graphno() {
+         return graphno;
+      }
+      int get_edgeno() {
+         return edgeno;
+      }
+      GPVec<CGraphnode>* get_no2gnode() {
+         return no2gnode;
+      }
+
    // after the graph is created, I need to do 'predict transcripts for unstranded bundles here'
    /*****************************
 	 ** 'CPrediction': constructor
@@ -117,34 +116,106 @@ struct UniSpliceGraph {
     **    'process_refguides' & 'process_transfrags' & 'find_transcripts' & 'free_treepat'
     *****************************/
 };
+
+struct UniSpliceGraphs {
+   protected:
+      // //  Do not need
+   	// GPVec<CBundle> bundle[3]; // all bundles on all strands: 0,1,2
+      // //  Do not need
+   	// GPVec<CBundlenode> bnode[3]; // last bnodes on all strands: 0,1,2 for each bundle : this might be the key for overalps
+      // //  Do not need
+    	// int bno[2]={0,0};
+      int graph_idx = 0;
+      GVec<int> graphno[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
+      GVec<int> edgeno[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+      GPVec<CGraphnode>* no2gnode[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+      // GVec<CGraphinfo> *bundle2graph[2]; // should I keep the neutral strand for consistency ? -> remember not to delete it
+      // //  Do not need
+      // GPVec<CTransfrag> *transfrag[2]; // for each transfrag t on a strand s, in a graph g, transfrag[s][g][t] gives it's abundance and it's pattern
+    	// // GPVec<CMTransfrag> *mgt[2]; // merged super-transfrags
+
+      // CTreePat **tr2no[2]; // for each graph g, on a strand s, tr2no[s][g] keeps the tree pattern structure for quick retrieval of the index t of a tansfrag
+      // GIntHash<int> *gpos[2]; // for each graph g, on a strand s, gpos[s][g] keeps the hash between edges and positions in the bitvec associated to a pattern
+      // GVec<int> lastgpos[2];
+   public:
+      // s: strand (0 = negative strand; 1 = unknown strand; 2 = positive strand // 0(-),1(.),2(+))
+      // b: all bundles on all strands: 0,1,2
+   	UniSpliceGraphs() { 
+         for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+            int s=sno/2; // adjusted strand due to ignoring neutral strand
+            graphno[s].cAdd(0);
+            edgeno[s].cAdd(0);
+            no2gnode[s] = new GPVec<CGraphnode>;
+            CGraphnode* source=new CGraphnode(0,0,0);
+            no2gnode[s]->Push(source);
+         }
+      }
+
+      void AddGraph(UniSpliceGraphs* uni_splice_graphs, UniSpliceGraph* uni_splice_graph) {
+         fprintf(stderr, "* uni_splice_graph.refstart: %d \n", uni_splice_graph -> get_refstart());
+         fprintf(stderr, "* uni_splice_graph.refend: %d \n", uni_splice_graph -> get_refend());
+         fprintf(stderr, "* uni_splice_graph.s: %d \n", uni_splice_graph -> get_s());
+         fprintf(stderr, "* uni_splice_graph.g_idx: %d \n", uni_splice_graph -> get_g_idx());
+
+      //    int refstart;
+	   // int refend;
+      // int s;
+      // int g_idx;
+
+      // int graphno;  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
+      // int edgeno;  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+      // GPVec<CGraphnode>* no2gnode; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+
+         fprintf(stderr, "&& Inside AddGraph * graph_idx: %d \n", graph_idx);
+         graphno[uni_splice_graph->get_s()][graph_idx] = uni_splice_graph->get_graphno();
+         edgeno[uni_splice_graph->get_s()][graph_idx] = uni_splice_graph->get_edgeno();
+         no2gnode[uni_splice_graph->get_s()][graph_idx] = no2gnode;
+         uni_splice_graphs->graph_idx += 1;
+      }
+      int get_graph_idx () {
+         return graph_idx;
+      }
+      GVec<int>* get_graphno () {
+         return graphno;
+      }
+      GVec<int>* get_edgeno () {
+         return edgeno;
+      }
+      GPVec<CGraphnode>** get_no2gnode () {
+         return no2gnode;
+      }
+};
+
+
+
       
 
 class DOTReader;
 class DOTWriter;
 
-class DOTRecord {
-   friend class DOTReader;
-   friend class DOTWriter;
+// class DOTRecord {
+//    friend class DOTReader;
+//    friend class DOTWriter;
    
-   public:
-      UniSpliceGraph uni_Splice_Graph;
-      DOTRecord() {};
+//    public:
+//       UniSpliceGraph* uni_Splice_Graph;
+//       DOTRecord() {};
 
-      void init() {
-         clear();
-      }
+//       void init() {
+//          clear();
+//       }
 
-      void clear() {
-      }
+//       void clear() {
+//       }
 
-      ~DOTRecord() {
-         clear();
-      }
+//       ~DOTRecord() {
+//          clear();
+//       }
 
-      void parse_error(const char* s) {
-         GError("DOT parsing error: %s\n", s);
-      }
-};
+//       void parse_error(const char* s) {
+//          GError("DOT parsing error: %s\n", s);
+//       }
+// };
 
 class DOTReader {
    public:
@@ -181,13 +252,12 @@ class DOTReader {
          GFREE(fname);
       }
       
-      //the caller has to FREE the created DOTRecord
-      DOTRecord* next() {
-
+      //the caller has to FREE the created UniSpliceGraph
+      UniSpliceGraph* next() {
          // Three target Vector to be created.
-         GVec<int> graphno[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
-         GVec<int> edgeno[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
-         GPVec<CGraphnode> *no2gnode[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+         // GVec<int> graphno[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
+         // GVec<int> edgeno[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+         // GPVec<CGraphnode> *no2gnode[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
 
 
 
@@ -195,7 +265,7 @@ class DOTReader {
          string line;  
          if (getline(ifile_dot, line)) {
             // line.erase(remove(line.begin(), line.end(), ' '), line.end());
-            fprintf(stderr, "line: %s \n", line.c_str());
+            fprintf(stderr, "Before parsing line: %s \n", line.c_str());
             // if (regex_match(line, regex("(strict\\s+)(digraph\\s+)([0-9]*)(_)([0-9]*)(_)([0-9]*\\s+)(.*)(->)(.*)(\\[label=)(.*)(\\];)"))) {
             // regex rgx("(\\w+)->(\\w+)\\[label=(\\w+)\\];");
 
@@ -205,53 +275,47 @@ class DOTReader {
 
 
 
-            for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-               int s=sno/2; // adjusted strand due to ignoring neutral strand
-               no2gnode[s]=NULL;
-            }
+            // for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+            //    int s=sno/2; // adjusted strand due to ignoring neutral strand
+            //    no2gnode[s] = new GPVec<CGraphnode>;
+            // }
 
 
             int refstart = 0;
             int refend = 0;
             int s = 0;
             int g_idx = 0;
+            bool add_sink = true;
             while ((pos = line.find(delimiter)) != string::npos) {
                token = line.substr(0, pos);
                // std::cout << token << std::endl;
-               fprintf(stderr, "token: %s\n", token.c_str());
+               // fprintf(stderr, "token: %s\n", token.c_str());
                regex title_rgx("strict\\s+digraph\\s+(\\w+)_(\\w+)_(\\w+)_(\\w+)");
                smatch match;
-               fprintf(stderr, "line: %s \n", line.c_str());
+               // fprintf(stderr, "line: %s \n", line.c_str());
                if (regex_search(token, match, title_rgx)) {
                   refstart = stoi(match[1]);
                   refend = stoi(match[2]);
                   s = stoi(match[3]);
                   g_idx = stoi(match[4]);
-                  fprintf(stderr, "refstart: %d\n", refstart);
-                  fprintf(stderr, "refstart: %d\n", refend);
-                  fprintf(stderr, "s: %d\n", s);
-                  fprintf(stderr, "g_idx: %d\n", g_idx);
+                  fprintf(stderr, "ref : %d - %d, %d, %d\n", refstart, refend, s, g_idx);
+                  // fprintf(stderr, "refstart: %d\n", refend);
+                  // fprintf(stderr, "s: %d\n", s);
+                  // fprintf(stderr, "g_idx: %d\n", g_idx);
                }
 
                line.erase(0, pos + delimiter.length());
                break;
             }
 
+            UniSpliceGraph* uni_splice_graph = new UniSpliceGraph(refstart, refend, s, g_idx);
 
-            // no2gnode[s]=new GPVec<CGraphnode>[bundle[sno].Count()];
             delimiter = ";";
             pos = 0;
             token = "";
 
-            // Add the source first.
-            // CGraphnode* source=new CGraphnode(0,0,0);
-            // no2gnode[s][g_idx].Add(source);
-            // CGraphnode* sink=new CGraphnode();
-
-
-
             while ((pos = line.find(delimiter)) != string::npos) {
-               int node = 0;
+               int node_id = 0;
                int start = 0;
                int end = 0;
                int cov = 0;
@@ -259,40 +323,47 @@ class DOTReader {
                int tail = 0;
                token = line.substr(0, pos);
                // std::cout << token << std::endl;
-               fprintf(stderr, "token: %s\n", token.c_str());
+               // fprintf(stderr, "token: %s\n", token.c_str());
 
                regex node_rgx("(\\w+)\\[+start=(\\w+)\\s+end=(\\w+)\\s+cov=(\\w+)");
                regex edge_rgx("(\\w+)->(\\w+)");
                smatch match;
                if (regex_search(token, match, node_rgx)) {
-                  node = stoi(match[1]);
+                  node_id = stoi(match[1]);
                   start = stoi(match[2]);
                   end = stoi(match[3]);
                   cov = stoi(match[4]);
-                  fprintf(stderr, "node : %d\n", node);
-                  fprintf(stderr, "start : %d\n", start);
-                  fprintf(stderr, "end : %d\n", end);
-                  fprintf(stderr, "cov : %d\n", cov);
+                  // fprintf(stderr, "node : %d\n", node);
+                  // fprintf(stderr, "start : %d\n", start);
+                  // fprintf(stderr, "end : %d\n", end);
+                  // fprintf(stderr, "cov : %d\n", cov);
+                  uni_splice_graph->AddNode(refstart, refend, start, end, node_id);
                }
                if (regex_search(token, match, edge_rgx)) {
+                  // add sink
+                  if (add_sink) {
+                     uni_splice_graph->AddSink(refstart, refend);
+                     add_sink = false;
+                  }
                   head = stoi(match[1]);
                   tail = stoi(match[2]);
-                  fprintf(stderr, "head : %d\n", head);
-                  fprintf(stderr, "tail : %d\n", tail);
+                  // fprintf(stderr, "head : %d\n", head);
+                  // fprintf(stderr, "tail : %d\n", tail);
+                  uni_splice_graph->AddEdge(refstart, refend, head, tail);
                }
                line.erase(0, pos + delimiter.length());
 
                // no2gnode
             }
+            uni_splice_graph -> PrintGraph();
 
-            DOTRecord* new_drec = new DOTRecord();         
-            return new_drec;
+            return uni_splice_graph;
          } else {    
             return NULL;        
          }   
       }
 
-      bool next(DOTRecord& rec) {
+      bool next(UniSpliceGraph& rec) {
          return false;
       }
 };
@@ -395,10 +466,10 @@ class DOTWriter {
 // };
 
 // struct DOTInputRecord {
-//    DOTRecord* brec;
+//    UniSpliceGraph* brec;
 //    int fidx; //index in files and readers
 
-// 	DOTInputRecord(DOTRecord* b=NULL, int i=0):brec(b),fidx(i) {}
+// 	DOTInputRecord(UniSpliceGraph* b=NULL, int i=0):brec(b),fidx(i) {}
 // 	~DOTInputRecord() {
 // 		delete brec;
 // 	}
@@ -407,18 +478,23 @@ class DOTWriter {
 
 struct DOTInputFile {
    protected:
-      DOTRecord* rec;
+      UniSpliceGraph* rec;
+      UniSpliceGraphs* uni_splice_graphs;
    public:
       DOTReader* reader;
       GStr file; //same order
       GStr tmpfile; //all the temp files created by this
-      // GList<DOTInputRecord> recs; //next record for each
-      DOTInputFile():rec(NULL), reader(), file(), tmpfile() { }
+      DOTInputFile():rec(NULL), reader(), file(), tmpfile() {
+         fprintf(stderr, "&& DOTInputFile Initialization  :\n");
+         uni_splice_graphs = new UniSpliceGraphs();
+         fprintf(stderr, "Initialization uni_splice_graphs.graph_idx %d :\n", uni_splice_graphs->get_graph_idx());
+      }
       // void Add(const char* fn);
       int count() { return 1; }
       bool start(const char* fn); //open all files, load 1 record from each
-      DOTRecord* next();
+      UniSpliceGraph* next();
       void stop();
+      void updateUniSpliceGraphs();
 };
 
 

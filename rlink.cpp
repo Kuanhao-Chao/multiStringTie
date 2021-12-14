@@ -3999,7 +3999,7 @@ CTreePat *construct_treepat(int gno, GIntHash<int>& gpos,GPVec<CTransfrag>& tran
 	/**********************
 	 ** now construct all child CTreePat's
 	 **********************/
-	fprintf(stderr,"There are %d transfrags\n",transfrag.Count());
+	// fprintf(stderr,"There are %d transfrags\n",transfrag.Count());
 	for(int t=0;t<transfrag.Count();t++)
 		if(transfrag[t]->nodes[0]){ // don't include transfrags from source -> not needed
 			CTreePat *tree=root;

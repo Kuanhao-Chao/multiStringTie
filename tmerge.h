@@ -55,7 +55,9 @@ struct TInputFiles {
 	GVec<GStr> tmpfiles; //all the temp files created by this
 	GList<TInputRecord> recs; //next record for each
 	TInputFiles():crec(NULL), readers(true), files(), tmpfiles(),
-			recs(true, true, true) { }
+			recs(true, true, true) { 
+				fprintf(stderr, "TInputFiles initialization\n");
+			}
 	void Add(const char* fn);
 	int count() { return files.Count(); }
 	int start(); //open all files, load 1 record from each
