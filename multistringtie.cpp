@@ -589,16 +589,15 @@ int main(int argc, char* argv[]) {
 			fprintf(stderr, "Keep reading!!!\n");
 
 			if (pre_refstart != drec->get_refstart() && pre_refend != drec->get_refend()) {
+				uni_splice_graphGp -> PrintGraphGp();
 				// This is a new UniSpliceGraphGp!!
 				pre_refstart = drec->get_refstart();
 				pre_refend = drec->get_refend();
 				fprintf(stderr, "*********************************************************\n");
 				fprintf(stderr, "******* This is a new uni-splice_graph ******************\n");
 				fprintf(stderr, "*********************************************************\n");
-				// uni_splice_graphs = new UniSpliceGraphGp();
 				new_uni_splice_graph = true;
 				uni_splice_graphGp -> Clear();
-				// uni_splice_graphGp = new UniSpliceGraphGp();
 			}
 			// Still in the same UniSpliceGraphGp!!
 			fprintf(stderr, "drec->get_refstart() %d!!!\n", drec->get_refstart());

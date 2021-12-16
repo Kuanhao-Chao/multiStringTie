@@ -142,11 +142,10 @@ struct UniSpliceGraphGp {
    	UniSpliceGraphGp() { 
          for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
             int s=sno/2; // adjusted strand due to ignoring neutral strand
-            graphnoGp[s].cAdd(0);
-            edgenoGp[s].cAdd(0);
+            graphnoGp[s].setCapacity(4096);
+            edgenoGp[s].setCapacity(4096);
+
             no2gnodeGp[s] = new GPVec<CGraphnode>;
-            CGraphnode* source=new CGraphnode(0,0,0);
-            no2gnodeGp[s]->Push(source);
          }
       }
 
@@ -167,13 +166,18 @@ struct UniSpliceGraphGp {
       // int edgeno;  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
       // GPVec<CGraphnode>* no2gnode; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
          graphnoGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()] = uni_splice_graph->get_graphno();
+
          // fprintf(stderr, "* After graphno[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()]: \n");
+         
          edgenoGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()] = uni_splice_graph->get_edgeno();
          // fprintf(stderr, "* After graphno[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()]: \n");
 
          // fprintf(stderr, "* graphno[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()]: %d \n", graphnoGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()]);
          // fprintf(stderr, "* edgeno[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()]: %d \n", edgenoGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()]);
-         // no2gnode[uni_splice_graph->get_s()][graph_idx] = no2gnode;
+         // no2gnodeGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()] = no2gnode;
+
+         // CGraphnode* source=new CGraphnode(0,0,0);
+         no2gnodeGp[uni_splice_graph->get_s()] = uni_splice_graph->get_no2gnode();
          // We need to reset graph_idx when (1)the new strands   
       }
 
@@ -181,33 +185,37 @@ struct UniSpliceGraphGp {
          for(int i=0;i<2;i++) {
             graphnoGp[i].Clear();
             edgenoGp[i].Clear();
-            graphnoGp[i].cAdd(0);
-            edgenoGp[i].cAdd(0);
+            graphnoGp[i].setCapacity(1024);
+            edgenoGp[i].setCapacity(1024);
             // delete no2gnode[i];
-            // no2gnode[i]->Clear();
+            no2gnodeGp[i]->Clear();
+            no2gnodeGp[i] = new GPVec<CGraphnode>;
             // no2gnode[i] = NULL;
          };
-         fprintf(stderr, "Done cleaning!! \n");
-         // for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-         //    int s=sno/2; // adjusted strand due to ignoring neutral strand
-         //    graphno[s].cAdd(0);
-         //    edgeno[s].cAdd(0);
-         //    // no2gnode[s] = new GPVec<CGraphnode>;
-         //    // CGraphnode* source=new CGraphnode(0,0,0);
-         //    // no2gnode[s]->Push(source);
-         // }
-
-         // for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-         //    int s=sno/2; // adjusted strand due to ignoring neutral strand
-         //    graphno[s].cAdd(0);
-         //    edgeno[s].cAdd(0);
-         //    // no2gnode[s] = new GPVec<CGraphnode>;
-         //    // CGraphnode* source=new CGraphnode(0,0,0);
-         //    // no2gnode[s]->Push(source);
-         // }
-         // GPVec<CGraphnode>* no2gnode[2]; 
+         // fprintf(stderr, "Done cleaning!! \n");
 	   }
 
+      void PrintGraphGp() {
+         fprintf(stderr, "*********************************\n");
+         fprintf(stderr, "*********** PrintGraphGp ********\n");
+         fprintf(stderr, "*********************************\n");
+
+         { // DEBUG ONLY
+            printTime(stderr);
+            for(int s=0;s<2;s++) {
+               fprintf(stderr, "There are %d stranded[%d] graphs\n",no2gnodeGp[s]->Count(),int(2*s));
+               for(int b=0;b<no2gnodeGp[s]->Count();b++) {
+                  if(graphnoGp[s][b]) {
+                     GStr pat;
+                     fprintf(stderr,"Graph[%d][%d] with %d nodes and %d edges :",int(2*s),b,graphnoGp[s][b],edgenoGp[s][b]);
+                     for(int nd=1;nd<graphnoGp[s][b]-1;nd++)
+                        fprintf(stderr," %d(%d-%d)",nd,no2gnodeGp[s][b][nd]->start,no2gnodeGp[s][b][nd]->end);
+                     fprintf(stderr,"\n");
+                  }
+               }
+            }
+         }
+      }
       GVec<int>* get_graphnoGp () {
          return graphnoGp;
       }
