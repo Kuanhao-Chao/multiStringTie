@@ -29,7 +29,7 @@ UniSpliceGraph* DOTInputFile::next() {
 	delete this -> rec;
 	this -> rec=NULL;
 	this -> rec = this->reader->next();
-	this -> updateUniSpliceGraphs();
+	// this -> updateUniSpliceGraphGp();
 	// uni_splice_graphs
 	return this -> rec;
     // if (recs.Count()>0) {
@@ -51,9 +51,5 @@ void DOTInputFile::stop() {
 //  if (!keepTempFiles) {
     unlink(tmpfile.chars());
 //  }
-}
-
-void DOTInputFile::updateUniSpliceGraphs() {
-	uni_splice_graphs -> AddGraph(uni_splice_graphs, rec);
 }
 

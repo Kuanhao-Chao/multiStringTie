@@ -6,6 +6,9 @@
 #include "GThreads.h"
 #endif
 
+// Let's test single thread first!!
+#define NOTHREADS
+
 //#define GMEMTRACE 1 
 
 #ifdef GMEMTRACE
@@ -558,28 +561,81 @@ int main(int argc, char* argv[]) {
 #else
 	BundleData bundles[1];
 	BundleData* bundle = &(bundles[0]);
+
+	UniSpliceGraphGp uni_splice_graphGps[1];
+	UniSpliceGraphGp* uni_splice_graphGp = &(uni_splice_graphGps[0]);
 #endif
 	GSamRecord* brec=NULL;	
 	bool more_alns=true;
-	UniSpliceGraph* drec=NULL;
-	bool more_graph = true;
 	TAlnInfo* tinfo=NULL; // for --merge
 	int prev_pos=0;
 	bool skipGseq=false;
 
+
+	UniSpliceGraph* drec=NULL;
+	bool more_graph = true;
+	int pre_refstart = 0;
+	int pre_refend = 0;
+	int pre_s = 0;
 	/*******************************************
 	 *******************************************
 	 ** Processing universal_splice_graph.
 	 *******************************************
 	 *******************************************/
 	while(more_graph) {
+		bool new_uni_splice_graph = false;
 		// bam-related parameter initialization.
 		if ((drec=dotreader.next())!=NULL) {
 			fprintf(stderr, "Keep reading!!!\n");
+
+			if (pre_refstart != drec->get_refstart() && pre_refend != drec->get_refend()) {
+				// This is a new UniSpliceGraphGp!!
+				pre_refstart = drec->get_refstart();
+				pre_refend = drec->get_refend();
+				fprintf(stderr, "*********************************************************\n");
+				fprintf(stderr, "******* This is a new uni-splice_graph ******************\n");
+				fprintf(stderr, "*********************************************************\n");
+				// uni_splice_graphs = new UniSpliceGraphGp();
+				new_uni_splice_graph = true;
+				uni_splice_graphGp -> Clear();
+				// uni_splice_graphGp = new UniSpliceGraphGp();
+			}
+			// Still in the same UniSpliceGraphGp!!
+			fprintf(stderr, "drec->get_refstart() %d!!!\n", drec->get_refstart());
+			fprintf(stderr, "drec->get_refend() %d!!!\n", drec->get_refend());
+			fprintf(stderr, "drec->get_s() %d!!!\n", drec->get_s());
+			fprintf(stderr, "drec->g_idx() %d \n", drec->get_g_idx());
+			fprintf(stderr, "drec->get_graphno: %d \n", drec->get_graphno());
+			fprintf(stderr, "drec->get_edgeno: %d \n", drec->get_edgeno());
+
+			uni_splice_graphGp -> AddGraph(drec);
+			// Check if we are still processing the same bundle
 		} else {
 			fprintf(stderr, "No more dot graph!!!\n");
 			more_graph=false;
 		}
+
+		// if (new_uni_splice_graph) {
+		// 	uni_splice_graphGp -> Clear();
+		// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	// 	while (more_alns) {
 	// 		bool chr_changed=false;
