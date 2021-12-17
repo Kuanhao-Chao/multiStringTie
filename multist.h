@@ -34,13 +34,13 @@ struct UniSpliceGraph {
          // fprintf(stderr, "no2gnode print test %d: ", no2gnode);
          CGraphnode* source=new CGraphnode(0,0,0);
          no2gnode -> Add(source);
-         fprintf(stderr, "no2gnode[0]->nodeid %d: \n", no2gnode->Get(0)->nodeid);
-         graphno = 0;
+         // fprintf(stderr, "no2gnode[0]->nodeid %d: \n", no2gnode->Get(0)->nodeid);
+         graphno = 1;
          edgeno = 0;
       }
 
       ~UniSpliceGraph() {
-         no2gnode->Clear();
+         // no2gnode->Clear();
       }
 
       void Clear() {
@@ -53,17 +53,18 @@ struct UniSpliceGraph {
          if (refstart_i == refstart && refend_i == refend) {
             CGraphnode* new_node=new CGraphnode(start, end, node_id); // start,end,nodeno
             no2gnode -> Add(new_node);
-            fprintf(stderr, "Node size: %d\n ", no2gnode->Count());
+            // fprintf(stderr, "Node size: %d\n ", no2gnode->Count());
             graphno += 1;
          }
       }
 
       void AddSink(int refstart_i, int refend_i) {
          if (refstart_i == refstart && refend_i == refend) {
-            CGraphnode* sink=new CGraphnode(0,0,graphno+1);
-            no2gnode->Add(sink);
-            fprintf(stderr, "sink Node size: %d\n ", no2gnode->Count());
-            fprintf(stderr, "no2gnode[0]->nodeid %d: \n", no2gnode->Get(graphno+1)->nodeid);
+            CGraphnode* sink=new CGraphnode(0,0,graphno);
+            no2gnode -> Add(sink);
+            // fprintf(stderr, "sink Node size: %d\n ", no2gnode->Count());
+            // fprintf(stderr, "no2gnode[0]->nodeid %d: \n", no2gnode->Get(graphno)->nodeid);
+            graphno += 1;
          }
       }
 
@@ -83,12 +84,14 @@ struct UniSpliceGraph {
 
       void PrintGraph() {
          { //DEBUG ONLY
-            fprintf(stderr,"after traverse:\n");
-            for(int i=1;i<graphno+1;i++) {
-               fprintf(stderr,"Node %d with parents:",i);
+            fprintf(stderr,"\tafter traverse:\n");
+            for(int i=1;i<graphno-1;i++) {
+               fprintf(stderr,"\tNode %d with parents:",i);
                for(int p=0;p<no2gnode->Get(i)->parent.Count();p++) fprintf(stderr," %d",no2gnode->Get(i)->parent[p]);
                fprintf(stderr," and children:");
                for(int c=0;c<no2gnode->Get(i)->child.Count();c++) fprintf(stderr," %d",no2gnode->Get(i)->child[c]);
+            
+               fprintf(stderr," %d(%d-%d)",i,no2gnode[0][i]->start,no2gnode[0][i]->end);
                fprintf(stderr,"\n");
             }
          }
@@ -137,6 +140,8 @@ struct UniSpliceGraphGp {
    	// GPVec<CBundlenode> bnode[3]; // last bnodes on all strands: 0,1,2 for each bundle : this might be the key for overalps
       // //  Do not need
     	// int bno[2]={0,0};
+      int refstart;
+	   int refend;
       int gpSize[2];
       GVec<int> graphnoGp[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
       GVec<int> edgenoGp[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
@@ -173,36 +178,43 @@ struct UniSpliceGraphGp {
          };
       }
 
+      void SetRefStartEnd(int refstart_i, int refend_i) {
+         refstart = refstart_i;
+         refend = refend_i;
+      }
+
       void AddGraph(UniSpliceGraph* uni_splice_graph) {
-         fprintf(stderr, "* uni_splice_graph.refstart: %d \n", uni_splice_graph -> get_refstart());
-         fprintf(stderr, "* uni_splice_graph.refend: %d \n", uni_splice_graph -> get_refend());
-         fprintf(stderr, "* uni_splice_graph.s: %d \n", uni_splice_graph -> get_s());
-         fprintf(stderr, "* uni_splice_graph.g_idx: %d \n", uni_splice_graph -> get_g_idx());
-         fprintf(stderr, "* uni_splice_graph.get_graphno: %d \n", uni_splice_graph -> get_graphno());
-         fprintf(stderr, "* uni_splice_graph.get_edgeno: %d \n", uni_splice_graph -> get_edgeno());
+         if (uni_splice_graph->get_refstart() == refstart && uni_splice_graph->get_refend() == refend) {
+            // fprintf(stderr, "* uni_splice_graph.refstart: %d \n", uni_splice_graph -> get_refstart());
+            // fprintf(stderr, "* uni_splice_graph.refend: %d \n", uni_splice_graph -> get_refend());
+            // fprintf(stderr, "* uni_splice_graph.s: %d \n", uni_splice_graph -> get_s());
+            // fprintf(stderr, "* uni_splice_graph.g_idx: %d \n", uni_splice_graph -> get_g_idx());
+            // fprintf(stderr, "* uni_splice_graph.get_graphno: %d \n", uni_splice_graph -> get_graphno());
+            // fprintf(stderr, "* uni_splice_graph.get_edgeno: %d \n", uni_splice_graph -> get_edgeno());
 
-         // int refstart;
-         // int refend;
-         // int s;
-         // int g_idx;
+            // int refstart;
+            // int refend;
+            // int s;
+            // int g_idx;
 
-         // int graphno;  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
-         // int edgeno;  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
-         // GPVec<CGraphnode>* no2gnode; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
-         graphnoGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()] = uni_splice_graph->get_graphno();
-         edgenoGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()] = uni_splice_graph->get_edgeno();
+            // int graphno;  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
+            // int edgeno;  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+            // GPVec<CGraphnode>* no2gnode; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+            graphnoGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()] = uni_splice_graph->get_graphno();
+            edgenoGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()] = uni_splice_graph->get_edgeno();
 
-         for (int i=0; i<uni_splice_graph->get_no2gnode()->Count(); i++) {
-            fprintf(stderr, "&&&&& number %d: \n", uni_splice_graph->get_no2gnode()->Count());
+            for (int i=0; i<uni_splice_graph->get_no2gnode()->Count(); i++) {
+               // fprintf(stderr, "&&&&& number %d: \n", uni_splice_graph->get_no2gnode()->Count());
 
-            CGraphnode* no2gnode_tw = uni_splice_graph->get_no2gnode()->Get(i);
+               CGraphnode* no2gnode_tw = uni_splice_graph->get_no2gnode()->Get(i);
 
-            fprintf(stderr, "&&&&& uni_splice_graph->get_no2gnode()->Get %d: \n", uni_splice_graph->get_no2gnode()->Get(i)->nodeid);
+               // fprintf(stderr, "&&&&& uni_splice_graph->get_no2gnode()->Get %d: \n", uni_splice_graph->get_no2gnode()->Get(i)->nodeid);
 
-            no2gnodeGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()].Add(uni_splice_graph->get_no2gnode()->Get(i));
+               no2gnodeGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()].Add(uni_splice_graph->get_no2gnode()->Get(i));
+            }
+            gpSize[uni_splice_graph->get_s()] += 1;
+            // We need to reset graph_idx when (1)the new strands     
          }
-         gpSize[uni_splice_graph->get_s()] += 1;
-         // We need to reset graph_idx when (1)the new strands   
       }
 
       void Clear() {
@@ -213,8 +225,9 @@ struct UniSpliceGraphGp {
             graphnoGp[i].setCapacity(4096);
             edgenoGp[i].Clear();
             edgenoGp[i].setCapacity(4096);
-            no2gnodeGp[i]->Clear();
-            no2gnodeGp[i]->setCapacity(4096);
+            delete [] no2gnodeGp[i];
+            no2gnodeGp[i] = new GPVec<CGraphnode>[4096];
+            // no2gnodeGp[i]->setCapacity(4096);
          };
 	   }
 
@@ -226,14 +239,12 @@ struct UniSpliceGraphGp {
          { // DEBUG ONLY
             printTime(stderr);
             for(int s=0;s<2;s++) {
-               fprintf(stderr, "There are %d stranded[%d] graphs\n", gpSize[s],int(2*s));
+               fprintf(stderr, "\n\tThere are %d stranded[%d] graphs", gpSize[s],int(2*s));
                for(int b=0;b<gpSize[s];b++) {
-                  fprintf(stderr, "Current b: %d\n", b);
                   if(graphnoGp[s][b]) {
                      GStr pat;
-                     fprintf(stderr,"Graph[%d][%d] with %d nodes and %d edges :",int(2*s),b,graphnoGp[s][b],edgenoGp[s][b]);
-                     //  Source and sink are already excluded.!!
-                     for(int nd=1;nd<=graphnoGp[s][b];nd++)
+                     fprintf(stderr,"\tGraph[%d][%d] with %d nodes and %d edges :",int(2*s),b,graphnoGp[s][b],edgenoGp[s][b]);
+                     for(int nd=1;nd<graphnoGp[s][b]-1;nd++)
                         fprintf(stderr," %d(%d-%d)",nd,no2gnodeGp[s][b][nd]->start,no2gnodeGp[s][b][nd]->end);
                      fprintf(stderr,"\n");
                   }

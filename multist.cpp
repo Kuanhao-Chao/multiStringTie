@@ -26,12 +26,12 @@ bool DOTInputFile::start(const char* fn) {
 
 UniSpliceGraph* DOTInputFile::next() {
 	//must free old current record first
-	delete this -> rec;
-	this -> rec=NULL;
-	this -> rec = this->reader->next();
+	delete rec;
+	rec=NULL;
+	rec = reader->next();
 	// this -> updateUniSpliceGraphGp();
 	// uni_splice_graphs
-	return this -> rec;
+	return rec;
     // if (recs.Count()>0) {
     // 	crec=recs.Pop();//lowest coordinate
     	// UniSpliceGraph* rnext = this->reader->next();
