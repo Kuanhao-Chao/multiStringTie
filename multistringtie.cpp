@@ -589,6 +589,7 @@ int main(int argc, char* argv[]) {
 			fprintf(stderr, "Keep reading!!!\n");
 
 			if (pre_refstart != drec->get_refstart() && pre_refend != drec->get_refend()) {
+				fprintf(stderr, "&&&& Reference %d - %d", drec->get_refstart(), drec->get_refend());
 				uni_splice_graphGp -> PrintGraphGp();
 				// This is a new UniSpliceGraphGp!!
 				pre_refstart = drec->get_refstart();
@@ -614,9 +615,9 @@ int main(int argc, char* argv[]) {
 			more_graph=false;
 		}
 
-		// if (new_uni_splice_graph) {
-		// 	uni_splice_graphGp -> Clear();
-		// }
+		if (new_uni_splice_graph) {
+			//  This is a new bundle from the Universal splice graph. Processing the bundle here.
+		}
 
 
 

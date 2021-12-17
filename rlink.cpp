@@ -14668,7 +14668,7 @@ int build_graphs(BundleData* bdata) {
     	}
     	fprintf(stderr,"Done creating graphs\n");
 
-    	/*
+    	// /*
     	{ // DEBUG ONLY
     		printTime(stderr);
     		for(int s=0;s<2;s++) {
@@ -14685,7 +14685,7 @@ int build_graphs(BundleData* bdata) {
     			}
     		}
     	}
-    	*/
+    	// */
 
 /*
 #ifdef GMEMTRACE

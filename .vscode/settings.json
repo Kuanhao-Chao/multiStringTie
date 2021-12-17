@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "new": "cpp",
+        "random": "cpp",
+        "iosfwd": "cpp",
+        "__tree": "cpp",
+        "algorithm": "cpp",
+        "deque": "cpp",
+        "functional": "cpp",
+        "iterator": "cpp",
+        "list": "cpp",
+        "locale": "cpp",
+        "regex": "cpp",
+        "memory_resource": "cpp"
+    }
+}
