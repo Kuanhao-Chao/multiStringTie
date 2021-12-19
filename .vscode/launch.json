@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/./multistringtie",
-            "args": ["-o", "/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/SRR1352129_chr22.gtf", "-v", "--rf", "/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie//data/Brain/chr22/SRR1352129_chr22.bam"],
+            "args": ["-o", "/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/SRR1352129_chr22_usp.gtf", "-v", "--rf", "/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie//data/Brain/chr22/SRR1352129_chr22.bam"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],

@@ -583,453 +583,185 @@ int main(int argc, char* argv[]) {
 	 *******************************************
 	 *******************************************/
 	while(more_graph) {
-		bool new_uni_splice_graph = false;
+		bool new_uni_spg = false;
 		// bam-related parameter initialization.
 		if ((drec=dotreader.next())!=NULL) {
-			fprintf(stderr, "Keep reading!!!\n");
-
 			if (pre_refstart != drec->get_refstart() && pre_refend != drec->get_refend()) {
 				/*****************************************
-				 ** Process the previous UniSpliceGraphGp!!
+				 ** It is a new bundle.
 				 *****************************************/
-				uni_splice_graphGp -> SetRefStartEnd(drec->get_refstart(), drec->get_refend());
-				new_uni_splice_graph = true;
+				new_uni_spg = true;
+			} 
+			fprintf(stderr, "Keep reading %d (pre: %d - %d ;  now: %d - %d)!!!\n", new_uni_spg, pre_refstart, pre_refend, drec->get_refstart(), drec->get_refend());
+			if (!new_uni_spg) {
+				// I need to clean the bundle
 
-
-				bool in_unispg = true;
-				/*****************************************
-				 ** Get the reads inside the region
-				 *****************************************/
-				//  The while loop will stop when either there are no more reads and the current read is out of boundary.
-	while (more_alns && in_unispg) {
-// fprintf(stderr, "**************************** Reading read now \n");
-					bool chr_changed=false;
-					int pos=0;
-					const char* refseqName=NULL;
-					char xstrand=0;
-					int nh=1;
-					int hi=0;
-					int gseq_id=lastref_id;  //current chr id
-					bool new_bundle=false;
-					//delete brec;
-					/*****************************
-					 ** Step 1: Checking whether there are more alignment to process.
-					*****************************/
-					if ((brec=bamreader.next())!=NULL) {
-// fprintf(stderr, "**************************** Read (%d - %d) \n", brec->start, brec->end);
-while (brec->start < pre_refstart) {
-	brec=bamreader.next();
-}
-
-if (brec->start >= pre_refstart && brec->end <= pre_refend) {
-	in_unispg = true;
-	fprintf(stderr, "**************************** Read (%d - %d) \n", brec->start, brec->end);
-} else {
-	in_unispg = false;
-}
-
-						if (brec->isUnmapped()) continue;
-						// ** Removing invalid alignment
-						if (brec->start<1 || brec->mapped_len<10) {
-							if (verbose) GMessage("Warning: invalid mapping found for read %s (position=%d, mapped length=%d)\n",
-									brec->name(), brec->start, brec->mapped_len);
-							continue;
-						}
-#ifdef DBG_ALN_DATA
-						dbg_waln(brec);
-#endif
-						refseqName=brec->refName();
-						xstrand=brec->spliceStrand(); // tagged strand gets priority
-						// ** set strand if stranded library
-						if(xstrand=='.' && (fr_strand || rf_strand)) { 
-							if(brec->isPaired()) { // read is paired
-								if(brec->pairOrder()==1) { // first read in pair
-									if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='+';
-									else xstrand='-';
-								}
-								else {
-									if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='-';
-									else xstrand='+';
-								}
-							}
-							else {
-								if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='+';
-								else xstrand='-';
-							}
-						}
-
-						/*
-						if (xstrand=='.' && brec->exons.Count()>1) {
-							no_xs++;
-							continue; //skip spliced alignments lacking XS tag (e.g. HISAT alignments)
-						}
-						// I might still infer strand later */
-
-
-						// ** check whether chromosome is changed.
-						if (refseqName==NULL) GError("Error: cannot retrieve target seq name from BAM record!\n");
-						pos=brec->start; //BAM is 0 based, but GBamRecord makes it 1-based
-						chr_changed=(lastref.is_empty() || lastref!=refseqName);
-						if (chr_changed) {
-							skipGseq=excludeGseqs.hasKey(refseqName);
-							gseq_id=gseqNames->gseqs.addName(refseqName);
-							if (guided) {
-								if (gseq_id>=refseqCount) {
-									if (verbose)
-										GMessage("WARNING: no reference transcripts found for genomic sequence \"%s\"! (mismatched reference names?)\n",
-											refseqName);
-								}
-								else no_ref_used=false;
-							}
-
-							if (alncounts.Count()<=gseq_id) {
-								alncounts.Resize(gseq_id+1);
-							}
-							else if (alncounts[gseq_id]>0)
-									GError("%s\nAlignments (%d) already found for %s !\n",
-										ERR_BAM_SORT, alncounts[gseq_id], refseqName);
-							prev_pos=0;
-						}
-						if (pos<prev_pos) GError("%s\nread %s (start %d) found at position %d on %s when prev_pos=%d\n",
-							ERR_BAM_SORT, brec->name(), brec->start,  pos, refseqName, prev_pos);
-						prev_pos=pos;
-						if (skipGseq) continue;
-						alncounts[gseq_id]++;
-						nh=brec->tag_int("NH");
-						if (nh==0) nh=1;
-						hi=brec->tag_int("HI");
-						if (mergeMode) {
-							//tinfo=new TAlnInfo(brec->name(), brec->tag_int("ZF"));
-							tinfo=new TAlnInfo(brec->name(), brec->uval);
-							GStr score(brec->tag_str("ZS"));
-							if (!score.is_empty()) {
-								GStr srest=score.split('|');
-								if (!score.is_empty())
-									tinfo->cov=score.asDouble();
-								score=srest.split('|');
-								if (!srest.is_empty())
-									tinfo->fpkm=srest.asDouble();
-								srest=score.split('|');
-								if (!score.is_empty())
-									tinfo->tpm=score.asDouble();
-							}
-						}
-
-						if (!chr_changed && currentend>0 && pos>currentend+(int)runoffdist) {
-							new_bundle=true;
-						}
-
-
-						// pos=brec->start; //BAM is 0 based, but GBamRecord makes it 1-based
-						// currentend=brec->end;
-
-						// if (brec->start < pre_refstart || brec->end > pre_refend) {
-						// 	in_unispg = false;
-						// } else {
-						// 	fprintf(stderr, "**************************** Read (%d - %d) \n", brec->start, brec->end);
-						// }
-
-
-						// if (brec->start >= pre_refstart && brec->end <= pre_refend) {
-						// 	in_unispg = true;
-						// 	fprintf(stderr, "**************************** Read (%d - %d) \n", brec->start, brec->end);
-						// } else {
-						// 	in_unispg = false;
-						// }
-
-
-					}
-					else { //no more alignments
-						more_alns=false;
-					}
-
-
-
-			/*****************************
-			 ** Step 2: Condition to start processing reads in the previous bundle
-			*****************************/
-			if (new_bundle || chr_changed) {
-				hashread.Clear();
-				if (bundle->readlist.Count()>0) { // process reads in previous bundle
-				// (readthr, junctionthr, mintranscriptlen are globals)
-				if (refptfs) { //point-features defined for this reference
-					while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<currentstart)
-						ptf_idx++;
-					//TODO: what if a PtFeature is nearby, just outside the bundle?
-					while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<=currentend) {
-						bundle->ptfs.Add(refptfs->Get(ptf_idx)); //keep this PtFeature
-						ptf_idx++;
-					}
-				}
-				bundle->getReady(currentstart, currentend);
-				if (gfasta!=NULL) { //genomic sequence data requested
-					GFaSeqGet* faseq=gfasta->fetch(bundle->refseq.chars());
-					if (faseq==NULL) {
-						GError("Error: could not retrieve sequence data for %s!\n", bundle->refseq.chars());
-					}
-					bundle->gseq=faseq->copyRange(bundle->start, bundle->end, false, true);
-				}
-	#ifndef NOTHREADS
-				//push this in the bundle queue where it'll be picked up by the threads
-				DBGPRINT2("##> Locking queueMutex to push loaded bundle into the queue (bundle.start=%d)\n", bundle->start);
-				int qCount=0;
-				queueMutex.lock();
-				bundleQueue.Push(bundle);
-				bundleWork |= 0x02; //set bit 1
-				qCount=bundleQueue.Count();
-				queueMutex.unlock();
-				DBGPRINT2("##> bundleQueue.Count()=%d)\n", qCount);
-				//wait for a thread to pop this bundle from the queue
-				waitMutex.lock();
-				DBGPRINT("##> waiting for a thread to become available..\n");
-				while (threadsWaiting==0) {
-					haveThreads.wait(waitMutex);
-				}
-				waitMutex.unlock();
-				haveBundles.notify_one();
-				DBGPRINT("##> waitMutex unlocked, haveBundles notified, current thread yielding\n");
-				current_thread::yield();
-				queueMutex.lock();
-				DBGPRINT("##> queueMutex locked until bundleQueue.Count()==qCount\n");
-				while (bundleQueue.Count()==qCount) {
-					queueMutex.unlock();
-					DBGPRINT2("##> queueMutex unlocked as bundleQueue.Count()==%d\n", qCount);
-					haveBundles.notify_one();
-					current_thread::yield();
-					queueMutex.lock();
-					DBGPRINT("##> queueMutex locked again within while loop\n");
-				}
-				queueMutex.unlock();
-
-	#else //no threads
-				//Num_Fragments+=bundle->num_fragments;
-				//Frag_Len+=bundle->frag_len;
-				processBundle(bundle);
-	#endif
-				// ncluster++; used it for debug purposes only
-				} //have alignments to process
-				else { //no read alignments in this bundle?
-	#ifndef NOTHREADS
-				dataMutex.lock();
-				DBGPRINT2("##> dataMutex locked for bundle #%d clearing..\n", bundle->idx);
-	#endif
-				bundle->Clear();
-	#ifndef NOTHREADS
-				dataClear.Push(bundle->idx);
-				DBGPRINT2("##> dataMutex unlocking as dataClear got pushed idx #%d\n", bundle->idx);
-				dataMutex.unlock();
-	#endif
-				} //nothing to do with this bundle
-
-				if (chr_changed) {
-					if (guided) {
-						ng=0;
-						guides=NULL;
-						ng_start=0;
-						ng_end=-1;
-						if (refguides.Count()>gseq_id && refguides[gseq_id].rnas.Count()>0) {
-							guides=&(refguides[gseq_id].rnas);
-							ng=guides->Count();
-						}
-					}
-					if (havePtFeatures) {
-						ptf_idx=-1;
-						//setup refptf
-						refptfs=NULL;
-						GRefPtData rd(gseq_id);
-						int ridx=refpts.IndexOf(rd);
-						if (ridx>=0) {
-						refptfs=&(refpts[ridx].pfs);
-						ptf_idx=0;
-						}
-					}
-					lastref=refseqName;
-					lastref_id=gseq_id;
-					currentend=0;
-				}
-
-				if (!more_alns) {
-					if (verbose) {
-		#ifndef NOTHREADS
-						GLockGuard<GFastMutex> lock(logMutex);
-		#endif
-						if (Num_Fragments) {
-							printTime(stderr);
-							GMessage(" %g aligned fragments found.\n", Num_Fragments);
-						}
-						//GMessage(" Done reading alignments.\n");
-					}
-					noMoreBundles();
-					break;
-				}
-	#ifndef NOTHREADS
-
-				int new_bidx=waitForData(bundles);
-				if (new_bidx<0) {
-					//should never happen!
-					GError("Error: waitForData() returned invalid bundle index(%d)!\n",new_bidx);
-					break;
-				}
-				bundle=&(bundles[new_bidx]);
-	#endif
-				currentstart=pos;
-				currentend=brec->end;
-				if (guides) { //guided and guides!=NULL
-					ng_start=ng_end+1;
-					while (ng_start<ng && (int)(*guides)[ng_start]->end < pos) {
-						// for now, skip guides which have no overlap with current read
-						ng_start++;
-					}
-					int ng_ovl=ng_start;
-					//add all guides overlapping the current read and other guides that overlap them
-					while (ng_ovl<ng && (int)(*guides)[ng_ovl]->start<=currentend) { //while guide overlap
-						if (currentstart>(int)(*guides)[ng_ovl]->start)
-							currentstart=(*guides)[ng_ovl]->start;
-						if (currentend<(int)(*guides)[ng_ovl]->end)
-							currentend=(*guides)[ng_ovl]->end;
-						if (ng_ovl==ng_start && ng_ovl>0) { //first time only, we have to check back all possible transitive guide overlaps
-							//char* geneid=(*guides)[ng_ovlstart]->getGeneID();
-							//if (geneid==NULL) geneid=(*guides)[ng_ovlstart]->getGeneName();
-							//if (geneid && !bgeneids.hasKey(geneid))
-							//  bgeneids.shkAdd(geneid, &ng); //whatever pointer to int
-							int g_back=ng_ovl; //start from the overlapping guide, going backwards
-							int g_ovl_start=ng_ovl;
-							while (g_back>ng_end+1) {
-								--g_back;
-								//if overlap, set g_back_start=g_back and update currentstart
-								if (currentstart<=(int)(*guides)[g_back]->end) {
-									g_ovl_start=g_back;
-									if (currentstart>(int)(*guides)[g_back]->start)
-										currentstart=(int)(*guides)[g_back]->start;
-								}
-							} //while checking previous guides that could be pulled in this bundle
-							for (int gb=g_ovl_start;gb<=ng_ovl;++gb) {
-								bundle->keepGuide((*guides)[gb],
-										&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
-							}
-						} //needed to check previous guides for overlaps
-						else
-						bundle->keepGuide((*guides)[ng_ovl],
-								&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
-						ng_ovl++;
-					} //while guide overlap
-					ng_end=ng_ovl-1; //MUST update ng_end here, even if no overlaps were found
-				} //guides present on the current chromosome
-				bundle->refseq=lastref;
-				bundle->start=currentstart;
-				bundle->end=currentend;
-			} //<---- new bundle started
-
-			/*****************************
-			 ** Step 3: current read extends the bundle
-			 ** 	this might not happen if a longer guide had already been added to the bundle
-			 *****************************/
-			if (currentend<(int)brec->end) {
-				currentend=brec->end;
-				if (guides) { //add any newly overlapping guides to bundle
-					bool cend_changed;
-					do {
-						cend_changed=false;
-						while (ng_end+1<ng && (int)(*guides)[ng_end+1]->start<=currentend) {
-							++ng_end;
-							//more transcripts overlapping this bundle?
-							if ((int)(*guides)[ng_end]->end>=currentstart) {
-								//it should really overlap the bundle
-								bundle->keepGuide((*guides)[ng_end],
-										&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
-								if(currentend<(int)(*guides)[ng_end]->end) {
-									currentend=(*guides)[ng_end]->end;
-									cend_changed=true;
-								}
-							}
-						}
-					} while (cend_changed);
-				}
-			} //adjusted currentend and checked for overlapping reference transcripts
-			GReadAlnData alndata(brec, 0, nh, hi, tinfo);
-			bool ovlpguide=bundle->evalReadAln(alndata, xstrand);
-
-			/*****************************
-			 ** Step 4: in eonly case consider read only if it overlaps guide
-			 **     check for overlaps with ref transcripts which may set xstrand
-			 *****************************/
-			// eonly: for mergeMode includes estimated coverage sum in the merged transcripts
-			if(!eonly || ovlpguide) {
-				if (xstrand=='+') alndata.strand=1;
-				else if (xstrand=='-') alndata.strand=-1;
-				//GMessage("%s\t%c\t%d\thi=%d\n",brec->name(), xstrand, alndata.strand,hi);
-				//countFragment(*bundle, *brec, hi,nh); // we count this in build_graphs to only include mapped fragments that we consider correctly mapped
-				//fprintf(stderr,"fragno=%d fraglen=%lu\n",bundle->num_fragments,bundle->frag_len);if(bundle->num_fragments==100) exit(0);
-				processRead(currentstart, currentend, *bundle, hashread, alndata);
 			}
-	} //for each read alignment
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-				
-				/*****************************************
-				 ** Clean the previous UniSpliceGraphGp!!
-				 *****************************************/
-				// fprintf(stderr, "&&&& Reference %d - %d\n", pre_refstart, pre_refend);
-				fprintf(stderr, "################# Print graph before cleaning!!!!!\n");
-				uni_splice_graphGp -> PrintGraphGp();
-				uni_splice_graphGp -> Clear();
-				fprintf(stderr, "################# Print graph after cleaning!!!!!\n");
-				uni_splice_graphGp -> PrintGraphGp();
-
-				fprintf(stderr, "*********************************************************\n");
-				fprintf(stderr, "******* This is a new uni-splice_graph ******************\n");
-				fprintf(stderr, "*********************************************************\n");
-				pre_refstart = drec->get_refstart();
-				pre_refend = drec->get_refend();
-			}
-			// fprintf(stderr, "################# Print graph after cleaning!!!!!\n");
-			// uni_splice_graphGp -> PrintGraphGp();
-			// Still in the same UniSpliceGraphGp!!
-			// fprintf(stderr, "drec->get_refstart() %d!!!\n", drec->get_refstart());
-			// fprintf(stderr, "drec->get_refend() %d!!!\n", drec->get_refend());
-			// fprintf(stderr, "drec->get_s() %d!!!\n", drec->get_s());
-			// fprintf(stderr, "drec->g_idx() %d \n", drec->get_g_idx());
-			// fprintf(stderr, "drec->get_graphno: %d \n", drec->get_graphno());
-			// fprintf(stderr, "drec->get_edgeno: %d \n", drec->get_edgeno());
-
-			uni_splice_graphGp -> AddGraph(drec);
-			// Check if we are still processing the same bundle
 		} else {
 			fprintf(stderr, "No more dot graph!!!\n");
 			more_graph=false;
-		}
-
-		if (new_uni_splice_graph) {
-			//  This is a new bundle from the Universal splice graph. Processing the bundle here.
+			new_uni_spg = true; //fake a new start (end of the last universal splice graph.)
 		}
 
 
+		if (new_uni_spg) {
+			/*****************************************
+			 ** Process the previous UniSpliceGraphGp!!
+			 *****************************************/
+			uni_splice_graphGp -> SetRefStartEnd(pre_refstart, pre_refend);
+
+			// I need to add the last read into the bundle first.
+			//  The while loop will stop when either there are no more reads and the current read is out of boundary.
+			/*******************************************
+			 *******************************************
+			 ** Processing alignment: main algorithm
+			 **    Get the reads inside the region
+			 *******************************************
+			 *******************************************/
+			bool read_in_unispg = true;
+			while (more_alns && read_in_unispg) {
+				bool chr_changed=false;
+				int pos=0;
+				const char* refseqName=NULL;
+				char xstrand=0;
+				int nh=1;
+				int hi=0;
+				int gseq_id=lastref_id;  //current chr id
+				/*****************************
+				 ** Step 1: Checking whether there are more alignment to process.
+				 *****************************/
+				// fprintf(stderr, "Process read (pre: %d - %d ;  now: %d - %d)!!!\n", pre_refstart, pre_refend, brec->start, brec->end);
+				if ((brec=bamreader.next())!=NULL) {
+					/*****************************
+					 ** Step 1-1: Check whether reads are in the range of the graph.
+					 *****************************/
+					// fprintf(stderr, "Process read (pre: %d - %d ;  now: %d - %d)!!!\n", pre_refstart, pre_refend, brec->start, brec->end);
+					if (brec->end < pre_refstart) {
+						// ----------   |(s).................(e)|
+						// The read is outside the current bundle => skipped!
+						continue;
+					}
+					if (brec->start < pre_refstart && brec->end >= pre_refstart) {
+						// ----------|(s).................(e)|   or   -----|(s)-----............(e)|
+					} else if (brec->start >= pre_refstart && brec->end <= pre_refend) {
+						// |(s)----------.................(e)|   or   |(s)....----------........(e)|
+					} else if (brec->start <= pre_refend && brec->end > pre_refend) {
+						// |(s)...............------(e)|-----    or   |(s).................(e)|----------   
+						// The overlapping with the current processing bundle.
+						int overlap_current = 0;
+						overlap_current = pre_refend - brec->start + 1;
+						int overlap_next = 0;
+						overlap_next = brec->end - drec->get_refstart() + 1;
+
+						if (overlap_current > overlap_next) {
+							// The read belongs to the current processing bundle.
+						} else {
+							// The read belongs to the next bundle or not belongs to any bundles.
+							read_in_unispg = false;
+						}
+					} else {
+						read_in_unispg = false;
+					}
+					
+					/*****************************
+					 ** Step 1-2: Removing invalid alignment
+					 *****************************/
+					if (brec->isUnmapped()) continue;
+					if (brec->start<1 || brec->mapped_len<10) {
+						if (verbose) GMessage("Warning: invalid mapping found for read %s (position=%d, mapped length=%d)\n",
+								brec->name(), brec->start, brec->mapped_len);
+						continue;
+					}
+#ifdef DBG_ALN_DATA
+					dbg_waln(brec);
+#endif
+					refseqName=brec->refName();
+					xstrand=brec->spliceStrand(); // tagged strand gets priority
+					/*****************************
+					 ** Step 1-3: set strand if stranded library
+					 *****************************/
+					if(xstrand=='.' && (fr_strand || rf_strand)) {
+						if(brec->isPaired()) { // read is paired
+							if(brec->pairOrder()==1) { // first read in pair
+								if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='+';
+								else xstrand='-';
+							}
+							else {
+								if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='-';
+								else xstrand='+';
+							}
+						}
+						else {
+							if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='+';
+							else xstrand='-';
+						}
+					}
+
+					/*
+					if (xstrand=='.' && brec->exons.Count()>1) {
+						no_xs++;
+						continue; //skip spliced alignments lacking XS tag (e.g. HISAT alignments)
+					}
+					// I might still infer strand later */
+
+
+					/*****************************
+					 ** Step 1-4: check whether chromosome is changed.
+					 **      The universal splice graph should include this information.
+					 *****************************/
+					if (refseqName==NULL) GError("Error: cannot retrieve target seq name from BAM record!\n");
+					pos=brec->start; //BAM is 0 based, but GBamRecord makes it 1-based
+					chr_changed=(lastref.is_empty() || lastref!=refseqName);
+					if (chr_changed) {
+						skipGseq=excludeGseqs.hasKey(refseqName);
+						gseq_id=gseqNames->gseqs.addName(refseqName);
+						if (guided) {
+							if (gseq_id>=refseqCount) {
+								if (verbose)
+									GMessage("WARNING: no reference transcripts found for genomic sequence \"%s\"! (mismatched reference names?)\n",
+										refseqName);
+							}
+							else no_ref_used=false;
+						}
+
+						if (alncounts.Count()<=gseq_id) {
+							alncounts.Resize(gseq_id+1);
+						}
+						else if (alncounts[gseq_id]>0)
+								GError("%s\nAlignments (%d) already found for %s !\n",
+									ERR_BAM_SORT, alncounts[gseq_id], refseqName);
+						prev_pos=0;
+					}
+					if (pos<prev_pos) GError("%s\nread %s (start %d) found at position %d on %s when prev_pos=%d\n",
+						ERR_BAM_SORT, brec->name(), brec->start,  pos, refseqName, prev_pos);
+					prev_pos=pos;
+					if (skipGseq) continue;
+					alncounts[gseq_id]++;
+					nh=brec->tag_int("NH");
+					if (nh==0) nh=1;
+					hi=brec->tag_int("HI");
+					if (mergeMode) {
+						//tinfo=new TAlnInfo(brec->name(), brec->tag_int("ZF"));
+						tinfo=new TAlnInfo(brec->name(), brec->uval);
+						GStr score(brec->tag_str("ZS"));
+						if (!score.is_empty()) {
+							GStr srest=score.split('|');
+							if (!score.is_empty())
+								tinfo->cov=score.asDouble();
+							score=srest.split('|');
+							if (!srest.is_empty())
+								tinfo->fpkm=srest.asDouble();
+							srest=score.split('|');
+							if (!score.is_empty())
+								tinfo->tpm=score.asDouble();
+						}
+					}
+					// ** We do not need to decide whether to gather reads into a bundle ourself. 
+					//    Just follow the universal splice graph boundary.
+				} else { //no more alignments
+					more_alns=false;
+					read_in_unispg = false;//fake a new start (end of last bundle)
+				}
 
 
 
@@ -1037,856 +769,455 @@ if (brec->start >= pre_refstart && brec->end <= pre_refend) {
 
 
 
+				/*****************************
+				 ** Step 2: Condition to start processing reads in the previous bundle
+				*****************************/
+				if (!read_in_unispg) {
+					/*****************************
+					 ** Step 2-1: (1) If there are reads in the bundle: cleaning & point feature indexing & initialization.
+					 **           (2) If there are no reads in the bundle: clear the bundle.
+					 *****************************/
+					hashread.Clear();
+					if (bundle->readlist.Count()>0) { // process reads in previous bundle
+						// There are alignments to process
+						// (readthr, junctionthr, mintranscriptlen are globals)
+						if (refptfs) { //point-features defined for this reference
+							while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<currentstart)
+								ptf_idx++;
+							//TODO: what if a PtFeature is nearby, just outside the bundle?
+							while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<=currentend) {
+								bundle->ptfs.Add(refptfs->Get(ptf_idx)); //keep this PtFeature
+								ptf_idx++;
+							}
+						}
+						bundle->getReady(currentstart, currentend);
+						if (gfasta!=NULL) { //genomic sequence data requested
+							GFaSeqGet* faseq=gfasta->fetch(bundle->refseq.chars());
+							if (faseq==NULL) {
+								GError("Error: could not retrieve sequence data for %s!\n", bundle->refseq.chars());
+							}
+							bundle->gseq=faseq->copyRange(bundle->start, bundle->end, false, true);
+						}
+						/*****************************
+						 ** Step 2-2: Process bundle
+						*****************************/
+#ifndef NOTHREADS
+						//push this in the bundle queue where it'll be picked up by the threads
+						DBGPRINT2("##> Locking queueMutex to push loaded bundle into the queue (bundle.start=%d)\n", bundle->start);
+						int qCount=0;
+						queueMutex.lock();
+						bundleQueue.Push(bundle);
+						bundleWork |= 0x02; //set bit 1
+						qCount=bundleQueue.Count();
+						queueMutex.unlock();
+						DBGPRINT2("##> bundleQueue.Count()=%d)\n", qCount);
+						//wait for a thread to pop this bundle from the queue
+						waitMutex.lock();
+						DBGPRINT("##> waiting for a thread to become available..\n");
+						while (threadsWaiting==0) {
+							haveThreads.wait(waitMutex);
+						}
+						waitMutex.unlock();
+						haveBundles.notify_one();
+						DBGPRINT("##> waitMutex unlocked, haveBundles notified, current thread yielding\n");
+						current_thread::yield();
+						queueMutex.lock();
+						DBGPRINT("##> queueMutex locked until bundleQueue.Count()==qCount\n");
+						while (bundleQueue.Count()==qCount) {
+							queueMutex.unlock();
+							DBGPRINT2("##> queueMutex unlocked as bundleQueue.Count()==%d\n", qCount);
+							haveBundles.notify_one();
+							current_thread::yield();
+							queueMutex.lock();
+							DBGPRINT("##> queueMutex locked again within while loop\n");
+						}
+						queueMutex.unlock();
+#else //no threads
+						//Num_Fragments+=bundle->num_fragments;
+						//Frag_Len+=bundle->frag_len;
+						processBundle(bundle);
+#endif
+						// ncluster++; used it for debug purposes only
+					} else {
+						// There are no alignments in this bundle.
+#ifndef NOTHREADS
+						dataMutex.lock();
+						DBGPRINT2("##> dataMutex locked for bundle #%d clearing..\n", bundle->idx);
+#endif
+						bundle->Clear();
+#ifndef NOTHREADS
+						dataClear.Push(bundle->idx);
+						DBGPRINT2("##> dataMutex unlocking as dataClear got pushed idx #%d\n", bundle->idx);
+						dataMutex.unlock();
+#endif
+					} //nothing to do with this bundle
+
+					/*****************************
+					 ** Step 2-2: If the chromosome is changed
+					 *****************************/
+					if (chr_changed) {
+						if (guided) {
+							ng=0;
+							guides=NULL;
+							ng_start=0;
+							ng_end=-1;
+							if (refguides.Count()>gseq_id && refguides[gseq_id].rnas.Count()>0) {
+								guides=&(refguides[gseq_id].rnas);
+								ng=guides->Count();
+							}
+						}
+						if (havePtFeatures) {
+							ptf_idx=-1;
+							//setup refptf
+							refptfs=NULL;
+							GRefPtData rd(gseq_id);
+							int ridx=refpts.IndexOf(rd);
+							if (ridx>=0) {
+							refptfs=&(refpts[ridx].pfs);
+							ptf_idx=0;
+							}
+						}
+						lastref=refseqName;
+						lastref_id=gseq_id;
+						currentend=0;
+					}
+
+					/*****************************
+					 ** Step 2-3: If there are no more alignments => noMoreBundles.
+					 *****************************/
+					if (!more_alns) {
+						if (verbose) {
+#ifndef NOTHREADS
+							GLockGuard<GFastMutex> lock(logMutex);
+#endif
+							if (Num_Fragments) {
+								printTime(stderr);
+								GMessage(" %g aligned fragments found.\n", Num_Fragments);
+							}
+							//GMessage(" Done reading alignments.\n");
+						}
+						noMoreBundles();
+						break;
+					}
+
+#ifndef NOTHREADS
+					int new_bidx=waitForData(bundles);
+					if (new_bidx<0) {
+						//should never happen!
+						GError("Error: waitForData() returned invalid bundle index(%d)!\n",new_bidx);
+						break;
+					}
+					bundle=&(bundles[new_bidx]);
+#endif
+					/*****************************
+					 ** Step 2-4: Update bundle start & end & reference-guided information.
+					 *****************************/
+					currentstart=pos;
+					currentend=brec->end;
+					if (guides) { //guided and guides!=NULL
+						ng_start=ng_end+1;
+						while (ng_start<ng && (int)(*guides)[ng_start]->end < pos) {
+							// for now, skip guides which have no overlap with current read
+							ng_start++;
+						}
+						int ng_ovl=ng_start;
+						//add all guides overlapping the current read and other guides that overlap them
+						while (ng_ovl<ng && (int)(*guides)[ng_ovl]->start<=currentend) { //while guide overlap
+							if (currentstart>(int)(*guides)[ng_ovl]->start)
+								currentstart=(*guides)[ng_ovl]->start;
+							if (currentend<(int)(*guides)[ng_ovl]->end)
+								currentend=(*guides)[ng_ovl]->end;
+							if (ng_ovl==ng_start && ng_ovl>0) { //first time only, we have to check back all possible transitive guide overlaps
+								//char* geneid=(*guides)[ng_ovlstart]->getGeneID();
+								//if (geneid==NULL) geneid=(*guides)[ng_ovlstart]->getGeneName();
+								//if (geneid && !bgeneids.hasKey(geneid))
+								//  bgeneids.shkAdd(geneid, &ng); //whatever pointer to int
+								int g_back=ng_ovl; //start from the overlapping guide, going backwards
+								int g_ovl_start=ng_ovl;
+								while (g_back>ng_end+1) {
+									--g_back;
+									//if overlap, set g_back_start=g_back and update currentstart
+									if (currentstart<=(int)(*guides)[g_back]->end) {
+										g_ovl_start=g_back;
+										if (currentstart>(int)(*guides)[g_back]->start)
+											currentstart=(int)(*guides)[g_back]->start;
+									}
+								} //while checking previous guides that could be pulled in this bundle
+								for (int gb=g_ovl_start;gb<=ng_ovl;++gb) {
+									bundle->keepGuide((*guides)[gb],
+											&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
+								}
+							} //needed to check previous guides for overlaps
+							else
+							bundle->keepGuide((*guides)[ng_ovl],
+									&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
+							ng_ovl++;
+						} //while guide overlap
+						ng_end=ng_ovl-1; //MUST update ng_end here, even if no overlaps were found
+					} //guides present on the current chromosome
+					bundle->refseq=lastref;
+					bundle->start=currentstart;
+					bundle->end=currentend;
+				} //<---- new bundle started
+
+
+				/*****************************
+				** Step 3: current read extends the bundle
+				** 	this might not happen if a longer guide had already been added to the bundle
+				*****************************/
+				if (currentend<(int)brec->end) {
+					currentend=brec->end;
+					if (guides) { //add any newly overlapping guides to bundle
+						bool cend_changed;
+						do {
+							cend_changed=false;
+							while (ng_end+1<ng && (int)(*guides)[ng_end+1]->start<=currentend) {
+								++ng_end;
+								//more transcripts overlapping this bundle?
+								if ((int)(*guides)[ng_end]->end>=currentstart) {
+									//it should really overlap the bundle
+									bundle->keepGuide((*guides)[ng_end],
+											&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
+									if(currentend<(int)(*guides)[ng_end]->end) {
+										currentend=(*guides)[ng_end]->end;
+										cend_changed=true;
+									}
+								}
+							}
+						} while (cend_changed);
+					}
+				} //adjusted currentend and checked for overlapping reference transcripts
+				GReadAlnData alndata(brec, 0, nh, hi, tinfo);
+				bool ovlpguide=bundle->evalReadAln(alndata, xstrand);
+
+				/*****************************
+				** Step 4: in eonly case consider read only if it overlaps guide
+				**     check for overlaps with ref transcripts which may set xstrand
+				*****************************/
+				// eonly: for mergeMode includes estimated coverage sum in the merged transcripts
+				if(!eonly || ovlpguide) {
+					if (xstrand=='+') alndata.strand=1;
+					else if (xstrand=='-') alndata.strand=-1;
+					//GMessage("%s\t%c\t%d\thi=%d\n",brec->name(), xstrand, alndata.strand,hi);
+					//countFragment(*bundle, *brec, hi,nh); // we count this in build_graphs to only include mapped fragments that we consider correctly mapped
+					//fprintf(stderr,"fragno=%d fraglen=%lu\n",bundle->num_fragments,bundle->frag_len);if(bundle->num_fragments==100) exit(0);
+					processRead(currentstart, currentend, *bundle, hashread, alndata);
+				}
+				fprintf(stderr, "**************************** Read (%d - %d) \n", brec->start, brec->end);
+			} //for each read alignment
 
 
 
+			/*****************************************
+			 ** Clean the previous UniSpliceGraphGp!!
+			 *****************************************/
+			// fprintf(stderr, "&&&& Reference %d - %d\n", pre_refstart, pre_refend);
+			// fprintf(stderr, "################# Print graph before cleaning!!!!!\n");
+			// uni_splice_graphGp -> PrintGraphGp();
+			uni_splice_graphGp -> Clear();
+			// fprintf(stderr, "################# Print graph after cleaning!!!!!\n");
+			// uni_splice_graphGp -> PrintGraphGp();
 
+			fprintf(stderr, "*********************************************************\n");
+			fprintf(stderr, "******* This is a new uni-splice_graph ******************\n");
+			fprintf(stderr, "*********************************************************\n");
+			if (drec!=NULL) {
+				pre_refstart = drec->get_refstart();
+				pre_refend = drec->get_refend();
+			}
+		}
 
-
-
-
-
-
-	// 	while (more_alns) {
-	// 		bool chr_changed=false;
-	// 		int pos=0;
-	// 		const char* refseqName=NULL;
-	// 		char xstrand=0;
-	// 		int nh=1;
-	// 		int hi=0;
-	// 		int gseq_id=lastref_id;  //current chr id
-	// 		bool new_bundle=false;
-	// 		//delete brec;
-	// 		/*****************************
-	// 		 ** Step 1: Checking whether there are more alignment to process.
-	// 		 *****************************/
-	// 		if ((brec=bamreader.next())!=NULL) {
-	// 			if (brec->isUnmapped()) continue;
-	// 			// ** Removing invalid alignment
-	// 			if (brec->start<1 || brec->mapped_len<10) {
-	// 				if (verbose) GMessage("Warning: invalid mapping found for read %s (position=%d, mapped length=%d)\n",
-	// 						brec->name(), brec->start, brec->mapped_len);
-	// 				continue;
-	// 			}
-	// #ifdef DBG_ALN_DATA
-	// 			dbg_waln(brec);
-	// #endif
-	// 			refseqName=brec->refName();
-	// 			xstrand=brec->spliceStrand(); // tagged strand gets priority
-	// 			// ** set strand if stranded library
-	// 			if(xstrand=='.' && (fr_strand || rf_strand)) { 
-	// 				if(brec->isPaired()) { // read is paired
-	// 					if(brec->pairOrder()==1) { // first read in pair
-	// 						if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='+';
-	// 						else xstrand='-';
-	// 					}
-	// 					else {
-	// 						if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='-';
-	// 						else xstrand='+';
-	// 					}
-	// 				}
-	// 				else {
-	// 					if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='+';
-	// 					else xstrand='-';
-	// 				}
-	// 			}
-
-	// 			/*
-	// 			if (xstrand=='.' && brec->exons.Count()>1) {
-	// 				no_xs++;
-	// 				continue; //skip spliced alignments lacking XS tag (e.g. HISAT alignments)
-	// 			}
-	// 			// I might still infer strand later */
-
-
-	// 			// ** check whether chromosome is changed.
-	// 			if (refseqName==NULL) GError("Error: cannot retrieve target seq name from BAM record!\n");
-	// 			pos=brec->start; //BAM is 0 based, but GBamRecord makes it 1-based
-	// 			chr_changed=(lastref.is_empty() || lastref!=refseqName);
-	// 			if (chr_changed) {
-	// 				skipGseq=excludeGseqs.hasKey(refseqName);
-	// 				gseq_id=gseqNames->gseqs.addName(refseqName);
-	// 				if (guided) {
-	// 					if (gseq_id>=refseqCount) {
-	// 						if (verbose)
-	// 							GMessage("WARNING: no reference transcripts found for genomic sequence \"%s\"! (mismatched reference names?)\n",
-	// 								refseqName);
-	// 					}
-	// 					else no_ref_used=false;
-	// 				}
-
-	// 				if (alncounts.Count()<=gseq_id) {
-	// 					alncounts.Resize(gseq_id+1);
-	// 				}
-	// 				else if (alncounts[gseq_id]>0)
-	// 						GError("%s\nAlignments (%d) already found for %s !\n",
-	// 							ERR_BAM_SORT, alncounts[gseq_id], refseqName);
-	// 				prev_pos=0;
-	// 			}
-	// 			if (pos<prev_pos) GError("%s\nread %s (start %d) found at position %d on %s when prev_pos=%d\n",
-	// 				ERR_BAM_SORT, brec->name(), brec->start,  pos, refseqName, prev_pos);
-	// 			prev_pos=pos;
-	// 			if (skipGseq) continue;
-	// 			alncounts[gseq_id]++;
-	// 			nh=brec->tag_int("NH");
-	// 			if (nh==0) nh=1;
-	// 			hi=brec->tag_int("HI");
-	// 			if (mergeMode) {
-	// 				//tinfo=new TAlnInfo(brec->name(), brec->tag_int("ZF"));
-	// 				tinfo=new TAlnInfo(brec->name(), brec->uval);
-	// 				GStr score(brec->tag_str("ZS"));
-	// 				if (!score.is_empty()) {
-	// 					GStr srest=score.split('|');
-	// 					if (!score.is_empty())
-	// 						tinfo->cov=score.asDouble();
-	// 					score=srest.split('|');
-	// 					if (!srest.is_empty())
-	// 						tinfo->fpkm=srest.asDouble();
-	// 					srest=score.split('|');
-	// 					if (!score.is_empty())
-	// 						tinfo->tpm=score.asDouble();
-	// 				}
-	// 			}
-
-	// 			if (!chr_changed && currentend>0 && pos>currentend+(int)runoffdist) {
-	// 				new_bundle=true;
-	// 			}
-	// 		}
-	// 		else { //no more alignments
-	// 			more_alns=false;
-	// 			new_bundle=true; //fake a new start (end of last bundle)
-	// 		}
-
-
-
-
-
-
-	// 		/*****************************
-	// 		 ** Step 2: Condition to start processing reads in the previous bundle
-	// 		*****************************/
-	// 		if (new_bundle || chr_changed) {
-	// 			hashread.Clear();
-	// 			if (bundle->readlist.Count()>0) { // process reads in previous bundle
-	// 			// (readthr, junctionthr, mintranscriptlen are globals)
-	// 			if (refptfs) { //point-features defined for this reference
-	// 				while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<currentstart)
-	// 					ptf_idx++;
-	// 				//TODO: what if a PtFeature is nearby, just outside the bundle?
-	// 				while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<=currentend) {
-	// 					bundle->ptfs.Add(refptfs->Get(ptf_idx)); //keep this PtFeature
-	// 					ptf_idx++;
-	// 				}
-	// 			}
-	// 			bundle->getReady(currentstart, currentend);
-	// 			if (gfasta!=NULL) { //genomic sequence data requested
-	// 				GFaSeqGet* faseq=gfasta->fetch(bundle->refseq.chars());
-	// 				if (faseq==NULL) {
-	// 					GError("Error: could not retrieve sequence data for %s!\n", bundle->refseq.chars());
-	// 				}
-	// 				bundle->gseq=faseq->copyRange(bundle->start, bundle->end, false, true);
-	// 			}
-	// #ifndef NOTHREADS
-	// 			//push this in the bundle queue where it'll be picked up by the threads
-	// 			DBGPRINT2("##> Locking queueMutex to push loaded bundle into the queue (bundle.start=%d)\n", bundle->start);
-	// 			int qCount=0;
-	// 			queueMutex.lock();
-	// 			bundleQueue.Push(bundle);
-	// 			bundleWork |= 0x02; //set bit 1
-	// 			qCount=bundleQueue.Count();
-	// 			queueMutex.unlock();
-	// 			DBGPRINT2("##> bundleQueue.Count()=%d)\n", qCount);
-	// 			//wait for a thread to pop this bundle from the queue
-	// 			waitMutex.lock();
-	// 			DBGPRINT("##> waiting for a thread to become available..\n");
-	// 			while (threadsWaiting==0) {
-	// 				haveThreads.wait(waitMutex);
-	// 			}
-	// 			waitMutex.unlock();
-	// 			haveBundles.notify_one();
-	// 			DBGPRINT("##> waitMutex unlocked, haveBundles notified, current thread yielding\n");
-	// 			current_thread::yield();
-	// 			queueMutex.lock();
-	// 			DBGPRINT("##> queueMutex locked until bundleQueue.Count()==qCount\n");
-	// 			while (bundleQueue.Count()==qCount) {
-	// 				queueMutex.unlock();
-	// 				DBGPRINT2("##> queueMutex unlocked as bundleQueue.Count()==%d\n", qCount);
-	// 				haveBundles.notify_one();
-	// 				current_thread::yield();
-	// 				queueMutex.lock();
-	// 				DBGPRINT("##> queueMutex locked again within while loop\n");
-	// 			}
-	// 			queueMutex.unlock();
-
-	// #else //no threads
-	// 			//Num_Fragments+=bundle->num_fragments;
-	// 			//Frag_Len+=bundle->frag_len;
-	// 			processBundle(bundle);
-	// #endif
-	// 			// ncluster++; used it for debug purposes only
-	// 			} //have alignments to process
-	// 			else { //no read alignments in this bundle?
-	// #ifndef NOTHREADS
-	// 			dataMutex.lock();
-	// 			DBGPRINT2("##> dataMutex locked for bundle #%d clearing..\n", bundle->idx);
-	// #endif
-	// 			bundle->Clear();
-	// #ifndef NOTHREADS
-	// 			dataClear.Push(bundle->idx);
-	// 			DBGPRINT2("##> dataMutex unlocking as dataClear got pushed idx #%d\n", bundle->idx);
-	// 			dataMutex.unlock();
-	// #endif
-	// 			} //nothing to do with this bundle
-
-	// 			if (chr_changed) {
-	// 				if (guided) {
-	// 					ng=0;
-	// 					guides=NULL;
-	// 					ng_start=0;
-	// 					ng_end=-1;
-	// 					if (refguides.Count()>gseq_id && refguides[gseq_id].rnas.Count()>0) {
-	// 						guides=&(refguides[gseq_id].rnas);
-	// 						ng=guides->Count();
-	// 					}
-	// 				}
-	// 				if (havePtFeatures) {
-	// 					ptf_idx=-1;
-	// 					//setup refptf
-	// 					refptfs=NULL;
-	// 					GRefPtData rd(gseq_id);
-	// 					int ridx=refpts.IndexOf(rd);
-	// 					if (ridx>=0) {
-	// 					refptfs=&(refpts[ridx].pfs);
-	// 					ptf_idx=0;
-	// 					}
-	// 				}
-	// 				lastref=refseqName;
-	// 				lastref_id=gseq_id;
-	// 				currentend=0;
-	// 			}
-
-	// 			if (!more_alns) {
-	// 				if (verbose) {
-	// 	#ifndef NOTHREADS
-	// 					GLockGuard<GFastMutex> lock(logMutex);
-	// 	#endif
-	// 					if (Num_Fragments) {
-	// 						printTime(stderr);
-	// 						GMessage(" %g aligned fragments found.\n", Num_Fragments);
-	// 					}
-	// 					//GMessage(" Done reading alignments.\n");
-	// 				}
-	// 				noMoreBundles();
-	// 				break;
-	// 			}
-	// #ifndef NOTHREADS
-
-	// 			int new_bidx=waitForData(bundles);
-	// 			if (new_bidx<0) {
-	// 				//should never happen!
-	// 				GError("Error: waitForData() returned invalid bundle index(%d)!\n",new_bidx);
-	// 				break;
-	// 			}
-	// 			bundle=&(bundles[new_bidx]);
-	// #endif
-	// 			currentstart=pos;
-	// 			currentend=brec->end;
-	// 			if (guides) { //guided and guides!=NULL
-	// 				ng_start=ng_end+1;
-	// 				while (ng_start<ng && (int)(*guides)[ng_start]->end < pos) {
-	// 					// for now, skip guides which have no overlap with current read
-	// 					ng_start++;
-	// 				}
-	// 				int ng_ovl=ng_start;
-	// 				//add all guides overlapping the current read and other guides that overlap them
-	// 				while (ng_ovl<ng && (int)(*guides)[ng_ovl]->start<=currentend) { //while guide overlap
-	// 					if (currentstart>(int)(*guides)[ng_ovl]->start)
-	// 						currentstart=(*guides)[ng_ovl]->start;
-	// 					if (currentend<(int)(*guides)[ng_ovl]->end)
-	// 						currentend=(*guides)[ng_ovl]->end;
-	// 					if (ng_ovl==ng_start && ng_ovl>0) { //first time only, we have to check back all possible transitive guide overlaps
-	// 						//char* geneid=(*guides)[ng_ovlstart]->getGeneID();
-	// 						//if (geneid==NULL) geneid=(*guides)[ng_ovlstart]->getGeneName();
-	// 						//if (geneid && !bgeneids.hasKey(geneid))
-	// 						//  bgeneids.shkAdd(geneid, &ng); //whatever pointer to int
-	// 						int g_back=ng_ovl; //start from the overlapping guide, going backwards
-	// 						int g_ovl_start=ng_ovl;
-	// 						while (g_back>ng_end+1) {
-	// 							--g_back;
-	// 							//if overlap, set g_back_start=g_back and update currentstart
-	// 							if (currentstart<=(int)(*guides)[g_back]->end) {
-	// 								g_ovl_start=g_back;
-	// 								if (currentstart>(int)(*guides)[g_back]->start)
-	// 									currentstart=(int)(*guides)[g_back]->start;
-	// 							}
-	// 						} //while checking previous guides that could be pulled in this bundle
-	// 						for (int gb=g_ovl_start;gb<=ng_ovl;++gb) {
-	// 							bundle->keepGuide((*guides)[gb],
-	// 									&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
-	// 						}
-	// 					} //needed to check previous guides for overlaps
-	// 					else
-	// 					bundle->keepGuide((*guides)[ng_ovl],
-	// 							&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
-	// 					ng_ovl++;
-	// 				} //while guide overlap
-	// 				ng_end=ng_ovl-1; //MUST update ng_end here, even if no overlaps were found
-	// 			} //guides present on the current chromosome
-	// 			bundle->refseq=lastref;
-	// 			bundle->start=currentstart;
-	// 			bundle->end=currentend;
-	// 		} //<---- new bundle started
-
-	// 		/*****************************
-	// 		 ** Step 3: current read extends the bundle
-	// 		 ** 	this might not happen if a longer guide had already been added to the bundle
-	// 		 *****************************/
-	// 		if (currentend<(int)brec->end) {
-	// 			currentend=brec->end;
-	// 			if (guides) { //add any newly overlapping guides to bundle
-	// 				bool cend_changed;
-	// 				do {
-	// 					cend_changed=false;
-	// 					while (ng_end+1<ng && (int)(*guides)[ng_end+1]->start<=currentend) {
-	// 						++ng_end;
-	// 						//more transcripts overlapping this bundle?
-	// 						if ((int)(*guides)[ng_end]->end>=currentstart) {
-	// 							//it should really overlap the bundle
-	// 							bundle->keepGuide((*guides)[ng_end],
-	// 									&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
-	// 							if(currentend<(int)(*guides)[ng_end]->end) {
-	// 								currentend=(*guides)[ng_end]->end;
-	// 								cend_changed=true;
-	// 							}
-	// 						}
-	// 					}
-	// 				} while (cend_changed);
-	// 			}
-	// 		} //adjusted currentend and checked for overlapping reference transcripts
-	// 		GReadAlnData alndata(brec, 0, nh, hi, tinfo);
-	// 		bool ovlpguide=bundle->evalReadAln(alndata, xstrand);
-
-	// 		/*****************************
-	// 		 ** Step 4: in eonly case consider read only if it overlaps guide
-	// 		 **     check for overlaps with ref transcripts which may set xstrand
-	// 		 *****************************/
-	// 		// eonly: for mergeMode includes estimated coverage sum in the merged transcripts
-	// 		if(!eonly || ovlpguide) {
-	// 			if (xstrand=='+') alndata.strand=1;
-	// 			else if (xstrand=='-') alndata.strand=-1;
-	// 			//GMessage("%s\t%c\t%d\thi=%d\n",brec->name(), xstrand, alndata.strand,hi);
-	// 			//countFragment(*bundle, *brec, hi,nh); // we count this in build_graphs to only include mapped fragments that we consider correctly mapped
-	// 			//fprintf(stderr,"fragno=%d fraglen=%lu\n",bundle->num_fragments,bundle->frag_len);if(bundle->num_fragments==100) exit(0);
-	// 			processRead(currentstart, currentend, *bundle, hashread, alndata);
-	// 		}
-	// 	} //for each read alignment
-	
+		// fprintf(stderr, "################# Print graph after cleaning!!!!!\n");
+		// uni_splice_graphGp -> PrintGraphGp();
+		// Still in the same UniSpliceGraphGp!!
+		// fprintf(stderr, "drec->get_refstart() %d!!!\n", drec->get_refstart());ls
+		// fprintf(stderr, "drec->get_refend() %d!!!\n", drec->get_refend());
+		// fprintf(stderr, "drec->get_s() %d!!!\n", drec->get_s());
+		// fprintf(stderr, "drec->g_idx() %d \n", drec->get_g_idx());
+		// fprintf(stderr, "drec->get_graphno: %d \n", drec->get_graphno());
+		// fprintf(stderr, "drec->get_edgeno: %d \n", drec->get_edgeno());
+		if (drec!=NULL) {
+			uni_splice_graphGp -> AddGraph(drec);
+		}
 	}
-
 	fprintf(stderr, "Wait here. Just for checking!!!\n");
+
+
+
 
 
 
 	/*******************************************
 	 *******************************************
-	 ** Processing alignment: main algorithm
+	 ** cleaning up
 	 *******************************************
 	 *******************************************/
-// 	while (more_alns) {
-// 		bool chr_changed=false;
-// 		int pos=0;
-// 		const char* refseqName=NULL;
-// 		char xstrand=0;
-// 		int nh=1;
-// 		int hi=0;
-// 		int gseq_id=lastref_id;  //current chr id
-// 		bool new_bundle=false;
-// 		//delete brec;
-// 		/*****************************
-// 		 ** Step 1: Checking whether there are more alignment to process.
-// 		 *****************************/
-// 		if ((brec=bamreader.next())!=NULL) {
-// 			if (brec->isUnmapped()) continue;
-// 			if (brec->start<1 || brec->mapped_len<10) {
-// 				if (verbose) GMessage("Warning: invalid mapping found for read %s (position=%d, mapped length=%d)\n",
-// 						brec->name(), brec->start, brec->mapped_len);
-// 				continue;
-// 			}
-// #ifdef DBG_ALN_DATA
-// 			dbg_waln(brec);
-// #endif
-// 			refseqName=brec->refName();
-// 			xstrand=brec->spliceStrand(); // tagged strand gets priority
-// 			if(xstrand=='.' && (fr_strand || rf_strand)) { // set strand if stranded library
-// 				if(brec->isPaired()) { // read is paired
-// 					if(brec->pairOrder()==1) { // first read in pair
-// 						if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='+';
-// 						else xstrand='-';
-// 					}
-// 					else {
-// 						if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='-';
-// 						else xstrand='+';
-// 					}
-// 				}
-// 				else {
-// 					if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='+';
-// 					else xstrand='-';
-// 				}
-// 			}
+	delete drec;
+	dotreader.stop(); //close all DOT files
+	delete brec;
+	bamreader.stop(); //close all BAM files
 
-// 			/*
-// 			if (xstrand=='.' && brec->exons.Count()>1) {
-// 				no_xs++;
-// 				continue; //skip spliced alignments lacking XS tag (e.g. HISAT alignments)
-// 			}
-// 			// I might still infer strand later */
+	if (guided && no_ref_used) {
+		GMessage("WARNING: no reference transcripts were found for the genomic sequences where reads were mapped!\n"
+				"Please make sure the -G annotation file uses the same naming convention for the genome sequences.\n");
+	}
+	delete gfasta;
 
-// 			if (refseqName==NULL) GError("Error: cannot retrieve target seq name from BAM record!\n");
-// 			pos=brec->start; //BAM is 0 based, but GBamRecord makes it 1-based
-// 			chr_changed=(lastref.is_empty() || lastref!=refseqName);
-// 			if (chr_changed) {
-// 				skipGseq=excludeGseqs.hasKey(refseqName);
-// 				gseq_id=gseqNames->gseqs.addName(refseqName);
-// 				if (guided) {
-// 					if (gseq_id>=refseqCount) {
-// 						if (verbose)
-// 							GMessage("WARNING: no reference transcripts found for genomic sequence \"%s\"! (mismatched reference names?)\n",
-// 								refseqName);
-// 					}
-// 					else no_ref_used=false;
-// 				}
+#ifndef NOTHREADS
+	for (int t=0;t<num_cpus;t++)
+		threads[t].join();
+	if (verbose) {
+		printTime(stderr);
+		GMessage(" All threads finished.\n");
+	}
+	delete[] threads;
+	delete[] bundles;
+#else
+	if (verbose) {
+		printTime(stderr);
+		GMessage(" Done.\n");
+	}
+#endif
 
-// 				if (alncounts.Count()<=gseq_id) {
-// 					alncounts.Resize(gseq_id+1);
-// 				}
-// 				else if (alncounts[gseq_id]>0)
-// 						GError("%s\nAlignments (%d) already found for %s !\n",
-// 							ERR_BAM_SORT, alncounts[gseq_id], refseqName);
-// 				prev_pos=0;
-// 			}
-// 			if (pos<prev_pos) GError("%s\nread %s (start %d) found at position %d on %s when prev_pos=%d\n",
-// 				ERR_BAM_SORT, brec->name(), brec->start,  pos, refseqName, prev_pos);
-// 			prev_pos=pos;
-// 			if (skipGseq) continue;
-// 			alncounts[gseq_id]++;
-// 			nh=brec->tag_int("NH");
-// 			if (nh==0) nh=1;
-// 			hi=brec->tag_int("HI");
-// 			if (mergeMode) {
-// 			//tinfo=new TAlnInfo(brec->name(), brec->tag_int("ZF"));
-// 				tinfo=new TAlnInfo(brec->name(), brec->uval);
-// 			GStr score(brec->tag_str("ZS"));
-// 			if (!score.is_empty()) {
-// 				GStr srest=score.split('|');
-// 				if (!score.is_empty())
-// 					tinfo->cov=score.asDouble();
-// 				score=srest.split('|');
-// 				if (!srest.is_empty())
-// 					tinfo->fpkm=srest.asDouble();
-// 				srest=score.split('|');
-// 				if (!score.is_empty())
-// 					tinfo->tpm=score.asDouble();
-// 			}
-// 			}
+#ifdef DBG_ALN_DATA
+ 	fclose(fdbgaln);
+#endif
 
-// 			if (!chr_changed && currentend>0 && pos>currentend+(int)runoffdist) {
-// 				new_bundle=true;
-// 			}
-// 		}
-// 		else { //no more alignments
-// 			more_alns=false;
-// 			new_bundle=true; //fake a new start (end of last bundle)
-// 		}
+#ifdef B_DEBUG
+ 	fclose(dbg_out);
+#endif
+ 	if (mergeMode && guided )
+	 	writeUnbundledGuides(refguides, f_out);
 
-// 		/*****************************
-// 		 ** Step 2: Condition to start processing reads in the previous bundle
-// 		 *****************************/
-// 		if (new_bundle || chr_changed) {
-// 			hashread.Clear();
-// 			if (bundle->readlist.Count()>0) { // process reads in previous bundle
-// 			// (readthr, junctionthr, mintranscriptlen are globals)
-// 			if (refptfs) { //point-features defined for this reference
-// 				while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<currentstart)
-// 					ptf_idx++;
-// 				//TODO: what if a PtFeature is nearby, just outside the bundle?
-// 				while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<=currentend) {
-// 					bundle->ptfs.Add(refptfs->Get(ptf_idx)); //keep this PtFeature
-// 					ptf_idx++;
-// 				}
-// 			}
-// 			bundle->getReady(currentstart, currentend);
-// 			if (gfasta!=NULL) { //genomic sequence data requested
-// 				GFaSeqGet* faseq=gfasta->fetch(bundle->refseq.chars());
-// 				if (faseq==NULL) {
-// 					GError("Error: could not retrieve sequence data for %s!\n", bundle->refseq.chars());
-// 				}
-// 				bundle->gseq=faseq->copyRange(bundle->start, bundle->end, false, true);
-// 			}
-// #ifndef NOTHREADS
-// 			//push this in the bundle queue where it'll be picked up by the threads
-// 			DBGPRINT2("##> Locking queueMutex to push loaded bundle into the queue (bundle.start=%d)\n", bundle->start);
-// 			int qCount=0;
-// 			queueMutex.lock();
-// 			bundleQueue.Push(bundle);
-// 			bundleWork |= 0x02; //set bit 1
-// 			qCount=bundleQueue.Count();
-// 			queueMutex.unlock();
-// 			DBGPRINT2("##> bundleQueue.Count()=%d)\n", qCount);
-// 			//wait for a thread to pop this bundle from the queue
-// 			waitMutex.lock();
-// 			DBGPRINT("##> waiting for a thread to become available..\n");
-// 			while (threadsWaiting==0) {
-// 				haveThreads.wait(waitMutex);
-// 			}
-// 			waitMutex.unlock();
-// 			haveBundles.notify_one();
-// 			DBGPRINT("##> waitMutex unlocked, haveBundles notified, current thread yielding\n");
-// 			current_thread::yield();
-// 			queueMutex.lock();
-// 			DBGPRINT("##> queueMutex locked until bundleQueue.Count()==qCount\n");
-// 			while (bundleQueue.Count()==qCount) {
-// 				queueMutex.unlock();
-// 				DBGPRINT2("##> queueMutex unlocked as bundleQueue.Count()==%d\n", qCount);
-// 				haveBundles.notify_one();
-// 				current_thread::yield();
-// 				queueMutex.lock();
-// 				DBGPRINT("##> queueMutex locked again within while loop\n");
-// 			}
-// 			queueMutex.unlock();
+ 	// clear refpts data, if loaded
+  	if (refpts.Count()>0)
+	  	for (int i=0;i<refpts.Count();i++) {
+		  refpts[i].pfs.setFreeItem(true);
+		}
 
-// #else //no threads
-// 			//Num_Fragments+=bundle->num_fragments;
-// 			//Frag_Len+=bundle->frag_len;
-// 			processBundle(bundle);
-// #endif
-// 			// ncluster++; used it for debug purposes only
-// 			} //have alignments to process
-// 			else { //no read alignments in this bundle?
-// #ifndef NOTHREADS
-// 			dataMutex.lock();
-// 			DBGPRINT2("##> dataMutex locked for bundle #%d clearing..\n", bundle->idx);
-// #endif
-// 			bundle->Clear();
-// #ifndef NOTHREADS
-// 			dataClear.Push(bundle->idx);
-// 			DBGPRINT2("##> dataMutex unlocking as dataClear got pushed idx #%d\n", bundle->idx);
-// 			dataMutex.unlock();
-// #endif
-// 			} //nothing to do with this bundle
+	fclose(f_out);
+	if (c_out && c_out!=stdout) fclose(c_out);
 
-// 			if (chr_changed) {
-// 				if (guided) {
-// 					ng=0;
-// 					guides=NULL;
-// 					ng_start=0;
-// 					ng_end=-1;
-// 					if (refguides.Count()>gseq_id && refguides[gseq_id].rnas.Count()>0) {
-// 						guides=&(refguides[gseq_id].rnas);
-// 						ng=guides->Count();
-// 					}
-// 				}
-// 				if (havePtFeatures) {
-// 					ptf_idx=-1;
-// 					//setup refptf
-// 					refptfs=NULL;
-// 					GRefPtData rd(gseq_id);
-// 					int ridx=refpts.IndexOf(rd);
-// 					if (ridx>=0) {
-// 					refptfs=&(refpts[ridx].pfs);
-// 					ptf_idx=0;
-// 					}
-// 				}
-// 				lastref=refseqName;
-// 				lastref_id=gseq_id;
-// 				currentend=0;
-// 			}
-
-// 			if (!more_alns) {
-// 				if (verbose) {
-// 	#ifndef NOTHREADS
-// 					GLockGuard<GFastMutex> lock(logMutex);
-// 	#endif
-// 					if (Num_Fragments) {
-// 						printTime(stderr);
-// 						GMessage(" %g aligned fragments found.\n", Num_Fragments);
-// 					}
-// 					//GMessage(" Done reading alignments.\n");
-// 				}
-// 				noMoreBundles();
-// 				break;
-// 			}
-// #ifndef NOTHREADS
-
-// 			int new_bidx=waitForData(bundles);
-// 			if (new_bidx<0) {
-// 				//should never happen!
-// 				GError("Error: waitForData() returned invalid bundle index(%d)!\n",new_bidx);
-// 				break;
-// 			}
-// 			bundle=&(bundles[new_bidx]);
-// #endif
-// 			currentstart=pos;
-// 			currentend=brec->end;
-// 			if (guides) { //guided and guides!=NULL
-// 				ng_start=ng_end+1;
-// 				while (ng_start<ng && (int)(*guides)[ng_start]->end < pos) {
-// 					// for now, skip guides which have no overlap with current read
-// 					ng_start++;
-// 				}
-// 				int ng_ovl=ng_start;
-// 				//add all guides overlapping the current read and other guides that overlap them
-// 				while (ng_ovl<ng && (int)(*guides)[ng_ovl]->start<=currentend) { //while guide overlap
-// 					if (currentstart>(int)(*guides)[ng_ovl]->start)
-// 						currentstart=(*guides)[ng_ovl]->start;
-// 					if (currentend<(int)(*guides)[ng_ovl]->end)
-// 						currentend=(*guides)[ng_ovl]->end;
-// 					if (ng_ovl==ng_start && ng_ovl>0) { //first time only, we have to check back all possible transitive guide overlaps
-// 						//char* geneid=(*guides)[ng_ovlstart]->getGeneID();
-// 						//if (geneid==NULL) geneid=(*guides)[ng_ovlstart]->getGeneName();
-// 						//if (geneid && !bgeneids.hasKey(geneid))
-// 						//  bgeneids.shkAdd(geneid, &ng); //whatever pointer to int
-// 						int g_back=ng_ovl; //start from the overlapping guide, going backwards
-// 						int g_ovl_start=ng_ovl;
-// 						while (g_back>ng_end+1) {
-// 							--g_back;
-// 							//if overlap, set g_back_start=g_back and update currentstart
-// 							if (currentstart<=(int)(*guides)[g_back]->end) {
-// 								g_ovl_start=g_back;
-// 								if (currentstart>(int)(*guides)[g_back]->start)
-// 									currentstart=(int)(*guides)[g_back]->start;
-// 							}
-// 						} //while checking previous guides that could be pulled in this bundle
-// 						for (int gb=g_ovl_start;gb<=ng_ovl;++gb) {
-// 							bundle->keepGuide((*guides)[gb],
-// 									&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
-// 						}
-// 					} //needed to check previous guides for overlaps
-// 					else
-// 					bundle->keepGuide((*guides)[ng_ovl],
-// 							&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
-// 					ng_ovl++;
-// 				} //while guide overlap
-// 				ng_end=ng_ovl-1; //MUST update ng_end here, even if no overlaps were found
-// 			} //guides present on the current chromosome
-// 			bundle->refseq=lastref;
-// 			bundle->start=currentstart;
-// 			bundle->end=currentend;
-// 		} //<---- new bundle started
-
-// 		/*****************************
-// 		 ** Step 3: current read extends the bundle
-// 		 ** 	this might not happen if a longer guide had already been added to the bundle
-// 		 *****************************/
-// 		if (currentend<(int)brec->end) {
-// 			currentend=brec->end;
-// 			if (guides) { //add any newly overlapping guides to bundle
-// 				bool cend_changed;
-// 				do {
-// 					cend_changed=false;
-// 					while (ng_end+1<ng && (int)(*guides)[ng_end+1]->start<=currentend) {
-// 						++ng_end;
-// 						//more transcripts overlapping this bundle?
-// 						if ((int)(*guides)[ng_end]->end>=currentstart) {
-// 							//it should really overlap the bundle
-// 							bundle->keepGuide((*guides)[ng_end],
-// 									&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
-// 							if(currentend<(int)(*guides)[ng_end]->end) {
-// 								currentend=(*guides)[ng_end]->end;
-// 								cend_changed=true;
-// 							}
-// 						}
-// 					}
-// 				} while (cend_changed);
-// 			}
-// 		} //adjusted currentend and checked for overlapping reference transcripts
-// 		GReadAlnData alndata(brec, 0, nh, hi, tinfo);
-// 		bool ovlpguide=bundle->evalReadAln(alndata, xstrand);
-
-// 		/*****************************
-// 		 ** Step 4: in eonly case consider read only if it overlaps guide
-// 		 **     check for overlaps with ref transcripts which may set xstrand
-// 		 *****************************/
-// 		// eonly: for mergeMode includes estimated coverage sum in the merged transcripts
-// 		if(!eonly || ovlpguide) {
-// 			if (xstrand=='+') alndata.strand=1;
-// 			else if (xstrand=='-') alndata.strand=-1;
-// 			//GMessage("%s\t%c\t%d\thi=%d\n",brec->name(), xstrand, alndata.strand,hi);
-// 			//countFragment(*bundle, *brec, hi,nh); // we count this in build_graphs to only include mapped fragments that we consider correctly mapped
-// 			//fprintf(stderr,"fragno=%d fraglen=%lu\n",bundle->num_fragments,bundle->frag_len);if(bundle->num_fragments==100) exit(0);
-// 			processRead(currentstart, currentend, *bundle, hashread, alndata);
-// 		}
-// 	} //for each read alignment
+	if(verbose && no_xs>0)
+		GMessage("Number spliced alignments missing the XS tag (skipped): %d\n",no_xs);
 
 
-// 	/*******************************************
-// 	 *******************************************
-// 	 ** cleaning up
-// 	 *******************************************
-// 	 *******************************************/
-// 	delete brec;
-// 	bamreader.stop(); //close all BAM files
+	/*******************************************
+	 *******************************************
+	 ** Finalizing & writing out in the temporary file.
+	 *******************************************
+	 *******************************************/
+	if(!mergeMode) {
+		if(verbose) {
+			GMessage("Total count of aligned fragments: %g\n", Num_Fragments);
+			if (Num_Fragments)
+			GMessage("Fragment coverage length: %g\n", Frag_Len/Num_Fragments);
+		}
 
-// 	if (guided && no_ref_used) {
-// 		GMessage("WARNING: no reference transcripts were found for the genomic sequences where reads were mapped!\n"
-// 				"Please make sure the -G annotation file uses the same naming convention for the genome sequences.\n");
-// 	}
-// 	delete gfasta;
+		f_out=stdout;
+		if(outfname!="stdout") {
+			f_out=fopen(outfname.chars(), "w");
+			if (f_out==NULL) GError("Error creating output file %s\n", outfname.chars());
+		}
 
-// #ifndef NOTHREADS
-// 	for (int t=0;t<num_cpus;t++)
-// 		threads[t].join();
-// 	if (verbose) {
-// 		printTime(stderr);
-// 		GMessage(" All threads finished.\n");
-// 	}
-// 	delete[] threads;
-// 	delete[] bundles;
-// #else
-// 	if (verbose) {
-// 		printTime(stderr);
-// 		GMessage(" Done.\n");
-// 	}
-// #endif
+		fprintf(f_out,"# ");
+		args.printCmdLine(f_out);
+		fprintf(f_out,"# StringTie version %s\n",VERSION);
 
-// #ifdef DBG_ALN_DATA
-//  	fclose(fdbgaln);
-// #endif
+		//fprintf(stderr,"cov_sum=%g frag_len=%g num_frag=%g\n",Cov_Sum,Frag_Len,Num_Fragments);
 
-// #ifdef B_DEBUG
-//  	fclose(dbg_out);
-// #endif
-//  	if (mergeMode && guided )
-// 	 	writeUnbundledGuides(refguides, f_out);
+		FILE *g_out=NULL;
+		if(geneabundance) {
+			g_out=fopen(genefname.chars(),"w");
+			if (g_out==NULL)
+				GError("Error creating gene abundance output file %s\n", genefname.chars());
+			fprintf(g_out,"Gene ID\tGene Name\tReference\tStrand\tStart\tEnd\tCoverage\tFPKM\tTPM\n");
+		}
 
-//  	// clear refpts data, if loaded
-//   	if (refpts.Count()>0)
-// 	  	for (int i=0;i<refpts.Count();i++) {
-// 		  refpts[i].pfs.setFreeItem(true);
-// 		}
+		FILE* ftmp_in=fopen(tmpfname.chars(),"rt");
+		if (ftmp_in!=NULL) {
+			char* linebuf=NULL;
+			int linebuflen=5000;
+			GMALLOC(linebuf, linebuflen);
+			int nl;
+			int istr;
+			int tlen;
+			float tcov; //do we need to increase precision here ? (double)
+			float calc_fpkm;
+			float calc_tpm;
+			int t_id;
+			while(fgetline(linebuf,linebuflen,ftmp_in)) {
+				sscanf(linebuf,"%d %d %d %d %g", &istr, &nl, &tlen, &t_id, &tcov);
+				if (tcov<0) tcov=0;
+				if (Frag_Len>0.001) calc_fpkm=tcov*1000000000/Frag_Len;
+					else calc_fpkm=0.0;
+				if (Cov_Sum>0.00001) calc_tpm=tcov*1000000/Cov_Sum;
+					else calc_tpm=0.0;
+				if(istr) { // this is a transcript
+					if (ballgown && t_id>0) {
+						guides_RC_tdata[t_id-1]->fpkm=calc_fpkm;
+						guides_RC_tdata[t_id-1]->cov=tcov;
+					}
+					for(int i=0;i<nl;i++) {
+						fgetline(linebuf,linebuflen,ftmp_in);
+						// fprintf(stderr,linebuf);
+						if(!i) {
+							//linebuf[strlen(line)-1]='\0';
+							fprintf(f_out,"%s",linebuf);
+							fprintf(f_out," FPKM \"%.6f\";",calc_fpkm);
+							fprintf(f_out," TPM \"%.6f\";",calc_tpm);
+							fprintf(f_out,"\n");
+						}
+						else fprintf(f_out,"%s\n",linebuf);
+					}
+				}
+				else { // this is a gene -> different file pointer
+					fgetline(linebuf, linebuflen, ftmp_in);
+					fprintf(g_out, "%s\t%.6f\t%.6f\n", linebuf, calc_fpkm, calc_tpm);
+				}
+			}
+			if (guided) {
+				writeUnbundledGuides(refguides, f_out, g_out);
+			}
+			fclose(f_out);
+			fclose(ftmp_in);
+			if(geneabundance) fclose(g_out);
+			GFREE(linebuf);
+			if (!keepTempFiles) {
+				remove(tmpfname.chars());
+			}
+		}
+		else {
+			fclose(f_out);
+			GError("No temporary file %s present!\n",tmpfname.chars());
+		}
 
-// 	fclose(f_out);
-// 	if (c_out && c_out!=stdout) fclose(c_out);
+		//lastly, for ballgown, rewrite the tdata file with updated cov and fpkm
+		if (ballgown) {
+			rc_writeRC(guides_RC_tdata, guides_RC_exons, guides_RC_introns,
+					f_tdata, f_edata, f_idata, f_e2t, f_i2t);
+		}
+	}
 
-// 	if(verbose && no_xs>0)
-// 		GMessage("Number spliced alignments missing the XS tag (skipped): %d\n",no_xs);
+	if (!keepTempFiles) {
+		tmp_path.chomp('/');
+		remove(tmp_path);
+	}
 
+ 	gffnames_unref(gseqNames); //deallocate names collection
 
-// 	/*******************************************
-// 	 *******************************************
-// 	 ** Finalizing & writing out in the temporary file.
-// 	 *******************************************
-// 	 *******************************************/
-// 	if(!mergeMode) {
-// 		if(verbose) {
-// 			GMessage("Total count of aligned fragments: %g\n", Num_Fragments);
-// 			if (Num_Fragments)
-// 			GMessage("Fragment coverage length: %g\n", Frag_Len/Num_Fragments);
-// 		}
-
-// 		f_out=stdout;
-// 		if(outfname!="stdout") {
-// 			f_out=fopen(outfname.chars(), "w");
-// 			if (f_out==NULL) GError("Error creating output file %s\n", outfname.chars());
-// 		}
-
-// 		fprintf(f_out,"# ");
-// 		args.printCmdLine(f_out);
-// 		fprintf(f_out,"# StringTie version %s\n",VERSION);
-
-// 		//fprintf(stderr,"cov_sum=%g frag_len=%g num_frag=%g\n",Cov_Sum,Frag_Len,Num_Fragments);
-
-// 		FILE *g_out=NULL;
-// 		if(geneabundance) {
-// 			g_out=fopen(genefname.chars(),"w");
-// 			if (g_out==NULL)
-// 				GError("Error creating gene abundance output file %s\n", genefname.chars());
-// 			fprintf(g_out,"Gene ID\tGene Name\tReference\tStrand\tStart\tEnd\tCoverage\tFPKM\tTPM\n");
-// 		}
-
-// 		FILE* ftmp_in=fopen(tmpfname.chars(),"rt");
-// 		if (ftmp_in!=NULL) {
-// 			char* linebuf=NULL;
-// 			int linebuflen=5000;
-// 			GMALLOC(linebuf, linebuflen);
-// 			int nl;
-// 			int istr;
-// 			int tlen;
-// 			float tcov; //do we need to increase precision here ? (double)
-// 			float calc_fpkm;
-// 			float calc_tpm;
-// 			int t_id;
-// 			while(fgetline(linebuf,linebuflen,ftmp_in)) {
-// 				sscanf(linebuf,"%d %d %d %d %g", &istr, &nl, &tlen, &t_id, &tcov);
-// 				if (tcov<0) tcov=0;
-// 				if (Frag_Len>0.001) calc_fpkm=tcov*1000000000/Frag_Len;
-// 					else calc_fpkm=0.0;
-// 				if (Cov_Sum>0.00001) calc_tpm=tcov*1000000/Cov_Sum;
-// 					else calc_tpm=0.0;
-// 				if(istr) { // this is a transcript
-// 					if (ballgown && t_id>0) {
-// 						guides_RC_tdata[t_id-1]->fpkm=calc_fpkm;
-// 						guides_RC_tdata[t_id-1]->cov=tcov;
-// 					}
-// 					for(int i=0;i<nl;i++) {
-// 						fgetline(linebuf,linebuflen,ftmp_in);
-// 						// fprintf(stderr,linebuf);
-// 						if(!i) {
-// 							//linebuf[strlen(line)-1]='\0';
-// 							fprintf(f_out,"%s",linebuf);
-// 							fprintf(f_out," FPKM \"%.6f\";",calc_fpkm);
-// 							fprintf(f_out," TPM \"%.6f\";",calc_tpm);
-// 							fprintf(f_out,"\n");
-// 						}
-// 						else fprintf(f_out,"%s\n",linebuf);
-// 					}
-// 				}
-// 				else { // this is a gene -> different file pointer
-// 					fgetline(linebuf, linebuflen, ftmp_in);
-// 					fprintf(g_out, "%s\t%.6f\t%.6f\n", linebuf, calc_fpkm, calc_tpm);
-// 				}
-// 			}
-// 			if (guided) {
-// 				writeUnbundledGuides(refguides, f_out, g_out);
-// 			}
-// 			fclose(f_out);
-// 			fclose(ftmp_in);
-// 			if(geneabundance) fclose(g_out);
-// 			GFREE(linebuf);
-// 			if (!keepTempFiles) {
-// 				remove(tmpfname.chars());
-// 			}
-// 		}
-// 		else {
-// 			fclose(f_out);
-// 			GError("No temporary file %s present!\n",tmpfname.chars());
-// 		}
-
-// 		//lastly, for ballgown, rewrite the tdata file with updated cov and fpkm
-// 		if (ballgown) {
-// 			rc_writeRC(guides_RC_tdata, guides_RC_exons, guides_RC_introns,
-// 					f_tdata, f_edata, f_idata, f_e2t, f_i2t);
-// 		}
-// 	}
-
-// 	if (!keepTempFiles) {
-// 		tmp_path.chomp('/');
-// 		remove(tmp_path);
-// 	}
-
-//  	gffnames_unref(gseqNames); //deallocate names collection
-
-// #ifdef GMEMTRACE
-//  	if(verbose) GMessage(" Max bundle memory: %6.1fMB for bundle %s\n", maxMemRS/1024, maxMemBundle.chars());
-// #endif
+#ifdef GMEMTRACE
+ 	if(verbose) GMessage(" Max bundle memory: %6.1fMB for bundle %s\n", maxMemRS/1024, maxMemBundle.chars());
+#endif
 
 
-// /****************
-//  **  KH Adding 
-//  ****************/
-// 	// fclose(uinigraph_out);
-// /****************
-//  **  END KH Adding 
-//  ****************/
+/****************
+ **  KH Adding 
+ ****************/
+	// fclose(uinigraph_out);
+/****************
+ **  END KH Adding 
+ ****************/
 } // -- END main
 
 
@@ -2325,14 +1656,14 @@ void noMoreBundles() {
 
 void processBundle(BundleData* bundle) {
 	if (verbose) {
-	#ifndef NOTHREADS
+#ifndef NOTHREADS
 		GLockGuard<GFastMutex> lock(logMutex);
-	#endif
+#endif
 		printTime(stderr);
 		GMessage(">bundle %s:%d-%d [%lu alignments (%d distinct), %d junctions, %d guides] begins processing...\n",
 				bundle->refseq.chars(), bundle->start, bundle->end, bundle->numreads, bundle->readlist.Count(), bundle->junction.Count(),
                 bundle->keepguides.Count());
-	#ifdef GMEMTRACE
+#ifdef GMEMTRACE
 			double vm,rsm;
 			get_mem_usage(vm, rsm);
 			GMessage("\t\tstart memory usage: %6.1fMB\n",rsm/1024);
@@ -2341,7 +1672,7 @@ void processBundle(BundleData* bundle) {
 				maxMemVM=vm;
 				maxMemBundle.format("%s:%d-%d(%d)", bundle->refseq.chars(), bundle->start, bundle->end, bundle->readlist.Count());
 			}
-	#endif
+#endif
 	}
 #ifdef B_DEBUG
 	for (int i=0;i<bundle->keepguides.Count();++i) {
@@ -2423,6 +1754,7 @@ void processBundle(BundleData* bundle) {
 	}
 	bundle->Clear();
 }
+
 
 #ifndef NOTHREADS
 

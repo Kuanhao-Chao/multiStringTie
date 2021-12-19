@@ -49,7 +49,7 @@ void DOTInputFile::stop() {
 	rec=NULL;
  	this->reader -> dotclose();
 //  if (!keepTempFiles) {
-    unlink(tmpfile.chars());
+    // unlink(tmpfile.chars());
 //  }
 }
 

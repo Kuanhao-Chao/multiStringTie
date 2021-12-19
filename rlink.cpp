@@ -13262,7 +13262,7 @@ int build_graphs(BundleData* bdata) {
 	//fprintf(stderr,"build_graphs with %d guides\n",guides.Count());
 
 	/*****************************
-	 ** this part is for setting guides for introns are covered by at least one read. 
+	 ** Step 1: this part is for setting guides for introns are covered by at least one read. 
 	 *****************************/
 	if(guides.Count()) {
 
@@ -13342,8 +13342,8 @@ int build_graphs(BundleData* bdata) {
 	}
 
 	/*****************************
-	 ** this part is for adjusting leftsupport and rightsupport when considering all junctions that start at a given point
-	 ** sort junctions -> junctions are sorted already according with their start, but not their end
+	 ** Step 2: this part is for adjusting leftsupport and rightsupport when considering all junctions that start at a given point
+	 ** 	sort junctions -> junctions are sorted already according with their start, but not their end
 	 *****************************/
 	GList<CJunction> ejunction(junction);
 	ejunction.setFreeItem(false);
@@ -13493,7 +13493,7 @@ int build_graphs(BundleData* bdata) {
 	//fprintf(stderr,"junction support computed\n");
 
 	/*****************************
-	 ** there are some reads that contain very bad junctions -> need to find better closest junctions
+	 ** Step 3: there are some reads that contain very bad junctions -> need to find better closest junctions
 	 *****************************/
 	if(higherr) { 
 		uint juncsupport=junctionsupport;
@@ -13728,10 +13728,7 @@ int build_graphs(BundleData* bdata) {
 		}
 	}
 	*/
-
-
 	//int **readgroup = new int*[readlist.Count()];
-
 /*
 #ifdef GMEMTRACE
 	double vm,rsm;
@@ -13741,11 +13738,10 @@ int build_graphs(BundleData* bdata) {
 */
 
 	/*****************************
-	 ** junctions filtering & sort
+	 ** Step 4: junctions filtering & sort
 	 *****************************/
 	//float fraglen=0;
 	//uint fragno=0;
-
 	//GHash<bool> boundaryleft;
 	//GHash<bool> boundaryright;
 	GIntHash<bool> boundaryleft;
@@ -14035,14 +14031,11 @@ int build_graphs(BundleData* bdata) {
 		junction.setSorted(true);
 		ejunction.setSorted(juncCmpEnd);
 	}
-
-
 	//fprintf(stderr,"fragno=%d fraglen=%g\n",fragno,fraglen);
-
 	//if(fragno) fraglen/=fragno;
 
 	/*****************************
-	 ** 'merge_fwd_groups' function
+	 ** Step 5: 'merge_fwd_groups' function
 	 ** 	merge groups that are close together or __groups that are within the same exon of a reference gene__
 	 *****************************/
 	if(bundledist || (guides.Count() && !longreads)) {
@@ -14077,7 +14070,6 @@ int build_graphs(BundleData* bdata) {
 		boundaryleft.Clear();
 		boundaryright.Clear();
 	}
-
 	/*
 	{ // DEBUG ONLY
 		fprintf(stderr,"%d groups created!\n",group.Count());
@@ -14092,7 +14084,6 @@ int build_graphs(BundleData* bdata) {
 	    }
 	}
 	*/
-
 /*
 #ifdef GMEMTRACE
 	//double vm,rsm;
@@ -14102,8 +14093,8 @@ int build_graphs(BundleData* bdata) {
 */
 
 	/*****************************
-	 ** form bundles here
-     ** first do color assignment
+	 ** Step 6: form bundles here
+     ** 	first do color assignment
 	 *****************************/
 	for (int i=0;i<3;i++) currgroup[i]=startgroup[i];
 	CGroup *prevgroup[3]={NULL,NULL,NULL};
@@ -14117,7 +14108,7 @@ int build_graphs(BundleData* bdata) {
 
 	// each unstranded group needs to remember what proportion of stranded group it overlaps so that it can distribute reads later on -> maybe I can do this in the following while?
 	/*****************************
-	 ** 'set_strandcol' function
+	 ** Step 7: 'set_strandcol' function
      ** 	set the color of strands
 	 *****************************/
 	while(currgroup[0]!=NULL || currgroup[1]!=NULL || currgroup[2]!=NULL) { // there are still groups to process
@@ -14207,11 +14198,8 @@ int build_graphs(BundleData* bdata) {
 		else if(nextgr == 0) { // negative strand group
 			currgroup[nextgr]->neg_prop=1;
 		}
-
-
 		prevgroup[nextgr]=currgroup[nextgr];
 		currgroup[nextgr]=currgroup[nextgr]->next_gr;
-
     }
 
 	/*
@@ -14253,7 +14241,7 @@ int build_graphs(BundleData* bdata) {
 
 
 	/*****************************
-	 ** 'create_bundle' & 'create_bundle' functions. 
+	 ** Step 8: 'create_bundle' & 'create_bundle' functions. 
 	 ** 	create bundles : bundles collect connected groups (with same color)
 	 *****************************/
 	for (int i=0;i<3;i++) {
@@ -14349,8 +14337,8 @@ int build_graphs(BundleData* bdata) {
 
 
 	/*****************************
-	 ** Clean up no longer needed variables
-	 ** group.Clear(); maybe I still need this?
+	 ** Step 9: Clean up no longer needed variables
+	 ** 	group.Clear(); maybe I still need this?
 	 *****************************/
 	equalcolor.Clear();
 	eqposcol.Clear();
@@ -14366,7 +14354,7 @@ int build_graphs(BundleData* bdata) {
 */
 
 	/*****************************
-	 ** 'get_covered' function
+	 ** Step 10: 'get_covered' function
 	 ** 	next variables are in order to remember if I get guide coverage
 	 *****************************/
 	GVec<int>* bnodeguides=NULL;
@@ -14410,17 +14398,14 @@ int build_graphs(BundleData* bdata) {
 	}
 	*/
 
-
 	int geneno=0;
 
 	/*****************************
-	 ** 'CPrediction': constructor
+	 ** Step 11: 'CPrediction': constructor
 	 **		predict transcripts for unstranded bundles here
 	 *****************************/
 	//if(fraglen)
-
 	int g=0;
-
 	for(int b=0;b<bundle[1].Count();b++) { // these are neutral bundles that do not overlap any signed reads
 
 		// I need to address features here too -> TODO
@@ -14540,12 +14525,11 @@ int build_graphs(BundleData* bdata) {
     		}
     	}
     }
-
     //fprintf(stderr,"Done with unstranded bundles\n");
     if (bnodeguides) delete[] bnodeguides;
 
 	/*****************************
-	 **    Defining parameters here!!!!
+	 ** Step 12: Defining parameters here!!!!
 	 ** 	build graphs for stranded bundles here
 	 *****************************/
     if(startgroup[0]!=NULL || startgroup[2]!=NULL) {  // Condition 1: there are stranded groups to process
@@ -14565,7 +14549,6 @@ int build_graphs(BundleData* bdata) {
     	GVec<int> lastgpos[2];
 
     	int bno[2]={0,0};
-
 
 		/*****************************
 		 ** 1. build graph structure
@@ -14667,8 +14650,7 @@ int build_graphs(BundleData* bdata) {
     		}
     	}
     	fprintf(stderr,"Done creating graphs\n");
-
-    	// /*
+    	/*
     	{ // DEBUG ONLY
     		printTime(stderr);
     		for(int s=0;s<2;s++) {
@@ -14685,8 +14667,7 @@ int build_graphs(BundleData* bdata) {
     			}
     		}
     	}
-    	// */
-
+    	*/
 /*
 #ifdef GMEMTRACE
     	double vm,rsm;
@@ -14696,14 +14677,6 @@ int build_graphs(BundleData* bdata) {
 */
 
 		// Move the data cleaning after writing out the DOT file.
-		// // I can clean up some data here:
-    	// for(int sno=0;sno<3;sno++) {
-    	// 	int n=bnode[sno].Count();
-    	// 	for(int b=0;b<n;b++) delete bnode[sno][b];
-    	// 	bnode[sno].Clear();
-    	// 	bundle[sno].Clear();
-    	// }
-
 
 		/*****************************
 		 ** 2. compute probabilities for stranded bundles

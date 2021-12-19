@@ -720,6 +720,7 @@ struct BundleData {
 	bool evalReadAln(GReadAlnData& alndata, char& strand);
 
 	void Clear() {
+		fprintf(stderr, "The bundle is cleared!!! \n");
 		keepguides.Clear();
 		ptfs.Clear();
 		pred.Clear();

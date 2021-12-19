@@ -629,20 +629,20 @@ int main(int argc, char* argv[]) {
 			if (nh==0) nh=1;
 			hi=brec->tag_int("HI");
 			if (mergeMode) {
-			//tinfo=new TAlnInfo(brec->name(), brec->tag_int("ZF"));
-				tinfo=new TAlnInfo(brec->name(), brec->uval);
-			GStr score(brec->tag_str("ZS"));
-			if (!score.is_empty()) {
-				GStr srest=score.split('|');
-				if (!score.is_empty())
-					tinfo->cov=score.asDouble();
-				score=srest.split('|');
-				if (!srest.is_empty())
-					tinfo->fpkm=srest.asDouble();
-				srest=score.split('|');
-				if (!score.is_empty())
-					tinfo->tpm=score.asDouble();
-			}
+				//tinfo=new TAlnInfo(brec->name(), brec->tag_int("ZF"));
+					tinfo=new TAlnInfo(brec->name(), brec->uval);
+				GStr score(brec->tag_str("ZS"));
+				if (!score.is_empty()) {
+					GStr srest=score.split('|');
+					if (!score.is_empty())
+						tinfo->cov=score.asDouble();
+					score=srest.split('|');
+					if (!srest.is_empty())
+						tinfo->fpkm=srest.asDouble();
+					srest=score.split('|');
+					if (!score.is_empty())
+						tinfo->tpm=score.asDouble();
+				}
 			}
 
 			if (!chr_changed && currentend>0 && pos>currentend+(int)runoffdist) {

@@ -218,7 +218,7 @@ struct UniSpliceGraphGp {
       }
 
       void Clear() {
-         fprintf(stderr, "**** Start Clearing !!!! \n ");
+         // fprintf(stderr, "**** Start Clearing !!!! \n ");
          for(int i=0;i<2;i++) {
             gpSize[i] = 0;
             graphnoGp[i].Clear();
@@ -315,7 +315,7 @@ class DOTReader {
          string line;  
          if (getline(ifile_dot, line)) {
             // line.erase(remove(line.begin(), line.end(), ' '), line.end());
-            fprintf(stderr, "Before parsing line: %s \n", line.c_str());
+            // fprintf(stderr, "Before parsing line: %s \n", line.c_str());
             // if (regex_match(line, regex("(strict\\s+)(digraph\\s+)([0-9]*)(_)([0-9]*)(_)([0-9]*\\s+)(.*)(->)(.*)(\\[label=)(.*)(\\];)"))) {
             // regex rgx("(\\w+)->(\\w+)\\[label=(\\w+)\\];");
 
@@ -348,7 +348,7 @@ class DOTReader {
                   refend = stoi(match[2]);
                   s = stoi(match[3]);
                   g_idx = stoi(match[4]);
-                  fprintf(stderr, "ref : %d - %d, %d, %d\n", refstart, refend, s, g_idx);
+                  // fprintf(stderr, "ref : %d - %d, %d, %d\n", refstart, refend, s, g_idx);
                   // fprintf(stderr, "refstart: %d\n", refend);
                   // fprintf(stderr, "s: %d\n", s);
                   // fprintf(stderr, "g_idx: %d\n", g_idx);
@@ -405,7 +405,7 @@ class DOTReader {
 
                // no2gnode
             }
-            uni_splice_graph -> PrintGraph();
+            // uni_splice_graph -> PrintGraph();
 
             return uni_splice_graph;
          } else {    
@@ -445,7 +445,7 @@ struct DOTInputFile {
       GStr file; //same order
       GStr tmpfile; //all the temp files created by this
       DOTInputFile():rec(NULL), reader(), file(), tmpfile() {
-         fprintf(stderr, "&& DOTInputFile Initialization  :\n");
+         // fprintf(stderr, "&& DOTInputFile Initialization  :\n");
          // uni_splice_graphs = new UniSpliceGraphGp();
          // fprintf(stderr, "Initialization uni_splice_graphs.graph_idx %d :\n", uni_splice_graphs->get_graphno());
       }
