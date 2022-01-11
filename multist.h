@@ -49,9 +49,9 @@ struct UniSpliceGraph {
       }
 
    
-      void AddNode(int refstart_i, int refend_i, int start, int end, int node_id) {
+      void AddNode(int refstart_i, int refend_i, int start, int end, int node_id, float cov) {
          if (refstart_i == refstart && refend_i == refend) {
-            CGraphnode* new_node=new CGraphnode(start, end, node_id); // start,end,nodeno
+            CGraphnode* new_node=new CGraphnode(start, end, node_id, cov); // start,end,nodeno
             no2gnode -> Add(new_node);
             // fprintf(stderr, "Node size: %d\n ", no2gnode->Count());
             graphno += 1;
@@ -158,6 +158,8 @@ struct UniSpliceGraphGp {
       // s: strand (0 = negative strand; 1 = unknown strand; 2 = positive strand // 0(-),1(.),2(+))
       // b: all bundles on all strands: 0,1,2
    	UniSpliceGraphGp() { 
+         refstart = 0;
+	      refend = 0;
          for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
             int s=sno/2; // adjusted strand due to ignoring neutral strand
             gpSize[s] = 0;
@@ -184,13 +186,12 @@ struct UniSpliceGraphGp {
       }
 
       void AddGraph(UniSpliceGraph* uni_splice_graph) {
-         if (uni_splice_graph->get_refstart() == refstart && uni_splice_graph->get_refend() == refend) {
-            // fprintf(stderr, "* uni_splice_graph.refstart: %d \n", uni_splice_graph -> get_refstart());
-            // fprintf(stderr, "* uni_splice_graph.refend: %d \n", uni_splice_graph -> get_refend());
-            // fprintf(stderr, "* uni_splice_graph.s: %d \n", uni_splice_graph -> get_s());
-            // fprintf(stderr, "* uni_splice_graph.g_idx: %d \n", uni_splice_graph -> get_g_idx());
-            // fprintf(stderr, "* uni_splice_graph.get_graphno: %d \n", uni_splice_graph -> get_graphno());
-            // fprintf(stderr, "* uni_splice_graph.get_edgeno: %d \n", uni_splice_graph -> get_edgeno());
+            fprintf(stderr, "* uni_splice_graph.refstart: %d \n", uni_splice_graph -> get_refstart());
+            fprintf(stderr, "* uni_splice_graph.refend: %d \n", uni_splice_graph -> get_refend());
+            fprintf(stderr, "* uni_splice_graph.s: %d \n", uni_splice_graph -> get_s());
+            fprintf(stderr, "* uni_splice_graph.g_idx: %d \n", uni_splice_graph -> get_g_idx());
+            fprintf(stderr, "* uni_splice_graph.get_graphno: %d \n", uni_splice_graph -> get_graphno());
+            fprintf(stderr, "* uni_splice_graph.get_edgeno: %d \n", uni_splice_graph -> get_edgeno());
 
             // int refstart;
             // int refend;
@@ -204,17 +205,12 @@ struct UniSpliceGraphGp {
             edgenoGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()] = uni_splice_graph->get_edgeno();
 
             for (int i=0; i<uni_splice_graph->get_no2gnode()->Count(); i++) {
-               // fprintf(stderr, "&&&&& number %d: \n", uni_splice_graph->get_no2gnode()->Count());
-
-               CGraphnode* no2gnode_tw = uni_splice_graph->get_no2gnode()->Get(i);
-
-               // fprintf(stderr, "&&&&& uni_splice_graph->get_no2gnode()->Get %d: \n", uni_splice_graph->get_no2gnode()->Get(i)->nodeid);
-
                no2gnodeGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()].Add(uni_splice_graph->get_no2gnode()->Get(i));
             }
-            gpSize[uni_splice_graph->get_s()] += 1;
+            gpSize[uni_splice_graph->get_s()] = uni_splice_graph->get_g_idx()+1;
+            fprintf(stderr, "&&& uni_splice_graph->get_g_idx()+1: %d\n", uni_splice_graph->get_g_idx()+1);
+            fprintf(stderr, "&&& gpSize[uni_splice_graph->get_s()]: %d\n", gpSize[uni_splice_graph->get_s()]);
             // We need to reset graph_idx when (1)the new strands     
-         }
       }
 
       void Clear() {
@@ -252,6 +248,13 @@ struct UniSpliceGraphGp {
             }
          }
       }
+
+      int get_refstart () {
+         return refstart;
+      }
+      int get_refend () {
+         return refend;
+      }
       GVec<int>* get_graphnoGp () {
          return graphnoGp;
       }
@@ -260,6 +263,9 @@ struct UniSpliceGraphGp {
       }
       GPVec<CGraphnode>** get_no2gnodeGp () {
          return no2gnodeGp;
+      }
+      int* get_gpSize() {
+         return gpSize;
       }
 };
 
@@ -387,7 +393,7 @@ class DOTReader {
                   // fprintf(stderr, "start : %d\n", start);
                   // fprintf(stderr, "end : %d\n", end);
                   // fprintf(stderr, "cov : %d\n", cov);
-                  uni_splice_graph->AddNode(refstart, refend, start, end, node_id);
+                  uni_splice_graph->AddNode(refstart, refend, start, end, node_id, cov);
                }
                if (regex_search(token, match, edge_rgx)) {
                   // add sink

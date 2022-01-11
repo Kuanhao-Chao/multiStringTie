@@ -633,6 +633,9 @@ int create_bundle(GPVec<CBundle>& bundle,CGroup *group,GPVec<CBundlenode>& bnode
 
 	int bid=bnode.Count();
 	int bno=bundle.Count();
+
+	fprintf(stderr, "bid: %d,  bno: %d \n", bid, bno);
+
 	CBundlenode *startbnode=new CBundlenode(group->start,group->end,group->cov_sum,bid);
 
 	CBundle *newbundle=new CBundle(group->end-group->start+1,group->cov_sum,group->multi,bid,bid);
@@ -1408,7 +1411,6 @@ float get_cov_sign(int s,uint start,uint end,GVec<float>* bpcov) {
 	cov+=bpcov[1][end+1]-bpcov[1][start]-bpcov[o][end+1]+bpcov[o][start];
 	if(cov<0) cov=0;
 	return(cov);
-
 }
 
 // cummulative bpcov; simple find trims that only checks for significant sudden drops in coverage
@@ -2937,7 +2939,7 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 int create_graph(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bnode,
 		GList<CJunction>& junction,GList<CJunction>& ejunction,GVec<CGraphinfo> **bundle2graph,
 		GPVec<CGraphnode> **no2gnode,GPVec<CTransfrag> **transfrag,GIntHash<int> **gpos,BundleData* bdata,
-		int &edgeno,int &lastgpos,GArray<GEdge>& guideedge, int refend=0){
+		int &edgeno,int &lastgpos,GArray<GEdge>& guideedge, int refend){
 
 /****************
  **  KH Adding 
@@ -4310,12 +4312,14 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 		GVec<CGraphinfo> **bundle2graph,GVec<int> *graphno,GVec<int> *edgeno, GIntHash<int> **gpos,GPVec<CGraphnode> **no2gnode,
 		GPVec<CTransfrag> **transfrag,CTreePat ***tr2no,GPVec<CGroup> &group) {
 
-	/*
+	// /*
+	// nh:         number of reported alignments that contain the query in the current record.
+	// read_count: keeps count for all reads (including paired and unpaired)
 	fprintf(stderr,"get fragment for read[%d]:%d-%d-%d-%d-%f with pair[%d] and longread=%d and exons: ",n,readlist[n]->start,readlist[n]->end,int(readlist[n]->strand),readlist[n]->nh,readlist[n]->read_count,np,readlist[n]->longread);
 	for(int i=0;i<readlist[n]->segs.Count();i++) fprintf(stderr," %d-%d",readlist[n]->segs[i].start,readlist[n]->segs[i].end);
 	if(np>-1) for(int i=0;i<readlist[np]->segs.Count();i++) fprintf(stderr," %d-%d",readlist[np]->segs[i].start,readlist[np]->segs[i].end);
 	fprintf(stderr,"\n");
-	*/
+	// */
 	uint rstart=readlist[n]->start; // this only works for unpaired long reads -> I will have to take into account the pair if I want to do it for all reads
 	uint rend=readlist[n]->end;
 	if(np>-1 && readlist[np]->end>rend) rend=readlist[np]->end;
@@ -4329,6 +4333,7 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 			ngroup++;
 			int gr=readgroup[n][i]; // read is unstranded => it should belong to one group only -> not necessarily see above
 			while(merge[gr]!=gr) gr=merge[gr];
+			// proportion of negative reads assigned to group out of all positives and negatives
 			rprop[0]+=group[gr]->neg_prop;
 		}
 		for(int i=0;i<readgroup[np].Count();i++) {
@@ -14726,25 +14731,25 @@ int build_graphs(BundleData* bdata) {
 				for(int b=0;b<bundle[sno].Count();b++) {
 					fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
 					fprintf(stderr,"after traverse:\n");
+					// if(graphno[s][b]) {
+					fprintf(uinigraph_out,"strict digraph %d_%d_%d_%d {", refstart, refend, s, b);
+					// graphno[s][b]: number of nodes in graph.
 					if(graphno[s][b]) {
-						fprintf(uinigraph_out,"strict digraph %d_%d_%d_%d {", refstart, refend, s, g_idx);
-						// graphno[s][b]: number of nodes in graph.
-						if(graphno[s][b]) {
-							for(int nd=1;nd<graphno[s][b]-1;nd++)
-								fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov);
+						for(int nd=1;nd<graphno[s][b]-1;nd++)
+							fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov);
 
-							for(int nd=0;nd<graphno[s][b];nd++) {
-								// fprintf(stderr,"Node %d with parents:",i);
-								for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
-									fprintf(uinigraph_out,"%d->",nd);			
-									fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
-								}
+						for(int nd=0;nd<graphno[s][b];nd++) {
+							// fprintf(stderr,"Node %d with parents:",i);
+							for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
+								fprintf(uinigraph_out,"%d->",nd);			
+								fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
 							}
 						}
-						fprintf(uinigraph_out,"}\n");
-						g_idx += 1;
-						fprintf(stderr,"g_idx: %d\n", g_idx);
 					}
+					fprintf(uinigraph_out,"}\n");
+					g_idx += 1;
+					fprintf(stderr,"g_idx: %d\n", g_idx);
+					// }
 				}
 			}
 		}

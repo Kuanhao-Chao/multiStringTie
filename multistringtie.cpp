@@ -1,7 +1,8 @@
 //#define GFF_DEBUG 1 //debugging guides loading
 #include "rlink.h"
+#include "rlink_multi.h"
 #include "tmerge.h"
-#include "multist.h"
+// #include "multist.h"
 #ifndef NOTHREADS
 #include "GThreads.h"
 #endif
@@ -277,7 +278,7 @@ int loadPtFeatures(FILE* f, GArray<GRefPtData>& refpts);
 
 char* sprintTime();
 
-void processBundle(BundleData* bundle);
+void processBundle(BundleData* bundle, UniSpliceGraphGp* uni_splice_graphGp);
 //void processBundle1stPass(BundleData* bundle); //two-pass testing
 
 void writeUnbundledGuides(GVec<GRefData>& refdata, FILE* fout, FILE* gout=NULL);
@@ -707,7 +708,7 @@ int main(int argc, char* argv[]) {
 
 					/*****************************
 					 ** Step 1-4: check whether chromosome is changed.
-					 **      The universal splice graph should include this information.
+					 **      The universal splice graph should f this information.
 					 *****************************/
 					if (refseqName==NULL) GError("Error: cannot retrieve target seq name from BAM record!\n");
 					pos=brec->start; //BAM is 0 based, but GBamRecord makes it 1-based
@@ -835,7 +836,7 @@ int main(int argc, char* argv[]) {
 #else //no threads
 						//Num_Fragments+=bundle->num_fragments;
 						//Frag_Len+=bundle->frag_len;
-						processBundle(bundle);
+						processBundle(bundle, uni_splice_graphGp);
 #endif
 						// ncluster++; used it for debug purposes only
 					} else {
@@ -1013,7 +1014,7 @@ int main(int argc, char* argv[]) {
 			 *****************************************/
 			// fprintf(stderr, "&&&& Reference %d - %d\n", pre_refstart, pre_refend);
 			// fprintf(stderr, "################# Print graph before cleaning!!!!!\n");
-			// uni_splice_graphGp -> PrintGraphGp();
+			uni_splice_graphGp -> PrintGraphGp();
 			uni_splice_graphGp -> Clear();
 			// fprintf(stderr, "################# Print graph after cleaning!!!!!\n");
 			// uni_splice_graphGp -> PrintGraphGp();
@@ -1654,7 +1655,7 @@ void noMoreBundles() {
 #endif
 }
 
-void processBundle(BundleData* bundle) {
+void processBundle(BundleData* bundle, UniSpliceGraphGp* uni_splice_graphGp) {
 	if (verbose) {
 #ifndef NOTHREADS
 		GLockGuard<GFastMutex> lock(logMutex);
@@ -1701,7 +1702,7 @@ void processBundle(BundleData* bundle) {
 	}
 #endif
 
-	infer_transcripts(bundle);
+	infer_transcripts_multi(bundle, uni_splice_graphGp);
 
 	if (ballgown && bundle->rc_data) {
 		rc_update_exons(*(bundle->rc_data));
@@ -1795,6 +1796,8 @@ void workerThread(GThreadData& td) {
 				//Num_Fragments+=readyBundle->num_fragments;
 				//Frag_Len+=readyBundle->frag_len;
 				queueMutex.unlock();
+
+				//  I need to fix this (passing UniSpliceGraphGp* uni_splice_graphGp to here )
 				processBundle(readyBundle);
 				DBGPRINT3("---->> Thread%d processed bundle #%d, now locking back dataMutex and queueMutex\n",
 						td.thread->get_id(), readyBundle->idx);
