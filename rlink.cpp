@@ -1393,9 +1393,13 @@ float get_cov(int s,uint start,uint end,GVec<float>* bpcov) {
 	int m=int((end+1)/BSIZE);
 	int k=int(start/BSIZE);
 	float cov=0;
-	for(int i=k+1;i<=m;i++)
+	
+
+	for(int i=k+1;i<=m;i++) {
 		cov+=bpcov[s][i*BSIZE-1];
+	}
 	cov+=bpcov[s][end+1]-bpcov[s][start];
+	// fprintf(stderr, "** bpcov->Count(): %f\n", bpcov[s][0]) ;
 	if(cov<0) cov=0;
 	return(cov);
 
@@ -4315,7 +4319,7 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 	// /*
 	// nh:         number of reported alignments that contain the query in the current record.
 	// read_count: keeps count for all reads (including paired and unpaired)
-	fprintf(stderr,"get fragment for read[%d]:%d-%d-%d-%d-%f with pair[%d] and longread=%d and exons: ",n,readlist[n]->start,readlist[n]->end,int(readlist[n]->strand),readlist[n]->nh,readlist[n]->read_count,np,readlist[n]->longread);
+	// fprintf(stderr,"get fragment for read[%d]:%d-%d-%d-%d-%f with pair[%d] and longread=%d and exons: ",n,readlist[n]->start,readlist[n]->end,int(readlist[n]->strand),readlist[n]->nh,readlist[n]->read_count,np,readlist[n]->longread);
 	for(int i=0;i<readlist[n]->segs.Count();i++) fprintf(stderr," %d-%d",readlist[n]->segs[i].start,readlist[n]->segs[i].end);
 	if(np>-1) for(int i=0;i<readlist[np]->segs.Count();i++) fprintf(stderr," %d-%d",readlist[np]->segs[i].start,readlist[np]->segs[i].end);
 	fprintf(stderr,"\n");

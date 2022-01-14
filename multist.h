@@ -30,7 +30,7 @@ struct UniSpliceGraph {
       // b: all bundles on all strands: 0,1,2
    	UniSpliceGraph(int refstart_i=0, int refend_i=0, int s_is=0, int g_idx_i=0):refstart(refstart_i),refend(refend_i),s(s_is),g_idx(g_idx_i) { 
     		no2gnode = new GPVec<CGraphnode>;
-         no2gnode->setCapacity(4096);
+         no2gnode->setCapacity(8192);
          // fprintf(stderr, "no2gnode print test %d: ", no2gnode);
          CGraphnode* source=new CGraphnode(0,0,0);
          no2gnode -> Add(source);
@@ -45,7 +45,7 @@ struct UniSpliceGraph {
 
       void Clear() {
          no2gnode -> Clear();
-         no2gnode->setCapacity(4096);
+         no2gnode->setCapacity(8192);
       }
 
    
@@ -163,9 +163,9 @@ struct UniSpliceGraphGp {
          for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
             int s=sno/2; // adjusted strand due to ignoring neutral strand
             gpSize[s] = 0;
-            graphnoGp[s].setCapacity(4096);
-            edgenoGp[s].setCapacity(4096);
-            no2gnodeGp[s] = new GPVec<CGraphnode>[4096];
+            graphnoGp[s].setCapacity(8192);
+            edgenoGp[s].setCapacity(8192);
+            no2gnodeGp[s] = new GPVec<CGraphnode>[8192];
          }
       }
 
@@ -218,12 +218,12 @@ struct UniSpliceGraphGp {
          for(int i=0;i<2;i++) {
             gpSize[i] = 0;
             graphnoGp[i].Clear();
-            graphnoGp[i].setCapacity(4096);
+            graphnoGp[i].setCapacity(8192);
             edgenoGp[i].Clear();
-            edgenoGp[i].setCapacity(4096);
+            edgenoGp[i].setCapacity(8192);
             delete [] no2gnodeGp[i];
-            no2gnodeGp[i] = new GPVec<CGraphnode>[4096];
-            // no2gnodeGp[i]->setCapacity(4096);
+            no2gnodeGp[i] = new GPVec<CGraphnode>[8192];
+            // no2gnodeGp[i]->setCapacity(8192);
          };
 	   }
 

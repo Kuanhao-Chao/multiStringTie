@@ -39,10 +39,12 @@ multistringtie <in.bam ..> [-G <guide_gff>] [-l <prefix>] [-o <out.gtf>] [-p <cp
  [-v] [-a <min_anchor_len>] [-m <min_len>] [-j <min_anchor_cov>] [-f <min_iso>]\n\
  [-c <min_bundle_cov>] [-g <bdist>] [-u] [-L] [-e] [--viral] [-E <err_margin>]\n\
  [--ptf <f_tab>] [-x <seqid,..>] [-A <gene_abund.out>] [-h] {-B|-b <dir_path>}\n\
+ [--unispg <univeral_splice_graph.dot>]\n\
  [--mix] [--conservative] [--rf] [--fr]\n\
 Assemble RNA-Seq alignments into potential transcripts.\n\
 Options:\n\
  --version : print just the version at stdout and exit\n\
+ --unispg : the input universal splice graph dot file.\n\
  --conservative : conservative transcript assembly, same as -t -c 1.5 -f 0.05\n\
  --mix : both short and long read data alignments are provided\n\
         (long read alignments must be the 2nd BAM/CRAM input file)\n\
@@ -140,7 +142,7 @@ FILE* c_out=NULL;
  **  KH Adding 
  ****************/
 FILE* uinigraph_out = NULL;
-GStr uinigraphfname; 
+GStr unigraphfname; 
 /****************
  **  END KH Adding 
  ****************/
@@ -324,14 +326,6 @@ DOTInputFile dotreader;
 
 
 int main(int argc, char* argv[]) {
-	/****************
-	 **  KH Adding 
-	****************/
-	// Writing out universal DOT file.
-	// uinigraph_out = fopen(uinigraphfname.chars(), "w");
-	/****************
-	 **  END KH Adding 
-	****************/
 
 	/*******************************************
 	 *******************************************
@@ -339,31 +333,31 @@ int main(int argc, char* argv[]) {
 	 *******************************************
 	 *******************************************/
 	GArgs args(argc, argv,
-	"debug;help;version;viral;conservative;mix;ref=;cram-ref=cds=;keeptmp;rseq=;ptf=;bam;fr;rf;merge;"
+	"debug;help;version;viral;conservative;mix;unispg=;ref=;cram-ref=cds=;keeptmp;rseq=;ptf=;bam;fr;rf;merge;"
 	"exclude=zihvteuLRx:n:j:s:D:G:C:S:l:m:o:a:j:c:f:p:g:P:M:Bb:A:E:F:T:");
+
 	args.printError(USAGE, true);
 	processOptions(args);
 
 	/****************
 	 **  KH Adding 
 	****************/
-	// Writing out universal DOT file.
-	GStr universal_splice_graph_prefix = outfname.copy();		
-	if (outfname.endsWith(".gtf")) {
-		universal_splice_graph_prefix.chomp(".gtf");
-	}
-	uinigraphfname = universal_splice_graph_prefix + "_universal_splice_graph.dot";
-	if (fileExists(uinigraphfname.chars()) == 0)
-	   GError("Error: universal splice graph file (%s) is not found.\n Please run stringtie first to get the universal dot file.\n", uinigraphfname.chars());
+	// GStr universal_splice_graph_prefix = outfname.copy();		
+	// if (outfname.endsWith(".gtf")) {
+	// 	universal_splice_graph_prefix.chomp(".gtf");
+	// }
+	// unigraphfname = universal_splice_graph_prefix + "_universal_splice_graph.dot";
+	if (fileExists(unigraphfname.chars()) == 0)
+	   GError("Error: universal splice graph file (%s) is not found.\n Please run stringtie first to get the universal dot file.\n", unigraphfname.chars());
 
-	fprintf(stderr, "uinigraphfname: %s\n", uinigraphfname.chars());
-	fprintf(stderr, "outfname: %s\n", outfname.chars());
-	fprintf(stderr, "out_dir: %s\n", out_dir.chars());
-	fprintf(stderr, "tmp_path: %s\n", tmp_path.chars());
-	fprintf(stderr, "cram_ref: %s\n", cram_ref.chars());
-	fprintf(stderr, "tmpfname: %s\n", tmpfname.chars());
-	fprintf(stderr, "genefname: %s\n", genefname.chars());
-	fprintf(stderr, "traindir: %s\n", traindir.chars());
+	// fprintf(stderr, "unigraphfname: %s\n", unigraphfname.chars());
+	// fprintf(stderr, "outfname: %s\n", outfname.chars());
+	// fprintf(stderr, "out_dir: %s\n", out_dir.chars());
+	// fprintf(stderr, "tmp_path: %s\n", tmp_path.chars());
+	// fprintf(stderr, "cram_ref: %s\n", cram_ref.chars());
+	// fprintf(stderr, "tmpfname: %s\n", tmpfname.chars());
+	// fprintf(stderr, "genefname: %s\n", genefname.chars());
+	// fprintf(stderr, "traindir: %s\n", traindir.chars());
 	/****************
 	 **  END KH Adding 
 	****************/
@@ -379,9 +373,9 @@ int main(int argc, char* argv[]) {
 	GVec<int> alncounts(30); //keep track of the number of read alignments per chromosome [gseq_id]
 
 	int bamcount=bamreader.start(); //setup and open input files
-	bool dot_is_open = dotreader.start(uinigraphfname); //setup and open DOT input file
+	bool dot_is_open = dotreader.start(unigraphfname); //setup and open DOT input file
 
-	fprintf(stderr, "dot_is_open: %d", dot_is_open);
+	// fprintf(stderr, "dot_is_open: %d", dot_is_open)s;
 
 
 #ifndef GFF_DEBUG
@@ -593,13 +587,13 @@ int main(int argc, char* argv[]) {
 				 *****************************************/
 				new_uni_spg = true;
 			} 
-			fprintf(stderr, "Keep reading %d (pre: %d - %d ;  now: %d - %d)!!!\n", new_uni_spg, pre_refstart, pre_refend, drec->get_refstart(), drec->get_refend());
+			// fprintf(stderr, "Keep reading %d (pre: %d - %d ;  now: %d - %d)!!!\n", new_uni_spg, pre_refstart, pre_refend, drec->get_refstart(), drec->get_refend());
 			if (!new_uni_spg) {
 				// I need to clean the bundle
 
 			}
 		} else {
-			fprintf(stderr, "No more dot graph!!!\n");
+			// fprintf(stderr, "No more dot graph!!!\n");
 			more_graph=false;
 			new_uni_spg = true; //fake a new start (end of the last universal splice graph.)
 		}
@@ -763,13 +757,6 @@ int main(int argc, char* argv[]) {
 					more_alns=false;
 					read_in_unispg = false;//fake a new start (end of last bundle)
 				}
-
-
-
-
-
-
-
 				/*****************************
 				 ** Step 2: Condition to start processing reads in the previous bundle
 				*****************************/
@@ -961,7 +948,6 @@ int main(int argc, char* argv[]) {
 					bundle->end=currentend;
 				} //<---- new bundle started
 
-
 				/*****************************
 				** Step 3: current read extends the bundle
 				** 	this might not happen if a longer guide had already been added to the bundle
@@ -1004,10 +990,8 @@ int main(int argc, char* argv[]) {
 					//fprintf(stderr,"fragno=%d fraglen=%lu\n",bundle->num_fragments,bundle->frag_len);if(bundle->num_fragments==100) exit(0);
 					processRead(currentstart, currentend, *bundle, hashread, alndata);
 				}
-				fprintf(stderr, "**************************** Read (%d - %d) \n", brec->start, brec->end);
+				// fprintf(stderr, "**************************** Read (%d - %d) \n", brec->start, brec->end);
 			} //for each read alignment
-
-
 
 			/*****************************************
 			 ** Clean the previous UniSpliceGraphGp!!
@@ -1041,7 +1025,7 @@ int main(int argc, char* argv[]) {
 			uni_splice_graphGp -> AddGraph(drec);
 		}
 	}
-	fprintf(stderr, "Wait here. Just for checking!!!\n");
+	// fprintf(stderr, "Wait here. Just for checking!!!\n");
 
 
 
@@ -1329,6 +1313,14 @@ void processOptions(GArgs& args) {
 		 if(gfasta==NULL) GError("Genomic sequence file is required for --cds option.\n");
 		 load_cds_param(traindir,cds);
 	 }*/
+
+	//-- unispg ref sequence
+	 s=args.getOpt("unispg");
+	 if (s.is_empty())
+		GError("Error: --unispg is missing\n");
+	 if (!s.is_empty()) {
+		 unigraphfname=s;
+	 }
 
      s=args.getOpt('x');
      if (!s.is_empty()) {

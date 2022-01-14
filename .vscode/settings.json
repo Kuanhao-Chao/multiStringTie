@@ -11,6 +11,22 @@
         "list": "cpp",
         "locale": "cpp",
         "regex": "cpp",
-        "memory_resource": "cpp"
+        "memory_resource": "cpp",
+        "__bit_reference": "cpp",
+        "__hash_table": "cpp",
+        "__split_buffer": "cpp",
+        "array": "cpp",
+        "bitset": "cpp",
+        "filesystem": "cpp",
+        "initializer_list": "cpp",
+        "map": "cpp",
+        "memory": "cpp",
+        "set": "cpp",
+        "stack": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "vector": "cpp"
     }
 }
