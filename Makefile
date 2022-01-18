@@ -7,13 +7,20 @@ LIBLZMA := ${HTSLIB}/xlibs/lib/liblzma.a
 
 GDIR := ./gclib
 #--
+LD_LIBRARY_PATH := /Users/chaokuan-hao/miniconda3/lib
+PYTHONDIR := /Users/chaokuan-hao/miniconda3/include/python3.8
+NUMPYDIR := /Users/chaokuan-hao/miniconda3/lib/python3.8/site-packages/numpy/core/include
 
 INCDIRS := -I. -I${GDIR} -I${HTSLIB}
 
+PYTHONFLAGS := -I ${PYTHONDIR} -I ${NUMPYDIR} -L ${LD_LIBRARY_PATH}  -lpython3.8 -lpthread
+
 CXX   := $(if $(CXX),$(CXX),g++)
 
-BASEFLAGS := -Wall -Wextra ${INCDIRS} -fsigned-char -D_FILE_OFFSET_BITS=64 \
--D_LARGEFILE_SOURCE -std=c++11 -fno-strict-aliasing -fno-exceptions -fno-rtti
+BASEFLAGS := -Wall -Wextra ${INCDIRS} ${PYTHONFLAGS} -fsigned-char -D_FILE_OFFSET_BITS=64 \
+-D_LARGEFILE_SOURCE -std=c++11 -fno-strict-aliasing -fno-rtti
+# disable flag
+# -fno-exceptions
 #for gcc 8+ add: -Wno-class-memaccess
 GCCVER5 := $(shell expr `${CXX} -dumpversion | cut -f1 -d.` \>= 5)
 ifeq "$(GCCVER5)" "1"
@@ -144,19 +151,25 @@ endif
 OBJS := ${GDIR}/GBase.o ${GDIR}/GArgs.o ${GDIR}/GStr.o ${GDIR}/GSam.o \
  ${GDIR}/gdna.o ${GDIR}/codons.o ${GDIR}/GFastaIndex.o ${GDIR}/GFaSeqGet.o ${GDIR}/gff.o 
 
+OBJS_MULTI := ${GDIR}/GBase.o ${GDIR}/GArgs.o ${GDIR}/GStr.o ${GDIR}/GSam.o \
+ ${GDIR}/gdna.o ${GDIR}/codons.o ${GDIR}/GFastaIndex.o ${GDIR}/GFaSeqGet.o ${GDIR}/gff.o 
+
 ifneq (,$(filter %memtrace %memusage %memuse, $(MAKECMDGOALS)))
     CXXFLAGS += -DGMEMTRACE
     OBJS += ${GDIR}/proc_mem.o
+    OBJS_MULTI += ${GDIR}/proc_mem.o
 endif
 
 ifndef NOTHREADS
  OBJS += ${GDIR}/GThreads.o 
+ OBJS_MULTI += ${GDIR}/GThreads.o 
 endif
 
 %.o : %.cpp
 	${CXX} ${CXXFLAGS} -c $< -o $@
 
-OBJS += rlink.o tablemaker.o tmerge.o multist.o rlink_multi.o
+OBJS += rlink.o tablemaker.o tmerge.o
+OBJS_MULTI += rlink.o tablemaker.o tmerge.o multist.o rlink_multi.o visualization.o
 
 ############################
 ## KH ADD: compiling multistringtie
@@ -176,7 +189,8 @@ rlink.o : rlink.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
 tmerge.o : rlink.h tmerge.h
 tablemaker.o : tablemaker.h rlink.h
 multist.o : multist.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
-rlink_multi.o : rlink_multi.h
+rlink_multi.o : rlink_multi.h 
+visualization.o : visualization.h 
 
 ##${BAM}/libbam.a: 
 ##	cd ${BAM} && make lib
@@ -186,8 +200,8 @@ ${HTSLIB}/libhts.a:
 
 ############################
 ## KH ADD
-multistringtie${EXE}: ${HTSLIB}/libhts.a $(OBJS) multistringtie.o
-	${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
+multistringtie${EXE}: ${HTSLIB}/libhts.a $(OBJS_MULTI) multistringtie.o
+	${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS} ${PYTHONFLAGS}
 	@echo
 	${DBG_WARN}
 ## END of KH ADD
@@ -207,7 +221,7 @@ test demo tests: stringtie${EXE}
 ############################
 ## KH ADD
 clean:
-	${RM} stringtie${EXE} stringtie.o*  $(OBJS)
+	${RM} stringtie${EXE} stringtie.o*  $(OBJS) $(OBJS_MULTI)
 	${RM} core.*  multistringtie${EXE} multistringtie.o*
 ## END of KH ADD
 ############################

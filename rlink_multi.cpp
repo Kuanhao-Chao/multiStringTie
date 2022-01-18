@@ -3,6 +3,7 @@
 #include "GBitVec.h"
 #include <float.h>
 
+
 #define GMEMTRACE 1  //debugging memory allocation
 #ifdef GMEMTRACE
 #include "proc_mem.h"
@@ -11,6 +12,9 @@
 
 extern FILE *c_out;         // file handle for the input transcripts that are fully covered by reads
 
+extern GStr out_dir;
+extern GStr outfname;
+extern GStr plot_dir;
 extern bool trim;
 extern bool eonly;
 extern bool nomulti;
@@ -747,6 +751,7 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 	 ** 	Process nodes in the bundle.
 	 *****************************/
 	int f=0; // feature index
+	uint bundle_start=bundlenode->start;
 	uint bundle_end=bnode[bundle->lastnodeid]->end;
 	GHashMap<int, int> global2local_nodehash(false); //hash of pointers
 	global2local_nodehash.Add(0, 0);
@@ -756,9 +761,114 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 	int nd_global=1;
 
 
+	vector<vector<int> > exonIntervals;
+	vector<vector<int> > exonIntervals_unispg;
+	vector<int> lcl_tmp;
+	vector<int> unispg_tmp;
 	// This is a local single bundle node. 
-	while(bundlenode!=NULL) {
 
+	int g_global = 0;
+		// Get the first & last node of the universal splice graph
+		// fprintf(stderr,"\n  &&& uni_no2gnodeGp[%d][%d][1] start: ", s, g_global);
+		
+		// The universal graph overlaps the local graph.
+		// while (((unispg_start <= bundle_start) && (unispg_end >=bundle_start)) || ((unispg_start <= bundle_end) && (unispg_end >=bundle_end))) {
+		// 	// ----------|(s).................(e)|   or   -----|(s)-----............(e)|
+		// 	// |(s)...............------(e)|-----    or   |(s).................(e)|----------   
+
+		// }
+
+	bool overlap = false;
+	bool next_unispg = true;
+	while (!overlap && next_unispg) {		
+		// fprintf(stderr,"\n &&& Loop!! \n");
+		if(g_global < uni_gpSize[s]) {
+			// fprintf(stderr,"\n  &&& uni_graphnoGp[%d][%d]: %d \n", s, g_global, uni_graphnoGp[s][g_global]);
+			if (uni_graphnoGp[s][g_global]>=3) {
+				uint unispg_start = uni_no2gnodeGp[s][g_global][1]->start;
+				uint unispg_end = uni_no2gnodeGp[s][g_global][uni_graphnoGp[s][g_global]-2]->end;
+				// fprintf(stderr,"\n  &&& unispg_end: %d \n", unispg_end);
+				// fprintf(stderr,"\n  &&& Inside while loop \n");
+				fprintf(stderr,"\n  &&& unispg: %d - %d;  bundle: %d - %d \n", unispg_start, unispg_end, bundle_start, bundle_end);
+				if (unispg_end < bundle_start) {
+					// ----------   |(s).................(e)|
+					fprintf(stderr,"\n  &&& Bundle: ----------   |(s).................(e)| \n");
+					overlap = false;
+					next_unispg = true;
+				} else if (unispg_start < bundle_start && unispg_end >= bundle_start && unispg_end <= bundle_end) {
+					// ----------|(s).................(e)|   or   -----|(s)-----............(e)|
+					fprintf(stderr,"\n  &&& Bundle: ----------|(s).................(e)|   or   -----|(s)-----............(e)| \n");
+					overlap = true;
+					next_unispg = true;
+				} else if (unispg_start < bundle_start && unispg_end > bundle_end) {
+					// -----|(s)------------(e)|--
+					fprintf(stderr,"\n &&& Bundle: -----|(s)------------(e)|-- \n");
+					overlap = true;
+					next_unispg = true;
+				} else if (unispg_start == bundle_start && unispg_end < bundle_end) {
+					// |(s)----------.................(e)| 
+					fprintf(stderr,"\n &&& Bundle: |(s)----------............(e)|\n");
+					overlap = true;
+					next_unispg = true;
+				} else if (unispg_start > bundle_start && unispg_end < bundle_end) {
+					// |(s)........----------........(e)|
+					fprintf(stderr,"\n |(s)........----------........(e)| \n");
+					overlap = true;
+					next_unispg = true;
+				} else if (unispg_start > bundle_start && unispg_end == bundle_end) {
+					// |(s)............----------(e)|
+					fprintf(stderr,"\n &&& Bundle: |(s)............----------(e)| \n");
+					overlap = true;
+					next_unispg = true;
+				} else if (unispg_start == bundle_start && unispg_end == bundle_end) {
+					// |(s)----------(e)|
+					fprintf(stderr,"\n &&& Bundle: |(s)----------(e)| \n");
+					overlap = true;
+					next_unispg = true;
+				} else if (unispg_start <= bundle_end && unispg_end > bundle_end) {
+					// |(s)...............------(e)|-----    or   |(s).................(e)|----------   
+					fprintf(stderr,"\n &&& Bundle: (s)...............------(e)|-----    or   |(s).................(e)|---------- \n");
+					overlap = true;
+					next_unispg = true;
+				} else if (unispg_start > bundle_end) {
+					// The node is outside the current bundle => This node belongs to the next bundlenode
+					// |(s).................(e)|   ----------
+					fprintf(stderr,"\n &&& Bundle: |(s).................(e)|   ---------- \n");
+					overlap = false;
+					next_unispg = false;
+					break;
+				} else {
+					fprintf(stderr,"\n &&& Unknown area!!!! \n");
+				}
+				if (overlap) {
+					fprintf(stderr,"Overlapping \n");
+					for(int nd=1;nd<uni_graphnoGp[s][g_global]-1;nd++) {
+						unispg_tmp.clear();
+						unispg_tmp.push_back(uni_no2gnodeGp[s][g_global][nd]->start);
+						unispg_tmp.push_back(uni_no2gnodeGp[s][g_global][nd]->end);
+						exonIntervals_unispg.push_back(unispg_tmp);
+					}
+				}
+				if (next_unispg) {
+					fprintf(stderr,"Go to next universal splice graph \n");
+					g_global += 1;
+				}
+			} else {
+				g_global += 1;
+			}
+		} else {
+			break;
+		}
+	}
+// }
+
+
+
+	while(bundlenode!=NULL) {
+		lcl_tmp.clear();
+		lcl_tmp.push_back(bundlenode->start);
+		lcl_tmp.push_back(bundlenode->end);
+		exonIntervals.push_back(lcl_tmp);
 		// jhash.Add(ej, ejunction[j]);
 
 		fprintf(stderr,"process bundlenode %d-%d:%d bpcov_count=%d refstart=%d\n",bundlenode->start,bundlenode->end,s,bpcov->Count(),refstart);
@@ -770,149 +880,154 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
  **  This is the global graph
 ****************/
 // Traverse the universal graph!!
-if(g < uni_gpSize[s]) {
 
-	fprintf(stderr, "&&& s %d\n: ", s);
-	fprintf(stderr, "&&& g %d\n: ", g);
-	fprintf(stderr, "uni_refstart %d\n: ", uni_refstart);
-	fprintf(stderr, "uni_refend  %d\n: ", uni_refend);
-	fprintf(stderr, "uni_gpSize  %d\n: ", uni_gpSize[s]);
-	fprintf(stderr, "uni_graphnoGp  %d\n: ", uni_graphnoGp[s][g]);
-	fprintf(stderr, "uni_edgenoGp  %d\n: ", uni_edgenoGp[s][g]);
+// if(g < uni_gpSize[s]) {
 
-	fprintf(stderr,"nd_global: %d  Digraph %d_%d_%d_%d {", nd_global, uni_refstart, uni_refend, s, g);
-	// graphno[s][b]: number of nodes in graph.
+// 	fprintf(stderr, "&&& s %d\n: ", s);
+// 	fprintf(stderr, "&&& g %d\n: ", g);
+// 	fprintf(stderr, "uni_refstart %d\n: ", uni_refstart);
+// 	fprintf(stderr, "uni_refend  %d\n: ", uni_refend);
+// 	fprintf(stderr, "uni_gpSize  %d\n: ", uni_gpSize[s]);
+// 	fprintf(stderr, "uni_graphnoGp  %d\n: ", uni_graphnoGp[s][g]);
+// 	fprintf(stderr, "uni_edgenoGp  %d\n: ", uni_edgenoGp[s][g]);
 
-// nd is the node index for the global graph.
-	for(int nd=nd_global;nd<uni_graphnoGp[s][g]-1;nd++) {
-		// fprintf(stderr,"nd: %d[start=%d end=%d cov=%f];",nd,uni_no2gnodeGp[s][g][nd]->start,uni_no2gnodeGp[s][g][nd]->end,uni_no2gnodeGp[s][g][nd]->cov);
+// 	fprintf(stderr,"nd_global: %d  Digraph %d_%d_%d_%d {", nd_global, uni_refstart, uni_refend, s, g);
+// 	// graphno[s][b]: number of nodes in graph.
 
-		// fprintf(stderr,"\n !!checker global splice graph node [start=%d end=%d cov=%f]; \n\tlocal bundle node [start=%d end=%d cov=%f];\n\n",uni_no2gnodeGp[s][g][nd]->start,uni_no2gnodeGp[s][g][nd]->end,uni_no2gnodeGp[s][g][nd]->cov, bundlenode->start, bundlenode->end);
+// // nd is the node index for the global graph.
+// 	for(int nd=nd_global;nd<uni_graphnoGp[s][g]-1;nd++) {
+// 		// fprintf(stderr,"nd: %d[start=%d end=%d cov=%f];",nd,uni_no2gnodeGp[s][g][nd]->start,uni_no2gnodeGp[s][g][nd]->end,uni_no2gnodeGp[s][g][nd]->cov);
 
-// The node belongs to the current bundlenode
-// bundlenode size >= global node size
-		bool additional_node = false;
-		bool global_local_overlap = false;
-		if ((uni_no2gnodeGp[s][g][nd]->end < bundlenode->start)) {
-			additional_node = true;
-			// ----------   |(s).................(e)|
-			fprintf(stderr,"\n ----------   |(s).................(e)| \n");
-			// continue;
-			nd_global = nd+1;
-		} else if (uni_no2gnodeGp[s][g][nd]->start < bundlenode->start && uni_no2gnodeGp[s][g][nd]->end >= bundlenode->start && uni_no2gnodeGp[s][g][nd]->end <= bundlenode->end) {
-			additional_node = true;
-			global_local_overlap = true;
-			// ----------|(s).................(e)|   or   -----|(s)-----............(e)|
-			fprintf(stderr,"\n ----------|(s).................(e)|   or   -----|(s)-----............(e)| \n");
-			nd_global = nd+1;
-		} else if (uni_no2gnodeGp[s][g][nd]->start < bundlenode->start && uni_no2gnodeGp[s][g][nd]->end > bundlenode->end) {
-			additional_node = true;
-			global_local_overlap = true;
-			// -----|(s)------------(e)|--
-			fprintf(stderr,"\n -----|(s)------------(e)|-- \n");
-			nd_global = nd+1;
-		} else if (uni_no2gnodeGp[s][g][nd]->start == bundlenode->start && uni_no2gnodeGp[s][g][nd]->end < bundlenode->end) {
-			additional_node = true;
-			global_local_overlap = true;
-			// |(s)----------.................(e)| 
-			fprintf(stderr,"\n |(s)----------............(e)|\n");
-			nd_global = nd+1;
-		} else if (uni_no2gnodeGp[s][g][nd]->start > bundlenode->start && uni_no2gnodeGp[s][g][nd]->end < bundlenode->end) {
-			additional_node = true;
-			global_local_overlap = true;
-			// |(s)........----------........(e)|
-			fprintf(stderr,"\n |(s)........----------........(e)| \n");
-			nd_global = nd+1;
-		} else if (uni_no2gnodeGp[s][g][nd]->start > bundlenode->start && uni_no2gnodeGp[s][g][nd]->end == bundlenode->end) {
-			additional_node = true;
-			global_local_overlap = true;
-			// |(s)............----------(e)|
-			fprintf(stderr,"\n |(s)............----------(e)| \n");
-			nd_global = nd+1;
-		} else if (uni_no2gnodeGp[s][g][nd]->start == bundlenode->start && uni_no2gnodeGp[s][g][nd]->end == bundlenode->end) {
-			additional_node = true;
-			global_local_overlap = true;
-			// |(s)----------(e)|
-			fprintf(stderr,"\n |(s)----------(e)| \n");
-			nd_global = nd+1;
-		} else if (uni_no2gnodeGp[s][g][nd]->start <= bundlenode->end && uni_no2gnodeGp[s][g][nd]->end > bundlenode->end) {
-			additional_node = true;
-			global_local_overlap = true;
-			// |(s)...............------(e)|-----    or   |(s).................(e)|----------   
-			fprintf(stderr,"\n |(s)...............------(e)|-----    or   |(s).................(e)|---------- \n");
-			nd_global = nd+1;
-		} else if (uni_no2gnodeGp[s][g][nd]->start > bundlenode->end) {
-			// The node is outside the current bundle => This node belongs to the next bundlenode
-			// |(s).................(e)|   ----------
-			fprintf(stderr,"\n |(s).................(e)|   ---------- \n");
-			// I should create another bundle node!!!
-			// bundlenode=bundlenode->nextnode; // advance to next bundlenode
-			break;
-		}
-		if (additional_node) {
-			CGraphnode *graphnode=create_graphnode_multi_cov(s,g,uni_no2gnodeGp[s][g][nd]->start,uni_no2gnodeGp[s][g][nd]->end,graphno,uni_no2gnodeGp[s][g][nd]->cov+1,bundlenode,bundle2graph,no2gnode); // creates a $graphno graphnode  with start at bundle start, and end at bundle end
-			fprintf(stderr, "\nAdding !!! ^^^ global: %d, local: %d.  \n", nd, graphno);
-			global2local_nodehash.Add(nd, graphno);
-			// I need to create a mapping from old node id to new node id!!!
-			// Adding edges here
-			for(int p=0;p<uni_no2gnodeGp[s][g][nd]->parent.Count();p++) {
-				fprintf(stderr,"%d->%d;", uni_no2gnodeGp[s][g][nd]->parent[p], nd);
-				const int* local_node_idx=global2local_nodehash[uni_no2gnodeGp[s][g][nd]->parent[p]];
-				if (local_node_idx) {
-					fprintf(stderr, "\nRetrieving!! ^^^ global: %d, local: %d.  \n", uni_no2gnodeGp[s][g][nd]->parent[p], *local_node_idx);
-					// int local_node_idx = global2local_nodehash[uni_no2gnodeGp[s][g][nd]->parent[p]];
-					// In a matched graph, now I need to add edges.
-					// CGraphnode *node_p=no2gnode[s][g][uni_no2gnodeGp[s][g][nd]->parent[p]];
+// 		fprintf(stderr,"\n !!checker global splice graph node [start=%d end=%d cov=%f]; \n\tlocal bundle node [start=%d end=%d cov=%f];\n\n",uni_no2gnodeGp[s][g][nd]->start,uni_no2gnodeGp[s][g][nd]->end,uni_no2gnodeGp[s][g][nd]->cov, bundlenode->start, bundlenode->end);
+
+// // The node belongs to the current bundlenode
+// // bundlenode size >= global node size
+// 		bool additional_node = false;
+// 		bool global_local_overlap = false;
+// 		if ((uni_no2gnodeGp[s][g][nd]->end < bundlenode->start)) {
+// 			additional_node = true;
+// 			// ----------   |(s).................(e)|
+// 			fprintf(stderr,"\n  &&& Bundle: ----------   |(s).................(e)| \n");
+// 			// continue;
+// 			nd_global = nd+1;
+// 		} else if (uni_no2gnodeGp[s][g][nd]->start < bundlenode->start && uni_no2gnodeGp[s][g][nd]->end >= bundlenode->start && uni_no2gnodeGp[s][g][nd]->end <= bundlenode->end) {
+// 			additional_node = true;
+// 			global_local_overlap = true;
+// 			// ----------|(s).................(e)|   or   -----|(s)-----............(e)|
+// 			fprintf(stderr,"\n  &&& Bundle: ----------|(s).................(e)|   or   -----|(s)-----............(e)| \n");
+// 			nd_global = nd+1;
+// 		} else if (uni_no2gnodeGp[s][g][nd]->start < bundlenode->start && uni_no2gnodeGp[s][g][nd]->end > bundlenode->end) {
+// 			additional_node = true;
+// 			global_local_overlap = true;
+// 			// -----|(s)------------(e)|--
+// 			fprintf(stderr,"\n &&& Bundle: -----|(s)------------(e)|-- \n");
+// 			nd_global = nd+1;
+// 		} else if (uni_no2gnodeGp[s][g][nd]->start == bundlenode->start && uni_no2gnodeGp[s][g][nd]->end < bundlenode->end) {
+// 			additional_node = true;
+// 			global_local_overlap = true;
+// 			// |(s)----------.................(e)| 
+// 			fprintf(stderr,"\n &&& Bundle: |(s)----------............(e)|\n");
+// 			nd_global = nd+1;
+// 		} else if (uni_no2gnodeGp[s][g][nd]->start > bundlenode->start && uni_no2gnodeGp[s][g][nd]->end < bundlenode->end) {
+// 			additional_node = true;
+// 			global_local_overlap = true;
+// 			// |(s)........----------........(e)|
+// 			fprintf(stderr,"\n |(s)........----------........(e)| \n");
+// 			nd_global = nd+1;
+// 		} else if (uni_no2gnodeGp[s][g][nd]->start > bundlenode->start && uni_no2gnodeGp[s][g][nd]->end == bundlenode->end) {
+// 			additional_node = true;
+// 			global_local_overlap = true;
+// 			// |(s)............----------(e)|
+// 			fprintf(stderr,"\n &&& Bundle: |(s)............----------(e)| \n");
+// 			nd_global = nd+1;
+// 		} else if (uni_no2gnodeGp[s][g][nd]->start == bundlenode->start && uni_no2gnodeGp[s][g][nd]->end == bundlenode->end) {
+// 			additional_node = true;
+// 			global_local_overlap = true;
+// 			// |(s)----------(e)|
+// 			fprintf(stderr,"\n &&& Bundle: |(s)----------(e)| \n");
+// 			nd_global = nd+1;
+// 		} else if (uni_no2gnodeGp[s][g][nd]->start <= bundlenode->end && uni_no2gnodeGp[s][g][nd]->end > bundlenode->end) {
+// 			additional_node = true;
+// 			global_local_overlap = true;
+// 			// |(s)...............------(e)|-----    or   |(s).................(e)|----------   
+// 			fprintf(stderr,"\n &&& Bundle: (s)...............------(e)|-----    or   |(s).................(e)|---------- \n");
+// 			nd_global = nd+1;
+// 		} else if (uni_no2gnodeGp[s][g][nd]->start > bundlenode->end) {
+// 			// The node is outside the current bundle => This node belongs to the next bundlenode
+// 			// |(s).................(e)|   ----------
+// 			fprintf(stderr,"\n &&& Bundle: |(s).................(e)|   ---------- \n");
+// 			// I should create another bundle node!!!
+// 			// bundlenode=bundlenode->nextnode; // advance to next bundlenode
+// 			break;
+// 		}
+// 		if (additional_node) {
+// 			unispg_tmp.clear();
+// 			unispg_tmp.push_back(uni_no2gnodeGp[s][g][nd]->start);
+// 			unispg_tmp.push_back(uni_no2gnodeGp[s][g][nd]->end);
+// 			exonIntervals_unispg.push_back(unispg_tmp);
+// 		// 	CGraphnode *graphnode=create_graphnode_multi_cov(s,g,uni_no2gnodeGp[s][g][nd]->start,uni_no2gnodeGp[s][g][nd]->end,graphno,uni_no2gnodeGp[s][g][nd]->cov+1,bundlenode,bundle2graph,no2gnode); // creates a $graphno graphnode  with start at bundle start, and end at bundle end
+// 		// 	fprintf(stderr, "\nAdding !!! ^^^ global: %d, local: %d.  \n", nd, graphno);
+// 		// 	global2local_nodehash.Add(nd, graphno);
+// 		// 	// I need to create a mapping from old node id to new node id!!!
+// 		// 	// Adding edges here
+// 		// 	for(int p=0;p<uni_no2gnodeGp[s][g][nd]->parent.Count();p++) {
+// 		// 		fprintf(stderr,"%d->%d;", uni_no2gnodeGp[s][g][nd]->parent[p], nd);
+// 		// 		const int* local_node_idx=global2local_nodehash[uni_no2gnodeGp[s][g][nd]->parent[p]];
+// 		// 		if (local_node_idx) {
+// 		// 			fprintf(stderr, "\nRetrieving!! ^^^ global: %d, local: %d.  \n", uni_no2gnodeGp[s][g][nd]->parent[p], *local_node_idx);
+// 		// 			// int local_node_idx = global2local_nodehash[uni_no2gnodeGp[s][g][nd]->parent[p]];
+// 		// 			// In a matched graph, now I need to add edges.
+// 		// 			// CGraphnode *node_p=no2gnode[s][g][uni_no2gnodeGp[s][g][nd]->parent[p]];
 
 
 
-					graphnode -> parent.Add(uni_no2gnodeGp[s][g][nd]->parent[p]);
+// 		// 			graphnode -> parent.Add(uni_no2gnodeGp[s][g][nd]->parent[p]);
 
-					CGraphnode *node_p=no2gnode[s][g][uni_no2gnodeGp[s][g][nd]->parent[p]];
-					node_p -> child.Add(graphnode->nodeid);
+// 		// 			CGraphnode *node_p=no2gnode[s][g][uni_no2gnodeGp[s][g][nd]->parent[p]];
+// 		// 			node_p -> child.Add(graphnode->nodeid);
 
-					// COUNT EDGE HERE
-					edgeno++;
-					// fprintf(stderr,"1 Edge %d-%d, edgeno=%d\n",node_p->nodeid,graphnode->nodeid,edgeno);
-				}
-			}
-			graphno++;
+// 		// 			// COUNT EDGE HERE
+// 		// 			edgeno++;
+// 		// 			// fprintf(stderr,"1 Edge %d-%d, edgeno=%d\n",node_p->nodeid,graphnode->nodeid,edgeno);
+// 		// 		}
+// 		// 	}
+// 		// 	graphno++;
 
-			// This is the sink of the universal splice graph.
-			// CGraphnode *unispg_sink = uni_no2gnodeGp[s][g][uni_graphnoGp[s][g]-1];
+// 		// 	// This is the sink of the universal splice graph.
+// 		// 	// CGraphnode *unispg_sink = uni_no2gnodeGp[s][g][uni_graphnoGp[s][g]-1];
 			
-			for(int c=0;c<uni_no2gnodeGp[s][g][nd]->child.Count();c++) {
-				if (uni_no2gnodeGp[s][g][nd]->child[c] == uni_graphnoGp[s][g]-1) {
-					fprintf(stderr, "This node connect to the sink!!!\n");
-					// graphnode -> child.Add(sink->nodeid);
-					sink->parent.Add(graphnode->nodeid);
-					edgeno++;
-				}
+// 		// 	for(int c=0;c<uni_no2gnodeGp[s][g][nd]->child.Count();c++) {
+// 		// 		if (uni_no2gnodeGp[s][g][nd]->child[c] == uni_graphnoGp[s][g]-1) {
+// 		// 			fprintf(stderr, "This node connect to the sink!!!\n");
+// 		// 			// graphnode -> child.Add(sink->nodeid);
+// 		// 			sink->parent.Add(graphnode->nodeid);
+// 		// 			edgeno++;
+// 		// 		}
 
-			}
-		}  // end of => if (additional_node) {	
-	}
-
-
+// 		// 	}
+// 		}  // end of => if (additional_node) {	
+// 	}
 
 
-	// for(int nd=0;nd<uni_graphnoGp[s][g];nd++) {
-	// 	// fprintf(stderr,"Node %d with parents:",i);
-	// 	for(int c=0;c<uni_no2gnodeGp[s][g][nd]->child.Count();c++) {
-	// 		fprintf(stderr,"%d->",nd);			
-	// 		fprintf(stderr,"%d;",uni_no2gnodeGp[s][g][nd]->child[c]);
-	// 	}
-	// }
 
-	// 	for(int nd=0;nd<uni_graphnoGp[s][g];nd++) {
-	// 		// fprintf(stderr,"Node %d with parents:",i);
-	// 		for(int c=0;c<uni_no2gnodeGp[s][g][nd]->child.Count();c++) {
-	// 			fprintf(stderr,"%d->",nd);			
-	// 			fprintf(stderr,"%d;",uni_no2gnodeGp[s][g][nd]->child[c]);
-	// 		}
-	// 	}
-	fprintf(stderr,"}\n");
-}
+
+// 	// for(int nd=0;nd<uni_graphnoGp[s][g];nd++) {
+// 	// 	// fprintf(stderr,"Node %d with parents:",i);
+// 	// 	for(int c=0;c<uni_no2gnodeGp[s][g][nd]->child.Count();c++) {
+// 	// 		fprintf(stderr,"%d->",nd);			
+// 	// 		fprintf(stderr,"%d;",uni_no2gnodeGp[s][g][nd]->child[c]);
+// 	// 	}
+// 	// }
+
+// 	// 	for(int nd=0;nd<uni_graphnoGp[s][g];nd++) {
+// 	// 		// fprintf(stderr,"Node %d with parents:",i);
+// 	// 		for(int c=0;c<uni_no2gnodeGp[s][g][nd]->child.Count();c++) {
+// 	// 			fprintf(stderr,"%d->",nd);			
+// 	// 			fprintf(stderr,"%d;",uni_no2gnodeGp[s][g][nd]->child[c]);
+// 	// 		}
+// 	// 	}
+// 	fprintf(stderr,"}\n");
+// }
 
 // /****************
 //  **  This is the global graph (End)
@@ -1354,6 +1469,36 @@ if(g < uni_gpSize[s]) {
 
 	    bundlenode=bundlenode->nextnode; // advance to next bundle
 	} // end while(bundlenode!=NULL)
+
+
+	if (!exonIntervals.empty() && !exonIntervals_unispg.empty()) {
+	// if (!exonIntervals.empty()) {
+		for (int i = 0; i < exonIntervals.size(); i++) {
+			fprintf(stderr, "exonIntervals[%d][%d]: %d\n", i, 0,exonIntervals[i][0]);
+			fprintf(stderr, "exonIntervals[%d][%d]: %d\n", i, 1,exonIntervals[i][1]);
+			float span = static_cast<float>(exonIntervals[i][1] - exonIntervals[i][0]);
+			fprintf(stderr, "span: %f\n", span);
+		}
+		if (exonIntervals_unispg.empty()) {
+			// draw(exonIntervals, exonIntervals, "./plot_"+to_string(uni_refstart)+"_"+to_string(uni_refend)+"_"+to_string(s)+"_"+to_string(g)+".png");
+		} else {
+			for (int i = 0; i < exonIntervals_unispg.size(); i++) {
+				fprintf(stderr, "exonIntervals_unispg[%d][%d]: %d\n", i, 0,exonIntervals_unispg[i][0]);
+				fprintf(stderr, "exonIntervals_unispg[%d][%d]: %d\n", i, 1,exonIntervals_unispg[i][1]);
+				float span = static_cast<float>(exonIntervals_unispg[i][1] - exonIntervals_unispg[i][0]);
+				fprintf(stderr, "span: %f\n", span);
+			}
+
+			if (exonIntervals.size() >= 4 && exonIntervals_unispg.size() >= 4) {
+
+				fprintf(stderr, "plot_dir: %s\n", plot_dir.chars());
+				
+
+				draw(exonIntervals, exonIntervals_unispg, string(plot_dir.chars())+"/plot_"+to_string(uni_refstart)+"_"+to_string(uni_refend)+"_"+to_string(s)+"_"+to_string(g)+".png");
+			}
+		}	
+	}
+    
 
 
 // Traverse the graph
@@ -3178,6 +3323,7 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
     				}
     			}
     		}
+			fprintf(stderr,"\n");
     	}
     	// */
 /*

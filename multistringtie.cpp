@@ -2,16 +2,16 @@
 #include "rlink.h"
 #include "rlink_multi.h"
 #include "tmerge.h"
-// #include "multist.h"
+#include <vector>
+#include "multist.h"
 #ifndef NOTHREADS
 #include "GThreads.h"
 #endif
 
-// Let's test single thread first!!
+// Let's test single thread first!! 
 #define NOTHREADS
 
 //#define GMEMTRACE 1 
-
 #ifdef GMEMTRACE
 #include "proc_mem.h"
 #endif
@@ -33,6 +33,7 @@
 #define DBGPRINT4(a,b,c,d)
 #define DBGPRINT5(a,b,c,d,e)
 #endif
+
 
 #define USAGE "StringTie v" VERSION " usage:\n\n\
 multistringtie <in.bam ..> [-G <guide_gff>] [-l <prefix>] [-o <out.gtf>] [-p <cpus>]\n\
@@ -143,6 +144,7 @@ FILE* c_out=NULL;
  ****************/
 FILE* uinigraph_out = NULL;
 GStr unigraphfname; 
+GStr plot_dir;
 /****************
  **  END KH Adding 
  ****************/
@@ -327,6 +329,56 @@ DOTInputFile dotreader;
 
 int main(int argc, char* argv[]) {
 
+
+
+	// vector<vector<int> > exonIntervals;
+	// vector<vector<int> > exonIntervals_unispg;
+	// vector<int> test1;
+	// // [97543299,97544702], [97547885,97549026], [97564044,97565188]
+	// test1.push_back(543299);
+	// test1.push_back(544702);
+	// exonIntervals.push_back(test1);
+
+	// vector<int> test2;
+	// test2.push_back(547885);
+	// test2.push_back(549026);
+	// exonIntervals.push_back(test2);
+
+	// vector<int> test3; 
+	// test3.push_back(550885);
+	// test3.push_back(550926);
+	// exonIntervals.push_back(test3);
+
+	// vector<int> test4; 
+	// test4.push_back(550985);
+	// test4.push_back(551026);
+	// // exonIntervals.push_back(test4);
+
+	// vector<int> test5; 
+	// test5.push_back(551985);
+	// test5.push_back(552026);
+	// // exonIntervals.push_back(test5);
+
+	// exonIntervals_unispg.push_back(test4);
+	// exonIntervals_unispg.push_back(test5);
+
+	// for (int i = 0; i < exonIntervals.size(); i++) {
+	// 	for (int j = 0; j < exonIntervals[i].size(); j++) {
+	// 		fprintf(stderr, "exonIntervals[i][j]: %d\n", exonIntervals[i][j]);
+	// 	} 
+	// }
+	// // GeneImage* geneImage;
+    // // geneImage = new GeneImage(exonIntervals, exonIntervals_unispg, test1, test1, test1);
+    // // GeneImage geneImage(1);
+	// for (int i = 0; i < 10; i++) {
+	// 	draw(exonIntervals, exonIntervals_unispg, "./basic_"+to_string(i)+".png");
+	// }
+
+
+
+
+
+
 	/*******************************************
 	 *******************************************
 	 ** Process arguments.
@@ -342,6 +394,17 @@ int main(int argc, char* argv[]) {
 	/****************
 	 **  KH Adding 
 	****************/
+	plot_dir = outfname.copy();		
+	if (outfname.endsWith(".gtf")) {
+		plot_dir.chomp(".gtf");
+	}
+	if (fileExists(plot_dir.chars())==0) {
+		//directory does not exist, create it
+		if (Gmkdir(plot_dir.chars()) && !fileExists(plot_dir.chars())) {
+			GError("Error: cannot create directory %s!\n", plot_dir.chars());
+		}
+	}
+
 	// GStr universal_splice_graph_prefix = outfname.copy();		
 	// if (outfname.endsWith(".gtf")) {
 	// 	universal_splice_graph_prefix.chomp(".gtf");
@@ -349,15 +412,15 @@ int main(int argc, char* argv[]) {
 	// unigraphfname = universal_splice_graph_prefix + "_universal_splice_graph.dot";
 	if (fileExists(unigraphfname.chars()) == 0)
 	   GError("Error: universal splice graph file (%s) is not found.\n Please run stringtie first to get the universal dot file.\n", unigraphfname.chars());
-
-	// fprintf(stderr, "unigraphfname: %s\n", unigraphfname.chars());
-	// fprintf(stderr, "outfname: %s\n", outfname.chars());
-	// fprintf(stderr, "out_dir: %s\n", out_dir.chars());
-	// fprintf(stderr, "tmp_path: %s\n", tmp_path.chars());
-	// fprintf(stderr, "cram_ref: %s\n", cram_ref.chars());
-	// fprintf(stderr, "tmpfname: %s\n", tmpfname.chars());
-	// fprintf(stderr, "genefname: %s\n", genefname.chars());
-	// fprintf(stderr, "traindir: %s\n", traindir.chars());
+	fprintf(stderr, "unigraphfname: %s\n", unigraphfname.chars());
+	fprintf(stderr, "plot_dir: %s\n", plot_dir.chars());
+	fprintf(stderr, "outfname: %s\n", outfname.chars());
+	fprintf(stderr, "out_dir: %s\n", out_dir.chars());
+	fprintf(stderr, "tmp_path: %s\n", tmp_path.chars());
+	fprintf(stderr, "cram_ref: %s\n", cram_ref.chars());
+	fprintf(stderr, "tmpfname: %s\n", tmpfname.chars());
+	fprintf(stderr, "genefname: %s\n", genefname.chars());
+	fprintf(stderr, "traindir: %s\n", traindir.chars());
 	/****************
 	 **  END KH Adding 
 	****************/
@@ -578,30 +641,42 @@ int main(int argc, char* argv[]) {
 	 *******************************************
 	 *******************************************/
 	while(more_graph) {
-		bool new_uni_spg = false;
+		bool new_uni_spg_gp = false;
 		// bam-related parameter initialization.
 		if ((drec=dotreader.next())!=NULL) {
 			if (pre_refstart != drec->get_refstart() && pre_refend != drec->get_refend()) {
 				/*****************************************
-				 ** It is a new bundle.
+				 ** It is a new universal splice graph group.
 				 *****************************************/
-				new_uni_spg = true;
+				new_uni_spg_gp = true;
 			} 
-			// fprintf(stderr, "Keep reading %d (pre: %d - %d ;  now: %d - %d)!!!\n", new_uni_spg, pre_refstart, pre_refend, drec->get_refstart(), drec->get_refend());
-			if (!new_uni_spg) {
-				// I need to clean the bundle
+			// fprintf(stderr, "Keep reading %d (pre: %d - %d ;  now: %d - %d)!!!\n", new_uni_spg_gp, pre_refstart, pre_refend, drec->get_refstart(), drec->get_refend());
 
-			}
+
+			int uni_refstart = drec->get_refstart();
+			int uni_refend = drec->get_refend();
+			int uni_s = drec->get_s();
+			int uni_g = drec->get_g_idx();
+			int uni_graphno = drec->get_graphno();
+			int uni_edgeno = drec->get_edgeno();
+			GPVec<CGraphnode>* uni_no2gnode = drec->get_no2gnode(); 
+
+			// for (int i = 1; i < uni_graphno-1; i++) {
+			// 	fprintf(stderr, "uni_no2gnode[s][g][i]: %d  start: %d   end: %d \n", uni_no2gnode[0][i]->nodeid, uni_no2gnode[0][i]->start, uni_no2gnode[0][i]->end);
+			// }
+
+
 		} else {
 			// fprintf(stderr, "No more dot graph!!!\n");
 			more_graph=false;
-			new_uni_spg = true; //fake a new start (end of the last universal splice graph.)
+			new_uni_spg_gp = true; //fake a new start (end of the last universal splice graph.)
 		}
 
 
-		if (new_uni_spg) {
+
+		if (new_uni_spg_gp) {
 			/*****************************************
-			 ** Process the previous UniSpliceGraphGp!!
+			 ** Process the previous UniSpliceGraphGp!! With the same start & end
 			 *****************************************/
 			uni_splice_graphGp -> SetRefStartEnd(pre_refstart, pre_refend);
 
@@ -627,22 +702,39 @@ int main(int argc, char* argv[]) {
 				 *****************************/
 				// fprintf(stderr, "Process read (pre: %d - %d ;  now: %d - %d)!!!\n", pre_refstart, pre_refend, brec->start, brec->end);
 				if ((brec=bamreader.next())!=NULL) {
+
 					/*****************************
-					 ** Step 1-1: Check whether reads are in the range of the graph.
+					 ** Step 1-1: Removing invalid alignment
+					 *****************************/
+					if (brec->isUnmapped()) continue;
+					if (brec->start<1 || brec->mapped_len<10) {
+						if (verbose) GMessage("Warning: invalid mapping found for read %s (position=%d, mapped length=%d)\n",
+								brec->name(), brec->start, brec->mapped_len);
+						continue;
+					}
+#ifdef DBG_ALN_DATA
+					dbg_waln(brec);
+#endif
+					/*****************************
+					 ** Step 1-2: Check whether reads are in the range of the graph.
 					 *****************************/
 					// fprintf(stderr, "Process read (pre: %d - %d ;  now: %d - %d)!!!\n", pre_refstart, pre_refend, brec->start, brec->end);
 					if (brec->end < pre_refstart) {
 						// ----------   |(s).................(e)|
 						// The read is outside the current bundle => skipped!
+						fprintf(stderr, "** Bundle: ----------   |(s).................(e)|\n");
 						continue;
 					}
 					if (brec->start < pre_refstart && brec->end >= pre_refstart) {
 						// ----------|(s).................(e)|   or   -----|(s)-----............(e)|
+						fprintf(stderr, "** Bundle: ----------|(s).................(e)|   or   -----|(s)-----............(e)|\n");
 					} else if (brec->start >= pre_refstart && brec->end <= pre_refend) {
 						// |(s)----------.................(e)|   or   |(s)....----------........(e)|
+						fprintf(stderr, "** Bundle: |(s)----------.................(e)|   or   |(s)....----------........(e)|   or   |(s).........----------(e)|\n");
 					} else if (brec->start <= pre_refend && brec->end > pre_refend) {
 						// |(s)...............------(e)|-----    or   |(s).................(e)|----------   
 						// The overlapping with the current processing bundle.
+						fprintf(stderr, "** Bundle: |(s)...............------(e)|-----    or   |(s).................(e)|----------\n");
 						int overlap_current = 0;
 						overlap_current = pre_refend - brec->start + 1;
 						int overlap_next = 0;
@@ -655,21 +747,13 @@ int main(int argc, char* argv[]) {
 							read_in_unispg = false;
 						}
 					} else {
+						fprintf(stderr, "** Bundle: |(s).................(e)|   ----------\n");
 						read_in_unispg = false;
 					}
 					
-					/*****************************
-					 ** Step 1-2: Removing invalid alignment
-					 *****************************/
-					if (brec->isUnmapped()) continue;
-					if (brec->start<1 || brec->mapped_len<10) {
-						if (verbose) GMessage("Warning: invalid mapping found for read %s (position=%d, mapped length=%d)\n",
-								brec->name(), brec->start, brec->mapped_len);
-						continue;
-					}
-#ifdef DBG_ALN_DATA
-					dbg_waln(brec);
-#endif
+
+
+
 					refseqName=brec->refName();
 					xstrand=brec->spliceStrand(); // tagged strand gets priority
 					/*****************************
@@ -691,6 +775,9 @@ int main(int argc, char* argv[]) {
 							else xstrand='-';
 						}
 					}
+
+
+
 
 					/*
 					if (xstrand=='.' && brec->exons.Count()>1) {
@@ -766,6 +853,17 @@ int main(int argc, char* argv[]) {
 					 **           (2) If there are no reads in the bundle: clear the bundle.
 					 *****************************/
 					hashread.Clear();
+
+
+
+
+
+
+
+
+/*****************************
+ ** Now I need to assign read to each graph. Based on strand & unispg graphnode start & end.
+ *****************************/
 					if (bundle->readlist.Count()>0) { // process reads in previous bundle
 						// There are alignments to process
 						// (readthr, junctionthr, mintranscriptlen are globals)
@@ -786,9 +884,6 @@ int main(int argc, char* argv[]) {
 							}
 							bundle->gseq=faseq->copyRange(bundle->start, bundle->end, false, true);
 						}
-						/*****************************
-						 ** Step 2-2: Process bundle
-						*****************************/
 #ifndef NOTHREADS
 						//push this in the bundle queue where it'll be picked up by the threads
 						DBGPRINT2("##> Locking queueMutex to push loaded bundle into the queue (bundle.start=%d)\n", bundle->start);
@@ -998,14 +1093,15 @@ int main(int argc, char* argv[]) {
 			 *****************************************/
 			// fprintf(stderr, "&&&& Reference %d - %d\n", pre_refstart, pre_refend);
 			// fprintf(stderr, "################# Print graph before cleaning!!!!!\n");
-			uni_splice_graphGp -> PrintGraphGp();
+			// uni_splice_graphGp -> PrintGraphGp();
 			uni_splice_graphGp -> Clear();
 			// fprintf(stderr, "################# Print graph after cleaning!!!!!\n");
 			// uni_splice_graphGp -> PrintGraphGp();
 
-			fprintf(stderr, "*********************************************************\n");
-			fprintf(stderr, "******* This is a new uni-splice_graph ******************\n");
-			fprintf(stderr, "*********************************************************\n");
+			fprintf(stderr, "\n");
+			fprintf(stderr, "***************************************************************\n");
+			fprintf(stderr, "******* This is a new uni-splice_graph group ******************\n");
+			fprintf(stderr, "***************************************************************\n");
 			if (drec!=NULL) {
 				pre_refstart = drec->get_refstart();
 				pre_refend = drec->get_refend();

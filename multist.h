@@ -186,12 +186,12 @@ struct UniSpliceGraphGp {
       }
 
       void AddGraph(UniSpliceGraph* uni_splice_graph) {
-            fprintf(stderr, "* uni_splice_graph.refstart: %d \n", uni_splice_graph -> get_refstart());
-            fprintf(stderr, "* uni_splice_graph.refend: %d \n", uni_splice_graph -> get_refend());
-            fprintf(stderr, "* uni_splice_graph.s: %d \n", uni_splice_graph -> get_s());
-            fprintf(stderr, "* uni_splice_graph.g_idx: %d \n", uni_splice_graph -> get_g_idx());
-            fprintf(stderr, "* uni_splice_graph.get_graphno: %d \n", uni_splice_graph -> get_graphno());
-            fprintf(stderr, "* uni_splice_graph.get_edgeno: %d \n", uni_splice_graph -> get_edgeno());
+            // fprintf(stderr, "* uni_splice_graph.refstart: %d \n", uni_splice_graph -> get_refstart());
+            // fprintf(stderr, "* uni_splice_graph.refend: %d \n", uni_splice_graph -> get_refend());
+            // fprintf(stderr, "* uni_splice_graph.s: %d \n", uni_splice_graph -> get_s());
+            // fprintf(stderr, "* uni_splice_graph.g_idx: %d \n", uni_splice_graph -> get_g_idx());
+            // fprintf(stderr, "* uni_splice_graph.get_graphno: %d \n", uni_splice_graph -> get_graphno());
+            // fprintf(stderr, "* uni_splice_graph.get_edgeno: %d \n", uni_splice_graph -> get_edgeno());
 
             // int refstart;
             // int refend;
@@ -208,8 +208,8 @@ struct UniSpliceGraphGp {
                no2gnodeGp[uni_splice_graph->get_s()][uni_splice_graph->get_g_idx()].Add(uni_splice_graph->get_no2gnode()->Get(i));
             }
             gpSize[uni_splice_graph->get_s()] = uni_splice_graph->get_g_idx()+1;
-            fprintf(stderr, "&&& uni_splice_graph->get_g_idx()+1: %d\n", uni_splice_graph->get_g_idx()+1);
-            fprintf(stderr, "&&& gpSize[uni_splice_graph->get_s()]: %d\n", gpSize[uni_splice_graph->get_s()]);
+            // fprintf(stderr, "&&& uni_splice_graph->get_g_idx()+1: %d\n", uni_splice_graph->get_g_idx()+1);
+            // fprintf(stderr, "&&& gpSize[uni_splice_graph->get_s()]: %d\n", gpSize[uni_splice_graph->get_s()]);
             // We need to reset graph_idx when (1)the new strands     
       }
 
@@ -235,15 +235,15 @@ struct UniSpliceGraphGp {
          { // DEBUG ONLY
             printTime(stderr);
             for(int s=0;s<2;s++) {
-               fprintf(stderr, "\n\tThere are %d stranded[%d] graphs", gpSize[s],int(2*s));
+               fprintf(stderr, "\n\tThere are %d stranded[%d] graphs\n", gpSize[s],int(2*s));
                for(int b=0;b<gpSize[s];b++) {
                   if(graphnoGp[s][b]) {
                      GStr pat;
-                     fprintf(stderr,"\tGraph[%d][%d] with %d nodes and %d edges :",int(2*s),b,graphnoGp[s][b],edgenoGp[s][b]);
+                     fprintf(stderr,"\t\tGraph[%d][%d] with %d nodes and %d edges :",int(2*s),b,graphnoGp[s][b],edgenoGp[s][b]);
                      for(int nd=1;nd<graphnoGp[s][b]-1;nd++)
                         fprintf(stderr," %d(%d-%d)",nd,no2gnodeGp[s][b][nd]->start,no2gnodeGp[s][b][nd]->end);
-                     fprintf(stderr,"\n");
                   }
+                  fprintf(stderr,"\n");
                }
             }
          }

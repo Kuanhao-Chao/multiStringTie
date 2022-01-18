@@ -14756,6 +14756,80 @@ int build_graphs(BundleData* bdata) {
 					// }
 				}
 			}
+
+
+			// // Forward strand. 
+			// int sno_fwd = 0;
+			// // Reverse strand.
+			// int sno_rvs = 2;
+
+
+			// int s_fwd=sno_fwd/2; // adjusted strand due to ignoring neutral strand
+			// int s_rvs=sno_rvs/2; // adjusted strand due to ignoring neutral strand
+
+
+			// int g_idx = 0;
+			// int b_fwd = 0;
+			// int b_rvs = 0;
+			// while (b_fwd<bundle[sno_fwd].Count() || b_rvs<bundle[sno_rvs].Count()) {
+			// 	fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
+			// 	fprintf(stderr,"after traverse:\n");
+				
+			// 	graphno[s_fwd][b_fwd][0];
+			// 	graphno[s_rvs][b_rvs];
+
+
+
+			// 	fprintf(uinigraph_out,"strict digraph %d_%d_%d_%d {", refstart, refend, s_fwd, b_fwd);
+			// 	// graphno[s][b]: number of nodes in graph.
+			// 	if(graphno[s_fwd][b_fwd]) {
+			// 		for(int nd=1;nd<graphno[s_fwd][b_fwd]-1;nd++)
+			// 			fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s_fwd][b_fwd][nd]->start,no2gnode[s_fwd][b_fwd][nd]->end,no2gnode[s_fwd][b_fwd][nd]->cov);
+
+			// 		for(int nd=0;nd<graphno[s_fwd][b_fwd];nd++) {
+			// 			// fprintf(stderr,"Node %d with parents:",i);
+			// 			for(int c=0;c<no2gnode[s_fwd][b_fwd][nd]->child.Count();c++) {
+			// 				fprintf(uinigraph_out,"%d->",nd);			
+			// 				fprintf(uinigraph_out,"%d;",no2gnode[s_fwd][b_fwd][nd]->child[c]);
+			// 			}
+			// 		}
+			// 	}
+
+
+			// 	fprintf(uinigraph_out,"}\n");
+			// 	g_idx += 1;
+			// 	fprintf(stderr,"g_idx: %d\n", g_idx);
+			// 	// }
+
+			// }
+
+			// for(int b_fwd=b_fwd_glb;b_fwd<bundle[sno_fwd].Count();b_fwd++) {
+			// 	fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
+			// 	fprintf(stderr,"after traverse:\n");
+			// 	// if(graphno[s][b]) {
+			// 	fprintf(uinigraph_out,"strict digraph %d_%d_%d_%d {", refstart, refend, s_fwd, b_fwd);
+			// 	// graphno[s][b]: number of nodes in graph.
+			// 	if(graphno[s_fwd][b_fwd]) {
+			// 		for(int nd=1;nd<graphno[s_fwd][b_fwd]-1;nd++)
+			// 			fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s_fwd][b_fwd][nd]->start,no2gnode[s_fwd][b_fwd][nd]->end,no2gnode[s_fwd][b_fwd][nd]->cov);
+
+			// 		for(int nd=0;nd<graphno[s_fwd][b_fwd];nd++) {
+			// 			// fprintf(stderr,"Node %d with parents:",i);
+			// 			for(int c=0;c<no2gnode[s_fwd][b_fwd][nd]->child.Count();c++) {
+			// 				fprintf(uinigraph_out,"%d->",nd);			
+			// 				fprintf(uinigraph_out,"%d;",no2gnode[s_fwd][b_fwd][nd]->child[c]);
+			// 			}
+			// 		}
+			// 	}
+
+
+			// 	fprintf(uinigraph_out,"}\n");
+			// 	g_idx += 1;
+			// 	fprintf(stderr,"g_idx: %d\n", g_idx);
+			// 	// }
+			// }
+
+
 		}
 		/****************
 		 **  END KH Adding 
