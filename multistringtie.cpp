@@ -287,6 +287,8 @@ void processBundle(BundleData* bundle, UniSpliceGraphGp* uni_splice_graphGp);
 
 void writeUnbundledGuides(GVec<GRefData>& refdata, FILE* fout, FILE* gout=NULL);
 
+void unispg_readline(UniSpliceGraph* &drec, bool &new_uni_spg_gp, bool &more_graph, int pre_refstart, int pre_refend);
+
 #ifndef NOTHREADS
 
 bool noThreadsWaiting();
@@ -322,7 +324,6 @@ int waitForData(BundleData* bundles);
 
 TInputFiles bamreader;
 DOTInputFile dotreader;
-
 
 
 
@@ -643,36 +644,7 @@ int main(int argc, char* argv[]) {
 	while(more_graph) {
 		bool new_uni_spg_gp = false;
 		// bam-related parameter initialization.
-		if ((drec=dotreader.next())!=NULL) {
-			if (pre_refstart != drec->get_refstart() && pre_refend != drec->get_refend()) {
-				/*****************************************
-				 ** It is a new universal splice graph group.
-				 *****************************************/
-				new_uni_spg_gp = true;
-			} 
-			// fprintf(stderr, "Keep reading %d (pre: %d - %d ;  now: %d - %d)!!!\n", new_uni_spg_gp, pre_refstart, pre_refend, drec->get_refstart(), drec->get_refend());
-
-
-			int uni_refstart = drec->get_refstart();
-			int uni_refend = drec->get_refend();
-			int uni_s = drec->get_s();
-			int uni_g = drec->get_g_idx();
-			int uni_graphno = drec->get_graphno();
-			int uni_edgeno = drec->get_edgeno();
-			GPVec<CGraphnode>* uni_no2gnode = drec->get_no2gnode(); 
-
-			// for (int i = 1; i < uni_graphno-1; i++) {
-			// 	fprintf(stderr, "uni_no2gnode[s][g][i]: %d  start: %d   end: %d \n", uni_no2gnode[0][i]->nodeid, uni_no2gnode[0][i]->start, uni_no2gnode[0][i]->end);
-			// }
-
-
-		} else {
-			// fprintf(stderr, "No more dot graph!!!\n");
-			more_graph=false;
-			new_uni_spg_gp = true; //fake a new start (end of the last universal splice graph.)
-		}
-
-
+		unispg_readline(drec, new_uni_spg_gp, more_graph, pre_refstart, pre_refend);
 
 		if (new_uni_spg_gp) {
 			/*****************************************
@@ -689,6 +661,7 @@ int main(int argc, char* argv[]) {
 			 *******************************************
 			 *******************************************/
 			bool read_in_unispg = true;
+			bool read_out_unispg_left = false;
 			while (more_alns && read_in_unispg) {
 				bool chr_changed=false;
 				int pos=0;
@@ -702,6 +675,9 @@ int main(int argc, char* argv[]) {
 				 *****************************/
 				// fprintf(stderr, "Process read (pre: %d - %d ;  now: %d - %d)!!!\n", pre_refstart, pre_refend, brec->start, brec->end);
 				if ((brec=bamreader.next())!=NULL) {
+
+
+
 
 					/*****************************
 					 ** Step 1-1: Removing invalid alignment
@@ -722,19 +698,19 @@ int main(int argc, char* argv[]) {
 					if (brec->end < pre_refstart) {
 						// ----------   |(s).................(e)|
 						// The read is outside the current bundle => skipped!
-						fprintf(stderr, "** Bundle: ----------   |(s).................(e)|\n");
+						fprintf(stderr, "** Read %d - %d overlapping bundle %d - %d: ----------   |(s).................(e)|\n", brec->start, brec->end, pre_refstart, pre_refend);
 						continue;
 					}
 					if (brec->start < pre_refstart && brec->end >= pre_refstart) {
 						// ----------|(s).................(e)|   or   -----|(s)-----............(e)|
-						fprintf(stderr, "** Bundle: ----------|(s).................(e)|   or   -----|(s)-----............(e)|\n");
+						fprintf(stderr, "** Read %d - %d overlapping bundle %d - %d: ----------|(s).................(e)|   or   -----|(s)-----............(e)|\n", brec->start, brec->end, pre_refstart, pre_refend);
 					} else if (brec->start >= pre_refstart && brec->end <= pre_refend) {
 						// |(s)----------.................(e)|   or   |(s)....----------........(e)|
-						fprintf(stderr, "** Bundle: |(s)----------.................(e)|   or   |(s)....----------........(e)|   or   |(s).........----------(e)|\n");
+						fprintf(stderr, "** Read %d - %d overlapping bundle %d - %d: |(s)----------.................(e)|   or   |(s)....----------........(e)|   or   |(s).........----------(e)|\n", brec->start, brec->end, pre_refstart, pre_refend);
 					} else if (brec->start <= pre_refend && brec->end > pre_refend) {
 						// |(s)...............------(e)|-----    or   |(s).................(e)|----------   
 						// The overlapping with the current processing bundle.
-						fprintf(stderr, "** Bundle: |(s)...............------(e)|-----    or   |(s).................(e)|----------\n");
+						fprintf(stderr, "** Read %d - %d overlapping bundle %d - %d: |(s)...............------(e)|-----    or   |(s).................(e)|----------\n", brec->start, brec->end, pre_refstart, pre_refend);
 						int overlap_current = 0;
 						overlap_current = pre_refend - brec->start + 1;
 						int overlap_next = 0;
@@ -747,10 +723,17 @@ int main(int argc, char* argv[]) {
 							read_in_unispg = false;
 						}
 					} else {
-						fprintf(stderr, "** Bundle: |(s).................(e)|   ----------\n");
+						fprintf(stderr, "** Read %d - %d overlapping bundle %d - %d: |(s).................(e)|   ----------\n", brec->start, brec->end, pre_refstart, pre_refend);
+						// while (more_graph && !(brec->start >= pre_refend)){
+						// 	unispg_readline(drec, new_uni_spg_gp, more_graph, pre_refstart, pre_refend);
+						// 	if (drec!=NULL) {
+						// 		pre_refstart = drec->get_refstart();
+						// 		pre_refend = drec->get_refend();
+						// 	}
+						// }
 						read_in_unispg = false;
+						read_out_unispg_left = true;
 					}
-					
 
 
 
@@ -2078,6 +2061,36 @@ void writeUnbundledGuides(GVec<GRefData>& refdata, FILE* fout, FILE* gout) {
 	}
 }
 
+void unispg_readline(UniSpliceGraph* &drec, bool &new_uni_spg_gp, bool &more_graph, int pre_refstart, int pre_refend) {
+	if ((drec=dotreader.next())!=NULL) {
+		if (pre_refstart != drec->get_refstart() && pre_refend != drec->get_refend()) {
+			/*****************************************
+			 ** It is a new universal splice graph group.
+				*****************************************/
+			new_uni_spg_gp = true;
+		} 
+		// fprintf(stderr, "Keep reading %d (pre: %d - %d ;  now: %d - %d)!!!\n", new_uni_spg_gp, pre_refstart, pre_refend, drec->get_refstart(), drec->get_refend());
+
+
+		// int uni_refstart = drec->get_refstart();
+		// int uni_refend = drec->get_refend();
+		// int uni_s = drec->get_s();
+		// int uni_g = drec->get_g_idx();
+		// int uni_graphno = drec->get_graphno();
+		// int uni_edgeno = drec->get_edgeno();
+		// GPVec<CGraphnode>* uni_no2gnode = drec->get_no2gnode(); 
+
+		// for (int i = 1; i < uni_graphno-1; i++) {
+		// 	fprintf(stderr, "uni_no2gnode[s][g][i]: %d  start: %d   end: %d \n", uni_no2gnode[0][i]->nodeid, uni_no2gnode[0][i]->start, uni_no2gnode[0][i]->end);
+		// }
+
+
+	} else {
+		// fprintf(stderr, "No more dot graph!!!\n");
+		more_graph=false;
+		new_uni_spg_gp = true; //fake a new start (end of the last universal splice graph.)
+	}
+}
 
 
 

@@ -764,6 +764,7 @@ int infer_transcripts(BundleData* bundle);
 
 // --- for rlink_multi.cpp
 int juncCmpEnd(const pointer p1, const pointer p2);
+int build_merge(BundleData* bdata);
 void count_good_junctions(BundleData* bdata);
 bool good_junc(CJunction& jd,int refstart, GVec<float>* bpcov);
 int add_read_to_group(int n,GList<CReadAln>& readlist,int color,GPVec<CGroup>& group,CGroup **allcurrgroup,

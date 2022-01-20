@@ -527,7 +527,8 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 			}
 		}
 	} //<-- if mate is mapped on the same chromosome
-
+	fprintf(stderr, "Process read %d - %d \n", alndata.brec->start,alndata.brec->end);
+	fprintf(stderr, "Current start & end %d - %d \n", currentstart, currentend);
 }
 
 int get_min_start(CGroup **currgroup) {
