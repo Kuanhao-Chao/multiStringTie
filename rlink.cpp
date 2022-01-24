@@ -527,8 +527,8 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 			}
 		}
 	} //<-- if mate is mapped on the same chromosome
-	fprintf(stderr, "Process read %d - %d \n", alndata.brec->start,alndata.brec->end);
-	fprintf(stderr, "Current start & end %d - %d \n", currentstart, currentend);
+	// fprintf(stderr, "Process read %d - %d \n", alndata.brec->start,alndata.brec->end);
+	// fprintf(stderr, "Current start & end %d - %d \n", currentstart, currentend);
 }
 
 int get_min_start(CGroup **currgroup) {
@@ -4317,14 +4317,14 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 		GVec<CGraphinfo> **bundle2graph,GVec<int> *graphno,GVec<int> *edgeno, GIntHash<int> **gpos,GPVec<CGraphnode> **no2gnode,
 		GPVec<CTransfrag> **transfrag,CTreePat ***tr2no,GPVec<CGroup> &group) {
 
-	// /*
+	/*
 	// nh:         number of reported alignments that contain the query in the current record.
 	// read_count: keeps count for all reads (including paired and unpaired)
 	// fprintf(stderr,"get fragment for read[%d]:%d-%d-%d-%d-%f with pair[%d] and longread=%d and exons: ",n,readlist[n]->start,readlist[n]->end,int(readlist[n]->strand),readlist[n]->nh,readlist[n]->read_count,np,readlist[n]->longread);
 	for(int i=0;i<readlist[n]->segs.Count();i++) fprintf(stderr," %d-%d",readlist[n]->segs[i].start,readlist[n]->segs[i].end);
 	if(np>-1) for(int i=0;i<readlist[np]->segs.Count();i++) fprintf(stderr," %d-%d",readlist[np]->segs[i].start,readlist[np]->segs[i].end);
 	fprintf(stderr,"\n");
-	// */
+	*/
 	uint rstart=readlist[n]->start; // this only works for unpaired long reads -> I will have to take into account the pair if I want to do it for all reads
 	uint rend=readlist[n]->end;
 	if(np>-1 && readlist[np]->end>rend) rend=readlist[np]->end;

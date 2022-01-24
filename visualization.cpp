@@ -1,4 +1,5 @@
 #include <visualization.h>
+// #include <ctime>
 using namespace std;
 namespace plt = matplotlibcpp;
 
@@ -7,8 +8,10 @@ namespace plt = matplotlibcpp;
 // void draw(vector<vector<int> >& exonIntervals, vector<vector<int> >& exonIntervals_unispg, string filename);
 
 void _set_limits(map<string, float>& ylims, map<string, float>& ylims_unispg) {
-    ylims["intron_max"] = ylims["exon_max"]*0.9;
-    ylims["intron_min"] = (ylims["exon_max"] + ylims["exon_min"])/2.0;
+    // ylims["intron_max"] = ylims["exon_max"]*0.9;
+    // ylims["intron_min"] = (ylims["exon_max"] + ylims["exon_min"])/2.0;
+    ylims["intron_max"] = ylims["exon_max"]+0.5;
+    ylims["intron_min"] = ylims["exon_max"];
     ylims["bar_min"] = ylims["exon_max"]+0.2;
     ylims["bar_max"] = ylims["bar_min"]+(ylims["exon_max"]-ylims["exon_min"])/5.0;
 
@@ -191,6 +194,52 @@ bool _draw_intron(map<string, float>& ylims, int span0, int span1, map<string, s
     return true;
 }
 
+bool _draw_splicejunc(map<string, float>& ylims, int span0, int span1, map<string, string>& keywords, int intron_idx) {
+    float mid = static_cast<float>((span0+span1)/2.0);
+    vector<float> line_left_wrp;
+    line_left_wrp.push_back(static_cast<float>(span0));
+    line_left_wrp.push_back(mid);
+    vector<float> ylims_left_wrp;
+    ylims_left_wrp.push_back(ylims["intron_min"]);
+    ylims_left_wrp.push_back(ylims["intron_max"]+intron_idx*0.1);
+
+    vector<float> line_right_wrp;
+    line_right_wrp.push_back(mid);
+    line_right_wrp.push_back(static_cast<float>(span1));
+    vector<float> ylims_right_wrp;
+    ylims_right_wrp.push_back(ylims["intron_max"]+intron_idx*0.1);
+    ylims_right_wrp.push_back(ylims["intron_min"]);
+
+
+    // srand (time(NULL));
+    // /* generate secret number between 1 and 10: */
+    // int color_idx = rand() % 6;
+    // string color;
+    // vector<string> colors{"b", "g", "r", "c", "m", "y"};
+// "b"	blue
+// "g"	green
+// "r"	red
+// "c" cyan
+// "m"	magenta
+// "y"	yellow
+    // std::map<string, string> keywords;
+    // if (category=="lcl") {
+    //     keywords["color"] = "red";
+    // } else if (category=="unispg") {
+    //     keywords["color"] = "red";
+    // }
+    // fprintf(stderr, "Color: %s\n", colors[color_idx].c_str());
+    // keywords["color"] = colors[color_idx];
+    // keywords["hatch"] = "-";
+
+    plt::plot(line_left_wrp, ylims_left_wrp, keywords);
+    plt::plot(line_right_wrp, ylims_right_wrp, keywords);
+    // plt::plot([mid, span[1]], [self.ylims_unispg["intron_max"], self.ylims_unispg["intron_min"]],
+    //                     c=self.intronColor, lw=self.intronWeight, ls=self.intronStyle)
+    return true;
+}
+
+
 bool _draw_exon(map<string, float>& ylims, vector<int>& span, map<string, string>& keywords) {
     // std::map<string, string> keywords;
     // keywords["alpha"] = "0.4";
@@ -209,7 +258,7 @@ bool _draw_exon(map<string, float>& ylims, vector<int>& span, map<string, string
     return true;
 }
 
-void draw(vector<vector<int> >& exonIntervals, vector<vector<int> >& exonIntervals_unispg, string filename) {
+void draw(vector<vector<int> >& exonIntervals, vector<vector<int> >& intronIntervals, string filename) {
     // Prepare data.
     // fprintf(stderr, "Inside draw function \n ");
 
@@ -217,29 +266,31 @@ void draw(vector<vector<int> >& exonIntervals, vector<vector<int> >& exonInterva
     // plt::subplot(15, 1.5, 0);
     // plt::axes.set_facecolor(bgColor);
     int numExons = exonIntervals.size();
-    int numExons_unispg = exonIntervals_unispg.size();
+    int numSpliceJunc = intronIntervals.size();
+    // int numExons_unispg = exonIntervals_unispg.size();
 
     int totalSpan = exonIntervals.back()[1] - exonIntervals[0][0];
-    int totalSpan_unispg = exonIntervals_unispg.back()[1] - exonIntervals_unispg[0][0];
+    // int totalSpan_unispg = exonIntervals_unispg.back()[1] - exonIntervals_unispg[0][0];
 
 
     float minExonLen = static_cast<float>(totalSpan)*0.005;
-    float minExonLen_unispg = static_cast<float>(totalSpan_unispg)*0.005;
+    // float minExonLen_unispg = static_cast<float>(totalSpan_unispg)*0.005;
     fprintf(stderr, "minExonLen: %f\n", minExonLen);
     map<string, float> ylims = {{"exon_max", 4.0}, {"exon_min", 3.0}};
     map<string, float> ylims_unispg = {{"exon_max", 2.0}, {"exon_min", 1.0}};
-    plt::figure_size(1200, 240);
+    plt::figure_size(300*numExons, 60*numExons);
 
 
     _set_limits(ylims, ylims_unispg);
-    _transform_spans(exonIntervals, exonIntervals_unispg, minExonLen, minExonLen_unispg, totalSpan, totalSpan_unispg, numExons, numExons_unispg);
+    // _transform_spans(exonIntervals, exonIntervals_unispg, minExonLen, minExonLen_unispg, totalSpan, totalSpan_unispg, numExons, numExons_unispg);
 
-    std::map<string, string> keywords_lcl;
-    keywords_lcl["color"] = "red";
-    std::map<string, string> keywords_unispg;
-    keywords_unispg["color"] = "green";
+    std::map<string, string> keywords_exon;
+    keywords_exon["color"] = "black";
+    std::map<string, string> keywords_intron;
+    keywords_intron["color"] = "red";
     std::map<string, string> keywords_black;
     keywords_black["color"] = "black";
+    std::map<string, string> keywords_none;
     // if (category=="lcl") {
     //     keywords["color"] = "red";
     // } else if (category=="unispg") {
@@ -247,26 +298,30 @@ void draw(vector<vector<int> >& exonIntervals, vector<vector<int> >& exonInterva
     // }
 
     for (int i = 0; i < numExons; i++) {
-        if (i > 0) {
-            _draw_intron(ylims, exonIntervals[i-1][1], exonIntervals[i][0], keywords_black);
-            // _draw_intron(ylims_unispg, exonIntervals_unispg[i-1][1], exonIntervals_unispg[i][0]);
-        }
+        // if (i > 0) {
+        //     _draw_intron(ylims, exonIntervals[i-1][1], exonIntervals[i][0], keywords_black);
+        //     // _draw_intron(ylims_unispg, exonIntervals_unispg[i-1][1], exonIntervals_unispg[i][0]);
+        // }
         // for (int j = 0; j < exonIntervals[i].size(); j++) {
         //     fprintf(stderr, "exonIntervals[i][j]: %d\n", exonIntervals[i][j]);
         // } 
-        _draw_exon(ylims, exonIntervals[i], keywords_lcl);
+        _draw_exon(ylims, exonIntervals[i], keywords_exon);
         // _draw_exon(ylims_unispg, exonIntervals_unispg[i]);
     }
-    
-    for (int i = 0; i < numExons_unispg; i++) {
-        if (i > 0) {
-            _draw_intron(ylims_unispg, exonIntervals_unispg[i-1][1], exonIntervals_unispg[i][0], keywords_black);
-        }
-        // for (int j = 0; j < exonIntervals[i].size(); j++) {
-        //     fprintf(stderr, "exonIntervals[i][j]: %d\n", exonIntervals[i][j]);
-        // } 
-        _draw_exon(ylims_unispg, exonIntervals_unispg[i], keywords_unispg);
+
+    for (int i = 0; i < numSpliceJunc; i++) {
+        _draw_splicejunc(ylims, intronIntervals[i][0], intronIntervals[i][1], keywords_intron, i);
     }
+    
+    // for (int i = 0; i < numExons_unispg; i++) {
+    //     if (i > 0) {
+    //         _draw_intron(ylims_unispg, exonIntervals_unispg[i-1][1], exonIntervals_unispg[i][0], keywords_black);
+    //     }
+    //     // for (int j = 0; j < exonIntervals[i].size(); j++) {
+    //     //     fprintf(stderr, "exonIntervals[i][j]: %d\n", exonIntervals[i][j]);
+    //     // } 
+    //     _draw_exon(ylims_unispg, exonIntervals_unispg[i], keywords_unispg);
+    // }
     
     // Plot line from given x and y data. Color is selected automatically.
     // plt::plot(x, y);
