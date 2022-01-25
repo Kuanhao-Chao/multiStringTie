@@ -82,7 +82,7 @@ GStr TInputFiles::convert2BAM(GStr& gtf, int idx) {
 
 
 int TInputFiles::start() {
-	GVec<GStr> bamfiles;
+	// GVec<GStr> bamfiles;
 	if (mergeMode && this->files.Count()==1) {
 		//special case, if it's only one file it must be a list (usually)
 		GStr fname(this->files.First());
@@ -122,35 +122,61 @@ int TInputFiles::start() {
 		for (int i=0;i<files.Count();++i) {
 			//crude way to bypass GTF conversion when resuming/debugging
 			if (files[i].endsWith(".bam")) {
-				bamfiles.Add(files[i]);
+				this->bamfiles.Add(files[i]);
 			}
 			else {
 				GStr s=convert2BAM(files[i], i);
-				bamfiles.Add(s);
+				this->bamfiles.Add(s);
 			}
 		}
 	}
 	else {
-		bamfiles=files;
+		this->bamfiles=files;
 	}
-	//stringtie multi-BAM input
-	for (int i=0;i<bamfiles.Count();++i) {
-		GSamReader* bamreader=new GSamReader(bamfiles[i].chars(), cram_ref.is_empty() ? NULL : cram_ref.chars());
-		readers.Add(bamreader);
-		GSamRecord* brec=bamreader->next();
-		if (brec)
-		   recs.Add(new TInputRecord(brec, i));
-	}
-	return readers.Count();
+	// //stringtie multi-BAM input
+	// for (int i=0;i<bamfiles.Count();++i) {
+	// 	GSamReader* bamreader=new GSamReader(bamfiles[i].chars(), cram_ref.is_empty() ? NULL : cram_ref.chars());
+	// 	readers.Add(bamreader);
+	// 	GSamRecord* brec=bamreader->next();
+	// 	if (brec)
+	// 	   {	
+	// 		//    TInputRecord* test = new TInputRecord(brec, i);
+	// 		   recs.Add(new TInputRecord(brec, i));
+	// 		   	// fprintf(stderr, "test->fidx: %d\n", test->fidx);
+	// 	   }
+	// }
+	return bamfiles.Count();
 }
+
+
+void TInputFiles::start_fidx(int fidx) {
+	//stringtie multi-BAM input
+	fprintf(stderr, "** Inside start_fidx. Process file: %d\n", fidx);
+	fprintf(stderr, "this->bamfiles[fidx].chars(): %s\n", this->bamfiles[fidx].chars());
+	// for (int i=0;i<bamfiles.Count();++i) {
+	GSamReader* bamreader=new GSamReader(this->bamfiles[fidx].chars(), cram_ref.is_empty() ? NULL : cram_ref.chars());
+	readers.Add(bamreader);
+	GSamRecord* brec=bamreader->next();
+	if (brec) {	
+		//    TInputRecord* test = new TInputRecord(brec, i);
+		recs.Add(new TInputRecord(brec, fidx));
+		// fprintf(stderr, "test->fidx: %d\n", test->fidx);
+	}
+	// }
+	// return readers.Count();
+}
+
 
 GSamRecord* TInputFiles::next() {
 	//must free old current record first
 	delete crec;
 	crec=NULL;
+	// fprintf(stderr, "recs.Count(): %d\n", recs.Count());
     if (recs.Count()>0) {
     	crec=recs.Pop();//lowest coordinate
+		// fprintf(stderr, "crec->fidx: %d\n", crec->fidx);
     	GSamRecord* rnext=readers[crec->fidx]->next();
+		// fprintf(stderr, "rnext: %d - %d \n", rnext->start, rnext->end);
     	if (rnext)
     		recs.Add(new TInputRecord(rnext, crec->fidx));
     	crec->brec->uval=crec->fidx; //send file index
@@ -158,6 +184,24 @@ GSamRecord* TInputFiles::next() {
     }
     else return NULL;
 }
+
+// GSamRecord* TInputFiles::next_fidx(int fidx) {
+// 	//must free old current record first
+// 	delete crec;
+// 	crec=NULL;
+// 	// fprintf(stderr, "recs.Count(): %d\n", recs.Count());
+//     if (recs.Count()>0) {
+//     	crec=recs.Pop();//lowest coordinate
+// 		// fprintf(stderr, "crec->fidx: %d\n", crec->fidx);
+//     	GSamRecord* rnext=readers[crec->fidx]->next();
+// 		// fprintf(stderr, "rnext: %d - %d \n", rnext->start, rnext->end);
+//     	if (rnext)
+//     		recs.Add(new TInputRecord(rnext, crec->fidx));
+//     	crec->brec->uval=crec->fidx; //send file index
+//     	return crec->brec;
+//     }
+//     else return NULL;
+// }
 
 void TInputFiles::stop() {
  for (int i=0;i<readers.Count();++i) {

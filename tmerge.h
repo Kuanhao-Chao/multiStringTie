@@ -53,6 +53,10 @@ struct TInputFiles {
 	GPVec<GSamReader> readers;
 	GVec<GStr> files; //same order
 	GVec<GStr> tmpfiles; //all the temp files created by this
+	
+	// KH add
+	GVec<GStr> bamfiles; //Processed file name
+
 	GList<TInputRecord> recs; //next record for each
 	TInputFiles():crec(NULL), readers(true), files(), tmpfiles(),
 			recs(true, true, true) { 
@@ -61,6 +65,7 @@ struct TInputFiles {
 	void Add(const char* fn);
 	int count() { return files.Count(); }
 	int start(); //open all files, load 1 record from each
+	void start_fidx(int fidx);
 	GSamRecord* next();
 	void stop(); //
 };

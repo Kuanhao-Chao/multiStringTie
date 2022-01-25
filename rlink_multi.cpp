@@ -23,6 +23,7 @@ extern bool mixedMode;
 extern bool guided;
 
 extern bool multiMode;
+extern bool unispgMode;
 
 extern int allowed_nodes;
 extern float isofrac;
@@ -54,7 +55,7 @@ extern FILE* f_out;
  **  KH Adding 
 ****************/
 extern FILE* uinigraph_out;
-extern bool universal_splice_graph;
+// extern bool universal_splice_graph;
 
 extern FILE* node_cov_pos_bed;
 extern FILE* edge_cov_pos_bed;
@@ -624,14 +625,15 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 		int &edgeno,int &lastgpos,GArray<GEdge>& guideedge, UniSpliceGraphGp* uni_splice_graphGp, int refend=0){
 
 	if (multiMode) {
-
-	} else {
+	} else if (unispgMode){
 		int uni_refstart = uni_splice_graphGp -> get_refstart();
 		int uni_refend = uni_splice_graphGp -> get_refend();
 		int* uni_gpSize = uni_splice_graphGp -> get_gpSize();
 		GVec<int>* uni_graphnoGp = uni_splice_graphGp -> get_graphnoGp();
 		GVec<int>* uni_edgenoGp = uni_splice_graphGp -> get_edgenoGp();  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
 		GPVec<CGraphnode>** uni_no2gnodeGp = uni_splice_graphGp -> get_no2gnodeGp(); // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+	} else {
+		// normalMode
 	}
 
 	/****************
@@ -3422,151 +3424,168 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 		/****************
 		 **  KH Adding 
 		 ****************/
-		if (universal_splice_graph) {
-			//  DOT file outut here 
-			//  not capacity and rate 
-			//  only edge weight
-			for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-				int s=sno/2; // adjusted strand due to ignoring neutral strand
-				int g_idx = 0;
-				for(int b=0;b<bundle[sno].Count();b++) {
-					fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
-					fprintf(stderr,"after traverse:\n");
-					if(graphno[s][b]) {
-						fprintf(uinigraph_out,"strict digraph %d_%d_%d_%d {", refstart, refend, s, g_idx);
-						// graphno[s][b]: number of nodes in graph.
-						if(graphno[s][b]) {
-							for(int nd=1;nd<graphno[s][b]-1;nd++)
-								fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov);
+		// if (universal_splice_graph) {
+		// 	//  DOT file outut here 
+		// 	//  not capacity and rate 
+		// 	//  only edge weight
+		// 	for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+		// 		int s=sno/2; // adjusted strand due to ignoring neutral strand
+		// 		int g_idx = 0;
+		// 		for(int b=0;b<bundle[sno].Count();b++) {
+		// 			fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
+		// 			fprintf(stderr,"after traverse:\n");
+		// 			if(graphno[s][b]) {
+		// 				fprintf(uinigraph_out,"strict digraph %d_%d_%d_%d {", refstart, refend, s, g_idx);
+		// 				// graphno[s][b]: number of nodes in graph.
+		// 				if(graphno[s][b]) {
+		// 					for(int nd=1;nd<graphno[s][b]-1;nd++)
+		// 						fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov);
 
-							for(int nd=0;nd<graphno[s][b];nd++) {
-								// fprintf(stderr,"Node %d with parents:",i);
-								for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
-									fprintf(uinigraph_out,"%d->",nd);			
-									fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
-								}
-							}
-						}
-						fprintf(uinigraph_out,"}\n");
-						g_idx += 1;
-						fprintf(stderr,"g_idx: %d\n", g_idx);
-					}
-				}
-			}
-		}
+		// 					for(int nd=0;nd<graphno[s][b];nd++) {
+		// 						// fprintf(stderr,"Node %d with parents:",i);
+		// 						for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
+		// 							fprintf(uinigraph_out,"%d->",nd);			
+		// 							fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
+		// 						}
+		// 					}
+		// 				}
+		// 				fprintf(uinigraph_out,"}\n");
+		// 				g_idx += 1;
+		// 				fprintf(stderr,"g_idx: %d\n", g_idx);
+		// 			}
+		// 		}
+		// 	}
+		// }
 		/****************
 		 **  END KH Adding 
 		****************/
 
+	if (multiMode) {
+		// Traverse the graph
+		for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+			int s=sno/2; // adjusted strand due to ignoring neutral strand
+			for(int g=0;g<bundle[sno].Count();g++) {
+				if(no2gnode[s][g].Count()) {
+					// uint bundle_start=no2gnode[s][g][1]->start;
+					// uint bundle_end=no2gnode[s][g][no2gnode[s][g].Count()-2]->end;
 
-// Traverse the graph
-	for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-		int s=sno/2; // adjusted strand due to ignoring neutral strand
-		for(int g=0;g<bundle[sno].Count();g++) {
-			if(no2gnode[s][g].Count()) {
-				GStr strand_symbol;
-				if (s == 0) {
-					strand_symbol = "-";
-				} else if (s == 1) {
-					strand_symbol = "+";
-				}
-
-				fprintf(stderr,"Traversing the created graph!!!\n");
-				fprintf(stderr,"Digraph %d_%d_%d_%d {", bdata->start,bdata->end, s, g);
-				// graphno[s][b]: number of nodes in graph.
-				if(no2gnode[s][g].Count() >= 4) {
-					for(int nd=0;nd<no2gnode[s][g].Count();nd++) {
-						fprintf(stderr,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][g][nd]->start,no2gnode[s][g][nd]->end,no2gnode[s][g][nd]->cov);
-						// exon_tmp.clear();
-						// exon_tmp.push_back(no2gnode[s][g][nd]->start);
-						// exon_tmp.push_back(no2gnode[s][g][nd]->end);
-						// // exon_tmp.push_back(nd*3);
-						// // exon_tmp.push_back(nd*3+1);
-						// exonIntervals.push_back(exon_tmp);
-						// for (int i = no2gnode[s][g][nd]->start; i < no2gnode[s][g][nd]->end; i++) {
-						// 	fprintf(node_cov_bed, "chr22\t%d\t%d\tNODE\t%f\t%s\n", i, i+1, no2gnode[s][g][nd]->cov, strand_symbol.chars());
-						// }
-						int node_start = 0;
-						int node_end = 0;
-						if (nd == 0) {
-							node_start = no2gnode[s][g][1]->start-200;
-							node_end = no2gnode[s][g][1]->start;
-						} else if (nd == no2gnode[s][g].Count()-1){
-							node_start = no2gnode[s][g][no2gnode[s][g].Count()-2]->end-1;
-							node_end = 	no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200;
-						} else {
-							node_start = no2gnode[s][g][nd]->start-1;
-							node_end = no2gnode[s][g][nd]->end;		
-						}
-
-
-						if (nd == 0) {
-							if(s == 0) {
-								fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", node_start, node_end, 0);
-							} else if (s == 1) {
-								fprintf(node_cov_pos_bed, "chr22\t%d\t%d\tNODE\t%f\t-\n", node_start, node_end, 0);
-							}
-						} else if (nd == no2gnode[s][g].Count()-1){
-							if(s == 0) {
-							// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
-
-								fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", node_start, node_end, 0);
-							} else if (s == 1) {
-								// fprintf(node_cov_pos_bed, "chr22\t%d\t%d\tNODE\t%f\t-\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
-
-								fprintf(node_cov_pos_bed, "chr22\t%d\t%d\tNODE\t%f\t-\n", node_start, node_end, 0);
-							}
-						} else {
-							if(s == 0) {
-								// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", no2gnode[s][g][nd]->start, no2gnode[s][g][nd]->end, no2gnode[s][g][nd]->cov, strand_symbol.chars());
-								fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t%s\n", node_start, node_end, no2gnode[s][g][nd]->cov, strand_symbol.chars());
-							} else if (s == 1) {
-								fprintf(node_cov_pos_bed, "chr22\t%d\t%d\tNODE\t%f\t%s\n", node_start, node_end, no2gnode[s][g][nd]->cov, strand_symbol.chars());
-							}
-						}
+					GStr bundle_start(int(no2gnode[s][g][1]->start));
+					GStr bundle_end(int(no2gnode[s][g][no2gnode[s][g].Count()-2]->end));
+					GStr node_g(g);
+					GStr strand_symbol;
+					if (s == 0) {
+						strand_symbol = "-";
+					} else if (s == 1) {
+						strand_symbol = "+";
 					}
 
-					
+					fprintf(stderr,"Traversing the created graph!!!\n");
+					fprintf(stderr,"Digraph %d_%d_%d_%d {", bdata->start,bdata->end, s, g);
+					// graphno[s][b]: number of nodes in graph.
+					if(no2gnode[s][g].Count() >= 4) {
+						for(int nd=0;nd<no2gnode[s][g].Count();nd++) {
+							fprintf(stderr,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][g][nd]->start,no2gnode[s][g][nd]->end,no2gnode[s][g][nd]->cov);
+							// exon_tmp.clear();
+							// exon_tmp.push_back(no2gnode[s][g][nd]->start);
+							// exon_tmp.push_back(no2gnode[s][g][nd]->end);
+							// // exon_tmp.push_back(nd*3);
+							// // exon_tmp.push_back(nd*3+1);
+							// exonIntervals.push_back(exon_tmp);
+							// for (int i = no2gnode[s][g][nd]->start; i < no2gnode[s][g][nd]->end; i++) {
+							// 	fprintf(node_cov_bed, "chr22\t%d\t%d\tNODE\t%f\t%s\n", i, i+1, no2gnode[s][g][nd]->cov, strand_symbol.chars());
+							// }
+							int node_start = 0;
+							int node_end = 0;
+							GStr node_nd(nd);
+							GStr node_name = "Node_" + bundle_start + "_" + bundle_end + "_ " + node_g + "_" + node_nd;
+							fprintf(stderr, "node_name: %s\n", node_name.chars());
 
-
-					for(int nd=0;nd<no2gnode[s][g].Count()-1;nd++) {
-						// fprintf(stderr,"Node %d with parents:",i);
-						for(int c=0;c<no2gnode[s][g][nd]->child.Count();c++) {
-							fprintf(stderr,"%d->",nd);			
-							fprintf(stderr,"%d;",no2gnode[s][g][nd]->child[c]);
-							
-							int junc_start = 0;
-							int junc_end = 0;
 							if (nd == 0) {
-								// It's the source node.
-								junc_start = no2gnode[s][g][1]->start;
+								node_start = no2gnode[s][g][1]->start-200;
+								node_end = no2gnode[s][g][1]->start;
+							} else if (nd == no2gnode[s][g].Count()-1){
+								node_start = no2gnode[s][g][no2gnode[s][g].Count()-2]->end-1;
+								node_end = 	no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200;
 							} else {
-								junc_start = no2gnode[s][g][nd]->end;
+								node_start = no2gnode[s][g][nd]->start-1;
+								node_end = no2gnode[s][g][nd]->end;		
 							}
-							if (no2gnode[s][g][ no2gnode[s][g][nd]->child[c] ] -> start == 0) {
-								// The node goes to the sink.
-								junc_end = no2gnode[s][g][no2gnode[s][g].Count()-2]->end;
+
+
+							if (nd == 0) {
+								if(s == 0) {
+									fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%s\t%f\t+\n", node_start, node_end, node_name.chars(), 0);
+								} else if (s == 1) {
+									fprintf(node_cov_pos_bed, "chr22\t%d\t%d\t%s\t%f\t-\n", node_start, node_end, node_name.chars(), 0);
+								}
+							} else if (nd == no2gnode[s][g].Count()-1){
+								if(s == 0) {
+								// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
+
+									fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%s\t%f\t+\n", node_start, node_end, node_name.chars(), 0);
+								} else if (s == 1) {
+									// fprintf(node_cov_pos_bed, "chr22\t%d\t%d\tNODE\t%f\t-\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
+
+									fprintf(node_cov_pos_bed, "chr22\t%d\t%d\t%s\t%f\t-\n", node_start, node_end, node_name.chars(), 0);
+								}
 							} else {
-								junc_end = no2gnode[s][g][ no2gnode[s][g][nd]->child[c] ] -> start;
+								if(s == 0) {
+									// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", no2gnode[s][g][nd]->start, no2gnode[s][g][nd]->end, no2gnode[s][g][nd]->cov, strand_symbol.chars());
+									fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnode[s][g][nd]->cov, node_name.chars(), strand_symbol.chars());
+								} else if (s == 1) {
+									fprintf(node_cov_pos_bed, "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnode[s][g][nd]->cov, node_name.chars(), strand_symbol.chars());
+								}
 							}
-							if(s == 0) {
-								fprintf(edge_cov_neg_bed, "chr22\t%d\t%d\tJUNCID\t%d\t%s\n", junc_start, junc_end, 10, strand_symbol.chars());
-							} else if (s == 1) {
-								fprintf(edge_cov_pos_bed, "chr22\t%d\t%d\tJUNCID\t%d\t%s\n", junc_start, junc_end, 10, strand_symbol.chars());
+						}
+
+						
+
+
+						for(int nd=0;nd<no2gnode[s][g].Count()-1;nd++) {
+							// fprintf(stderr,"Node %d with parents:",i);
+							GStr node_parent_nd(nd);
+							
+
+							for(int c=0;c<no2gnode[s][g][nd]->child.Count();c++) {
+								GStr node_child_nd(no2gnode[s][g][nd]->child[c]);
+								fprintf(stderr,"%d->",nd);			
+								fprintf(stderr,"%d;",no2gnode[s][g][nd]->child[c]);
+								GStr junction_name = "Junc_" + bundle_start + "_" + bundle_end + "_" + node_g + "_" + node_parent_nd + "->" + node_child_nd;
+								fprintf(stderr, "junction_name: %s\n", junction_name.chars());
+								
+								int junc_start = 0;
+								int junc_end = 0;
+								if (nd == 0) {
+									// It's the source node.
+									junc_start = no2gnode[s][g][1]->start;
+								} else {
+									junc_start = no2gnode[s][g][nd]->end;
+								}
+								if (no2gnode[s][g][ no2gnode[s][g][nd]->child[c] ] -> start == 0) {
+									// The node goes to the sink.
+									junc_end = no2gnode[s][g][no2gnode[s][g].Count()-2]->end;
+								} else {
+									junc_end = no2gnode[s][g][ no2gnode[s][g][nd]->child[c] ] -> start;
+								}
+								if(s == 0) {
+									fprintf(edge_cov_neg_bed, "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+								} else if (s == 1) {
+									fprintf(edge_cov_pos_bed, "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+								}
 							}
 						}
 					}
+					fprintf(stderr,"}\n");
 				}
-				fprintf(stderr,"}\n");
 			}
 		}
-	}
-	// if (!exonIntervals.empty()) {
-	// 	if (exonIntervals.size() >= 4) {
-	// 		draw(exonIntervals, intronIntervals, string(plot_dir.chars())+"/plot_"+to_string(bundle_start)+"_"+to_string(bundle_end)+"_"+to_string(s)+"_"+to_string(g)+".png");
-	// 	}
-	// }
+		// if (!exonIntervals.empty()) {
+		// 	if (exonIntervals.size() >= 4) {
+		// 		draw(exonIntervals, intronIntervals, string(plot_dir.chars())+"/plot_"+to_string(bundle_start)+"_"+to_string(bundle_end)+"_"+to_string(s)+"_"+to_string(g)+".png");
+		// 	}
+		// }
 
+	}
 
 		/*****************************
 		 ** 4. I can clean up some data here:
