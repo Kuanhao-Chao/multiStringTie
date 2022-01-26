@@ -169,7 +169,7 @@ endif
 	${CXX} ${CXXFLAGS} -c $< -o $@
 
 OBJS += rlink.o tablemaker.o tmerge.o
-OBJS_MULTI += rlink.o tablemaker.o tmerge.o multist.o rlink_multi.o visualization.o
+OBJS_MULTI += rlink.o tablemaker.o tmerge.o multist.o rlink_multi.o visualization.o unispg.o rlink_unispg.o
 
 ############################
 ## KH ADD: compiling multistringtie
@@ -189,7 +189,9 @@ rlink.o : rlink.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
 tmerge.o : rlink.h tmerge.h
 tablemaker.o : tablemaker.h rlink.h
 multist.o : multist.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
+unispg.o : unispg.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
 rlink_multi.o : rlink_multi.h 
+rlink_unispg.o : rlink_unispg.h 
 visualization.o : visualization.h 
 
 ##${BAM}/libbam.a: 

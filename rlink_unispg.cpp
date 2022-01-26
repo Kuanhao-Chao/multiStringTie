@@ -1,5 +1,5 @@
 #include "rlink.h"
-#include "rlink_multi.h"
+#include "rlink_unispg.h"
 #include "GBitVec.h"
 #include <float.h>
 #include <cmath>
@@ -8,7 +8,6 @@
 #ifdef GMEMTRACE
 #include "proc_mem.h"
 #endif
-
 
 extern FILE *c_out;         // file handle for the input transcripts that are fully covered by reads
 
@@ -56,16 +55,38 @@ extern FILE* f_out;
 ****************/
 extern FILE* uinigraph_out;
 // extern bool universal_splice_graph;
+extern GStr outfname_prefix;
 
 extern FILE* node_cov_pos_bed;
 extern FILE* edge_cov_pos_bed;
 extern FILE* node_cov_neg_bed;
 extern FILE* edge_cov_neg_bed;
+
+
+extern UnispgGp* unispg_gp;
+extern int current_gidx;
+extern GVec<FILE*> node_cov_pos_bed_vec;
+// GVec<GStr> nodecovposfname_vec; 
+extern GVec<FILE*> edge_cov_pos_bed_vec;
+// GVec<GStr> edgecovposfname_vec; 
+
+extern GVec<FILE*> node_cov_neg_bed_vec;
+// GVec<GStr> nodecovnegfname_vec; 
+extern GVec<FILE*> edge_cov_neg_bed_vec;
+// GVec<GStr> edgecovnegfname_vec; 
+
+extern GVec<FILE*> node_cov_pos_bed_unispg_vec;
+// GVec<GStr> nodecovposfname_unispg_vec; 
+extern GVec<FILE*> edge_cov_pos_bed_unispg_vec;
+// GVec<GStr> edgecovposfname_unispg_vec; 
+
+extern GVec<FILE*> node_cov_neg_bed_unispg_vec;
+// GVec<GStr> nodecovnegfname_unispg_vec; 
+extern GVec<FILE*> edge_cov_neg_bed_unispg_vec;
+// GVec<GStr> edgecovnegfname_unispg_vec; 
 /****************
  **  END KH Adding 
 ****************/
-
-
 
 extern GStr label;
 
@@ -75,394 +96,28 @@ inline int edge(int min, int max, int gno) {
 }
 
 
-
-CGraphnode *create_graphnode_multi(int s, int g, uint start,uint end,int nodeno,CBundlenode *bundlenode,
+CGraphnode *create_graphnode_unispg(int s, int g, uint start,uint end,int nodeno,CBundlenode *bundlenode,
 		GVec<CGraphinfo> **bundle2graph,GPVec<CGraphnode> **no2gnode) {
 
 	/*
 	{ // DEBUG ONLY
-		fprintf(stderr,"create_graphnode_multi[%d][%d]:%d-%d nodeno=%d\n",s,g,start,end,nodeno);
+		fprintf(stderr,"create_graphnode_unispg[%d][%d]:%d-%d nodeno=%d\n",s,g,start,end,nodeno);
 	}
 	*/
-/****************
- **  Original
- ****************/
-	// CGraphnode* gnode=new CGraphnode(start,end,nodeno);
-	// CGraphinfo ginfo(g,nodeno);
-	// bundle2graph[s][bundlenode->bid].Add(ginfo);
-	// no2gnode[s][g].Add(gnode);
-/****************
- **  Original
- ****************/
-
-/****************
- **  New
- ****************/
 	CGraphnode* gnode=new CGraphnode(start,end,nodeno);
 	CGraphinfo ginfo(g,nodeno);
 	bundle2graph[s][bundlenode->bid].Add(ginfo);
 	no2gnode[s][g].Add(gnode);
-/****************
- **  New
- ****************/
 
 	return(gnode);
 }
 
-CGraphnode *create_graphnode_multi_cov(int s, int g, uint start,uint end,int nodeno, float nodecov, CBundlenode *bundlenode, GVec<CGraphinfo> **bundle2graph,GPVec<CGraphnode> **no2gnode) {
-
-	/*
-	{ // DEBUG ONLY
-		fprintf(stderr,"create_graphnode_multi[%d][%d]:%d-%d nodeno=%d\n",s,g,start,end,nodeno);
-	}
-	*/
-/****************
- **  Original
- ****************/
-	// CGraphnode* gnode=new CGraphnode(start,end,nodeno);
-	// CGraphinfo ginfo(g,nodeno);
-	// bundle2graph[s][bundlenode->bid].Add(ginfo);
-	// no2gnode[s][g].Add(gnode);
-/****************
- **  Original
- ****************/
-
-/****************
- **  New
- ****************/
-	CGraphnode* gnode=new CGraphnode(start,end,nodeno, nodecov);
-	CGraphinfo ginfo(g,nodeno);
-	bundle2graph[s][bundlenode->bid].Add(ginfo);
-	no2gnode[s][g].Add(gnode);
-/****************
- **  New
- ****************/
-
-	return(gnode);
-}
-
-
-
-CGraphnode *longtrim_multi(int s, int g, int refstart,int nodeend, int &nls, int &nle, bool &startcov, bool endcov, GVec<CPred> &lstart, GVec<CPred> &lend,
-		CGraphnode *graphnode,CGraphnode *source, CGraphnode *sink, GVec<float>& futuretr, int& graphno, GVec<float>* bpcov,
-		CBundlenode *bundlenode,GVec<CGraphinfo> **bundle2graph,GPVec<CGraphnode> **no2gnode, int &edgeno) {
-
-	while(nls<lstart.Count() && lstart[nls].predno<(int)graphnode->start) nls++;
-	while(nle<lend.Count() && lend[nle].predno<(int)graphnode->start) nle++;
-	while((nls<lstart.Count() && lstart[nls].predno<nodeend) || (nle<lend.Count() && lend[nle].predno<nodeend)){
-		if(nle>=lend.Count() || (nls<lstart.Count() && lstart[nls].predno<=lend[nle].predno)) { // start comes first
-			float tmpcov=0;
-			if((startcov || lstart[nls].predno>(int)(graphnode->start+longintronanchor)) &&(endcov || lstart[nls].predno<nodeend+(int)longintronanchor)) { // start and ends can not be too close to a junction
-				int startpos=lstart[nls].predno-refstart;
-				int winstart=startpos-CHI_THR;
-				if(winstart<0) winstart=0;
-				int winend=startpos+CHI_THR-1;
-				if(winend>=bpcov->Count()) winend=bpcov->Count()-1;
-				/*tmpcov=(get_cov(1,startpos,winend,bpcov)-get_cov(2-2*s,startpos,winend,bpcov)-
-						get_cov(1,winstart,startpos-1,bpcov)+get_cov(2-2*s,winstart,startpos-1,bpcov))/(DROP*CHI_THR);*/
-				tmpcov=(get_cov_sign(2*s,startpos,winend,bpcov)-get_cov_sign(2*s,winstart,startpos-1,bpcov))/(DROP*CHI_THR);
-			}
-			if(tmpcov<=0 && lstart[nls].cov<0) tmpcov=ERROR_PERC; // to re-estimate later in process_transfrags
-			if(tmpcov>0) {
-				tmpcov+=trthr;
-				uint prevend=graphnode->end;
-				graphnode->end=lstart[nls].predno-1;
-				CGraphnode *prevnode=graphnode;
-				graphnode=create_graphnode_multi(s,g,lstart[nls].predno,prevend,graphno,bundlenode,bundle2graph,no2gnode);
-				graphnode->hardstart=true;
-/****************
- **  KH comment out
- ****************/
-				graphno++;
-				source->child.Add(graphnode->nodeid);  // this node is the child of source
-				graphnode->parent.Add(source->nodeid); // this node has source as parent
-				prevnode->child.Add(graphnode->nodeid); // this node is the child of previous node
-				graphnode->parent.Add(prevnode->nodeid); // this node has as parent the previous node
-/****************
- ** End of KH comment out
- ****************/
-				float tmp=graphno-1;
-				futuretr.cAdd(0.0);
-				futuretr.Add(tmp);
-				//tmp=lstart[nls].cov+trthr;
-				futuretr.Add(tmpcov);
-				//		graphnode->start,lstart[nls].cov,get_cov(2*s,startpos,startpos+CHI_THR-1,bpcov),get_cov(1,startpos,startpos+CHI_THR-1,bpcov),get_cov(2-2*s,startpos,startpos+CHI_THR-1,bpcov),
-				//		get_cov(2*s,startpos-CHI_THR,startpos-1,bpcov),get_cov(1,startpos-CHI_THR,startpos-1,bpcov),get_cov(2-2*s,startpos-CHI_THR,startpos-1,bpcov));
-
-				tmp=prevnode->nodeid;futuretr.Add(tmp);
-				tmp=graphnode->nodeid;futuretr.Add(tmp);
-				tmp=trthr;futuretr.Add(tmp);
-				// COUNT 2 EDGES HERE
-				edgeno+=2;
-				startcov=false;
-			}
-			nls++;
-		}
-		else if(nls>=lstart.Count() || (nle<lend.Count() && lend[nle].predno<lstart[nls].predno)) { // end comes first
-			float tmpcov=0;
-			if((!startcov || lend[nle].predno>(int)(graphnode->start+longintronanchor)) &&(!endcov || lend[nle].predno<nodeend+(int)longintronanchor)) {
-				int endpos=lend[nle].predno-refstart;
-				int winstart=endpos-CHI_THR+1;
-				if(winstart<0) winstart=0;
-				int winend=endpos+CHI_THR;
-				if(winend>=bpcov->Count()) winend=bpcov->Count()-1;
-				/*tmpcov=(get_cov(1,winstart,endpos,bpcov)-get_cov(2-2*s,winstart,endpos,bpcov)-
-						get_cov(1,endpos+1,winend,bpcov)+get_cov(2-2*s,endpos+1,winend,bpcov))/(DROP*CHI_THR);*/
-				tmpcov=(get_cov_sign(2*s,winstart,endpos,bpcov)-get_cov_sign(2*s,endpos+1,winend,bpcov))/(DROP*CHI_THR);
-			} 
-			if(tmpcov<=0 && lend[nle].cov<0) tmpcov=ERROR_PERC; // to re-estimate later in process_transfrags
-			if(tmpcov>0) {
-				tmpcov+=trthr;
-				float tmp=graphno-1;
-				uint prevend=graphnode->end;
-				graphnode->end=lend[nle].predno;
-				CGraphnode *prevnode=graphnode;
-				graphnode->hardend=true;
-				graphnode=create_graphnode_multi(s,g,lend[nle].predno+1,prevend,graphno,bundlenode,bundle2graph,no2gnode);
-				graphno++;
-/****************
- **  KH comment out
- ****************/
-				prevnode->child.Add(graphnode->nodeid); // this node is the child of previous node
-				graphnode->parent.Add(prevnode->nodeid); // this node has as parent the previous node
-				sink->parent.Add(prevnode->nodeid); // prevnode is the parent of sink
-				// remember to create transfrag as well -> I don't know the gno yet, so I can not create it here
-/****************
- ** End of KH comment out
- ****************/
-				futuretr.Add(tmp);
-				futuretr.cAdd(-1.0);
-				//tmp=lend[nle].cov+trthr;
-				futuretr.Add(tmpcov);
-				tmp=prevnode->nodeid;futuretr.Add(tmp);
-				tmp=graphnode->nodeid;futuretr.Add(tmp);
-				tmp=trthr;futuretr.Add(tmp);
-				// COUNT 2 EDGES HERE
-				edgeno+=2;
-				startcov=true;
-			}
-			nle++;
-		}
-	}
-	return(graphnode);
-}
-
-
-CGraphnode *source2guide_multi(int s, int g, int refstart,uint newstart,uint newend, CGraphnode *graphnode,CGraphnode *source,
-		GVec<float>* bpcov,GVec<float>& futuretr, int& graphno,CBundlenode *bundlenode,GVec<CGraphinfo> **bundle2graph,
-		GPVec<CGraphnode> **no2gnode, int &edgeno) {
-
-	if(graphnode->start+longintronanchor>newstart) { // newstart is very close to graphnode start
-		for(int p=0;p<graphnode->parent.Count();p++) if(!graphnode->parent[p]) return(graphnode);
-	}
-
-	// compute maxabund
-	float leftcov=0;
-	float rightcov=0;
-
-	//int os=2-2*s; // other strand
-
-	if(!mergeMode) {
-		if(newstart>graphnode->start) {
-			uint gstart=graphnode->start;
-			if(newstart-gstart > CHI_WIN) {
-				gstart=newstart-CHI_WIN;
-			}
-			//leftcov=get_cov(1,gstart-refstart,newstart-1-refstart,bpcov)- get_cov(os,gstart-refstart,newstart-1-refstart,bpcov);
-			leftcov=get_cov_sign(2*s,gstart-refstart,newstart-1-refstart,bpcov);
-			leftcov/=newstart-gstart;
-		}
-		if(newstart<newend) {
-			uint gend=newend;
-			if(newend-newstart>=CHI_WIN) {
-				gend=newstart+CHI_WIN-1;
-			}
-			//rightcov=get_cov(1,newstart-refstart,gend-refstart,bpcov)-get_cov(os,newstart-refstart,gend-refstart,bpcov);
-			rightcov=get_cov_sign(2*s,newstart-refstart,gend-refstart,bpcov);
-			rightcov/=gend-newstart+1;
-		}
-	}
-
-	float maxabund=rightcov-leftcov;
-	if(maxabund<trthr) maxabund=trthr;
-
-	if(graphnode->start<=newstart-1) {
-		uint prevend=graphnode->end;
-		graphnode->end=newstart-1;
-		CGraphnode *prevnode=graphnode;
-		graphnode=create_graphnode_multi(s,g,newstart,prevend,graphno,bundlenode,bundle2graph,no2gnode);
-		graphno++;
-		float tmp=prevnode->nodeid;futuretr.Add(tmp);
-		tmp=graphnode->nodeid;futuretr.Add(tmp);
-		tmp=trthr;futuretr.Add(tmp);
-/****************
- **  KH comment out
- ****************/
-		prevnode->child.Add(graphnode->nodeid); // this node is the child of previous node
-		graphnode->parent.Add(prevnode->nodeid); // this node has as parent the previous node
-/****************
- ** End of KH comment out
- ****************/
-	}
-/****************
- **  KH comment out
- ****************/
-	source->child.Add(graphnode->nodeid);  // this node is the child of source
-	graphnode->parent.Add(source->nodeid); // this node has source as parent
-/****************
- ** End of KH comment out
- ****************/
-	float tmp=graphno-1;
-	futuretr.cAdd(0.0);
-	futuretr.Add(tmp);
-	futuretr.Add(maxabund);
-	// COUNT 1 EDGE HERE because the source to guide edge was already included in our count
-	edgeno++;
-
-	return(graphnode);
-
-}
-
-
-// cummulative version
-CGraphnode *guide2sink_multi(int s, int g, int refstart,uint newstart,uint newend, CGraphnode *graphnode,CGraphnode *sink,
-		GVec<float>* bpcov,GVec<float>& futuretr, int& graphno,CBundlenode *bundlenode,GVec<CGraphinfo> **bundle2graph,
-		GPVec<CGraphnode> **no2gnode, int &edgeno) {
-
-	// compute maxabund
-	float leftcov=0;
-	float rightcov=0;
-
-	//int os=2-2*s;
-
-	if(!mergeMode) {
-		if(newstart>=graphnode->start) {
-			uint gstart=graphnode->start;
-			if(newstart-gstart >= CHI_WIN) {
-				gstart=newstart-CHI_WIN+1;
-			}
-			//leftcov=get_cov(1,gstart-refstart,newstart-refstart,bpcov)-get_cov(os,gstart-refstart,newstart-refstart,bpcov);
-			leftcov=get_cov_sign(2*s,gstart-refstart,newstart-refstart,bpcov);
-			leftcov/=newstart-gstart+1;
-		}
-		if(newstart+1<newend) {
-			uint gend=newend;
-			if(newend-newstart>CHI_WIN) {
-				gend=newstart+CHI_WIN;
-			}
-			//rightcov=get_cov(1,newstart+1-refstart,gend-refstart,bpcov)-get_cov(os,newstart+1-refstart,gend-refstart,bpcov);
-			rightcov=get_cov_sign(2*s,newstart+1-refstart,gend-refstart,bpcov);
-			rightcov/=gend-newstart;
-		}
-	}
-
-	float maxabund=leftcov-rightcov;
-	if(maxabund<trthr) maxabund=trthr;
-
-	float tmp=graphno-1;
-	uint prevend=graphnode->end;
-	graphnode->end=newstart;
-	CGraphnode *prevnode=graphnode;
-	graphnode=create_graphnode_multi(s,g,newstart+1,prevend,graphno,bundlenode,bundle2graph,no2gnode);
-	graphno++;
-/****************
- **  KH comment out
- ****************/
-	prevnode->child.Add(graphnode->nodeid); // this node is the child of previous node
-	graphnode->parent.Add(prevnode->nodeid); // this node has as parent the previous node
-	sink->parent.Add(prevnode->nodeid); // prevnode is the parent of sink
-/****************
- ** End of KH comment out
- ****************/
-	futuretr.Add(tmp);
-	futuretr.cAdd(-1.0);
-	futuretr.Add(maxabund);
-	tmp=prevnode->nodeid;futuretr.Add(tmp);
-	tmp=graphnode->nodeid;futuretr.Add(tmp);
-	tmp=trthr;futuretr.Add(tmp);
-	// COUNT 1 EDGE HERE because the source to guide edge was already included in our count
-	edgeno++;
-
-	return(graphnode);
-
-}
-
-
-CGraphnode *trimnode_all_multi(int s, int g, int refstart,uint newend, CGraphnode *graphnode,CGraphnode *source, CGraphnode *sink, GVec<float>* bpcov,
-		GVec<float>& futuretr, int& graphno,CBundlenode *bundlenode,GVec<CGraphinfo> **bundle2graph,GPVec<CGraphnode> **no2gnode, int &edgeno) {
-
-	GVec<CTrimPoint> trimpoint;
-	find_all_trims(refstart,2*s,graphnode->start,newend,bpcov,trimpoint);
-	for(int i=0;i<trimpoint.Count();i++) if(trimpoint[i].pos){
-		if(trimpoint[i].start) { // source trim
-			graphnode->end=trimpoint[i].pos-1;
-			//fprintf(stderr,"Create source trim:%d-%d and %d-%d\n",graphnode->start,graphnode->end,trimpoint[i].pos,newend);
-			CGraphnode *prevnode=graphnode;
-			graphnode=create_graphnode_multi(s,g,trimpoint[i].pos,newend,graphno,bundlenode,bundle2graph,no2gnode);
-			graphnode->hardstart=true;
-			graphno++;
-/****************
- **  KH comment out
- ****************/
-			source->child.Add(graphnode->nodeid);  // this node is the child of source
-			graphnode->parent.Add(source->nodeid); // this node has source as parent
-			prevnode->child.Add(graphnode->nodeid); // this node is the child of previous node
-			graphnode->parent.Add(prevnode->nodeid); // this node has as parent the previous node
-/****************
- ** End of KH comment out
- ****************/
-			float tmp=graphno-1;
-			futuretr.cAdd(0.0);
-			futuretr.Add(tmp);
-			float sourceabundance=trimpoint[i].abundance+trthr;futuretr.Add(sourceabundance);
-			tmp=prevnode->nodeid;futuretr.Add(tmp);
-			tmp=graphnode->nodeid;futuretr.Add(tmp);
-			tmp=trthr;futuretr.Add(tmp);
-			// COUNT 2 EDGES HERE
-			edgeno+=2;
-		}
-		else { // this is sink
-			graphnode->end=trimpoint[i].pos;
-			CGraphnode *prevnode=graphnode;
-			graphnode=create_graphnode_multi(s,g,trimpoint[i].pos+1,newend,graphno,bundlenode,bundle2graph,no2gnode);
-			graphno++;
-/****************
- **  KH comment out
- ****************/
-			prevnode->child.Add(graphnode->nodeid); // this node is the child of previous node
-			graphnode->parent.Add(prevnode->nodeid); // this node has as parent the previous node
-			sink->parent.Add(prevnode->nodeid); // prevnode is the parent of sink
-/****************
- ** End of KH comment out
- ****************/
-			prevnode->hardend=true;
-			// remember to create transfrag as well -> I don't know the gno yet, so I can not create it here
-			float tmp=graphno-2;
-			futuretr.Add(tmp);
-			futuretr.cAdd(-1.0);
-			float sinkabundance=trimpoint[i].abundance+trthr;futuretr.Add(sinkabundance);
-			tmp=prevnode->nodeid;futuretr.Add(tmp);
-			tmp=graphnode->nodeid;futuretr.Add(tmp);
-			tmp=trthr;futuretr.Add(tmp);
-			// COUNT 2 EDGES HERE
-			edgeno+=2;
-		}
-	}
-
-	return(graphnode);
-}
-
-
-GBitVec traverse_dfs_multi(int s,int g,CGraphnode *node,CGraphnode *sink,GBitVec parents,int gno, GVec<bool>& visit,
+GBitVec traverse_dfs_unispg(int s,int g,CGraphnode *node,CGraphnode *sink,GBitVec parents,int gno, GVec<bool>& visit,
 		GPVec<CGraphnode> **no2gnode,GPVec<CTransfrag> **transfrag, int &edgeno,GIntHash<int> **gpos,int &lastgpos){
 
 	//fprintf(stderr,"Traverse node %d\n",node->nodeid);
 
-
 	if(visit[node->nodeid]) {
-		/*****************************
-		 ** Step 1: Nodes have been visited
-		 *****************************/
 		node->parentpat = node->parentpat | parents;
 		for(int n=0;n<gno;n++) {
 			if(parents[n]) // add node's children to all parents of node
@@ -470,20 +125,15 @@ GBitVec traverse_dfs_multi(int s,int g,CGraphnode *node,CGraphnode *sink,GBitVec
 			else if(node->childpat[n])
 				no2gnode[s][g][n]->parentpat = no2gnode[s][g][n]->parentpat | node->parentpat;
 		}
-	} else {
-		/*****************************
-		 ** Step 1: Nodes have not been visited
-		 *****************************/
+	}
+	else {
 		node->childpat.resize(gno+edgeno);
 		node->parentpat.resize(gno+edgeno);
 		node->parentpat = node->parentpat | parents;
 		visit[node->nodeid]=true;
 		parents[node->nodeid]=1; // add the node to the parents
 
-		/*****************************
-		 ** node has source only as parent -> add transfrag from source to node.
-		 *****************************/
-		if(node->parent.Count()==1 && !node->parent[0]) {
+		if(node->parent.Count()==1 && !node->parent[0]) { // node has source only as parent -> add transfrag from source to node
 			GBitVec trpat(gno+edgeno);
 			trpat[0]=1;
 			trpat[node->nodeid]=1;
@@ -524,9 +174,6 @@ GBitVec traverse_dfs_multi(int s,int g,CGraphnode *node,CGraphnode *sink,GBitVec
 
 		}
 
-		/*****************************
-		 ** node is not sink.
-		 *****************************/
 		int n=node->child.Count();
 		if(node != sink && !n) {
 			node->child.Add(sink->nodeid);  // add sink to the node's children
@@ -581,10 +228,7 @@ GBitVec traverse_dfs_multi(int s,int g,CGraphnode *node,CGraphnode *sink,GBitVec
 
 		//edgeno+=n; // this will have to be deleted in the end; now I put it so that I can check equivalence with the one computed when creating the graph
 
-		/*****************************
-		 ** iterate through all children
-		 *****************************/
-	    for(int i=0; i< n; i++) {
+	    for(int i=0; i< n; i++) { // for all children
 	    	GBitVec childparents=parents;
 	    	int min=node->nodeid; // nodeid is always smaller than child node ?
 	    	int max=node->child[i];
@@ -608,7 +252,7 @@ GBitVec traverse_dfs_multi(int s,int g,CGraphnode *node,CGraphnode *sink,GBitVec
 			}
 
 			//fprintf(stderr,"Call for child %d with id=%d\n",node->child[i],no2gnode[s][g][node->child[i]]->nodeid);
-	    	node->childpat = node->childpat | traverse_dfs_multi(s,g,no2gnode[s][g][node->child[i]],sink,childparents,gno,visit,no2gnode,transfrag,edgeno,gpos,lastgpos);
+	    	node->childpat = node->childpat | traverse_dfs_unispg(s,g,no2gnode[s][g][node->child[i]],sink,childparents,gno,visit,no2gnode,transfrag,edgeno,gpos,lastgpos);
 	    }
 	} // end else from if(visit[node->nodeid])
 
@@ -619,19 +263,21 @@ GBitVec traverse_dfs_multi(int s,int g,CGraphnode *node,CGraphnode *sink,GBitVec
 }
 
 
-int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bnode,
+int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bnode,
 		GList<CJunction>& junction,GList<CJunction>& ejunction,GVec<CGraphinfo> **bundle2graph,
 		GPVec<CGraphnode> **no2gnode,GPVec<CTransfrag> **transfrag,GIntHash<int> **gpos,BundleData* bdata,
-		int &edgeno,int &lastgpos,GArray<GEdge>& guideedge, UniSpliceGraphGp* uni_splice_graphGp, int refend=0){
+		int &edgeno,int &lastgpos,GArray<GEdge>& guideedge, int refend=0){
 
 	if (multiMode) {
+        // int uni_refstart = unispg_gp -> get_refstart();
+		// int uni_refend = unispg_gp -> get_refend();
+        // fprintf(stderr, "* uni_refstart: %d\n", uni_refstart);
+        // fprintf(stderr, "* uni_refend: %d\n", uni_refend);
 	} else if (unispgMode){
-		int uni_refstart = uni_splice_graphGp -> get_refstart();
-		int uni_refend = uni_splice_graphGp -> get_refend();
-		int* uni_gpSize = uni_splice_graphGp -> get_gpSize();
-		GVec<int>* uni_graphnoGp = uni_splice_graphGp -> get_graphnoGp();
-		GVec<int>* uni_edgenoGp = uni_splice_graphGp -> get_edgenoGp();  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
-		GPVec<CGraphnode>** uni_no2gnodeGp = uni_splice_graphGp -> get_no2gnodeGp(); // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+		// int* uni_gpSize = unispg_gp -> get_gpSize();
+		// GVec<int>* uni_graphnoGp = unispg_gp -> get_graphnoGp();
+		// GVec<int>* uni_edgenoGp = unispg_gp -> get_edgenoGp();  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+		// GPVec<CGraphnode>** uni_no2gnodeGp = unispg_gp -> get_no2gnodeGp(); // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
 	} else {
 		// normalMode
 	}
@@ -640,7 +286,7 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 	 **  KH Adding 
 	****************/
 	fprintf(stdout, "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
-	fprintf(stdout, "&&&&&& Start 'create_graph_multi'\n");
+	fprintf(stdout, "&&&&&& Start 'create_graph_unispg'\n");
 	fprintf(stdout, "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
 	/****************
 	 **  END KH Adding 
@@ -715,6 +361,7 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 		else nge++;
 	}
 	bundlenode=bnode[bundle->startnode];
+
 	int njs=0; // index of sorted junction starts
 	int nje=0; // index of sorted junction ends
 
@@ -753,7 +400,7 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 	}
 
 	/*****************************
-	 ** Step 3: 'create_graphnode_multi' function
+	 ** Step 3: 'create_graphnode_unispg' function
 	 ** 	Process nodes in the bundle.
 	 *****************************/
 	int f=0; // feature index
@@ -868,164 +515,6 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 
 		fprintf(stderr,"process bundlenode %d-%d:%d bpcov_count=%d refstart=%d\n",bundlenode->start,bundlenode->end,s,bpcov->Count(),refstart);
 
-
-
-
-/****************
- **  This is the global graph
-****************/
-// Traverse the universal graph!!
-// if(g < uni_gpSize[s]) {
-// 	fprintf(stderr, "&&& s %d\n: ", s);
-// 	fprintf(stderr, "&&& g %d\n: ", g);
-// 	fprintf(stderr, "uni_refstart %d\n: ", uni_refstart);
-// 	fprintf(stderr, "uni_refend  %d\n: ", uni_refend);
-// 	fprintf(stderr, "uni_gpSize  %d\n: ", uni_gpSize[s]);
-// 	fprintf(stderr, "uni_graphnoGp  %d\n: ", uni_graphnoGp[s][g]);
-// 	fprintf(stderr, "uni_edgenoGp  %d\n: ", uni_edgenoGp[s][g]);
-// 	fprintf(stderr,"nd_global: %d  Digraph %d_%d_%d_%d {", nd_global, uni_refstart, uni_refend, s, g);
-// 	// graphno[s][b]: number of nodes in graph.
-// // nd is the node index for the global graph.
-// 	for(int nd=nd_global;nd<uni_graphnoGp[s][g]-1;nd++) {
-// 		// fprintf(stderr,"nd: %d[start=%d end=%d cov=%f];",nd,uni_no2gnodeGp[s][g][nd]->start,uni_no2gnodeGp[s][g][nd]->end,uni_no2gnodeGp[s][g][nd]->cov);
-// 		fprintf(stderr,"\n !!checker global splice graph node [start=%d end=%d cov=%f]; \n\tlocal bundle node [start=%d end=%d cov=%f];\n\n",uni_no2gnodeGp[s][g][nd]->start,uni_no2gnodeGp[s][g][nd]->end,uni_no2gnodeGp[s][g][nd]->cov, bundlenode->start, bundlenode->end);
-
-// // The node belongs to the current bundlenode
-// // bundlenode size >= global node size
-// 		bool additional_node = false;
-// 		bool global_local_overlap = false;
-// 		if ((uni_no2gnodeGp[s][g][nd]->end < bundlenode->start)) {
-// 			additional_node = true;
-// 			// ----------   |(s).................(e)|
-// 			fprintf(stderr,"\n  &&& Bundle: ----------   |(s).................(e)| \n");
-// 			// continue;
-// 			nd_global = nd+1;
-// 		} else if (uni_no2gnodeGp[s][g][nd]->start < bundlenode->start && uni_no2gnodeGp[s][g][nd]->end >= bundlenode->start && uni_no2gnodeGp[s][g][nd]->end <= bundlenode->end) {
-// 			additional_node = true;
-// 			global_local_overlap = true;
-// 			// ----------|(s).................(e)|   or   -----|(s)-----............(e)|
-// 			fprintf(stderr,"\n  &&& Bundle: ----------|(s).................(e)|   or   -----|(s)-----............(e)| \n");
-// 			nd_global = nd+1;
-// 		} else if (uni_no2gnodeGp[s][g][nd]->start < bundlenode->start && uni_no2gnodeGp[s][g][nd]->end > bundlenode->end) {
-// 			additional_node = true;
-// 			global_local_overlap = true;
-// 			// -----|(s)------------(e)|--
-// 			fprintf(stderr,"\n &&& Bundle: -----|(s)------------(e)|-- \n");
-// 			nd_global = nd+1;
-// 		} else if (uni_no2gnodeGp[s][g][nd]->start == bundlenode->start && uni_no2gnodeGp[s][g][nd]->end < bundlenode->end) {
-// 			additional_node = true;
-// 			global_local_overlap = true;
-// 			// |(s)----------.................(e)| 
-// 			fprintf(stderr,"\n &&& Bundle: |(s)----------............(e)|\n");
-// 			nd_global = nd+1;
-// 		} else if (uni_no2gnodeGp[s][g][nd]->start > bundlenode->start && uni_no2gnodeGp[s][g][nd]->end < bundlenode->end) {
-// 			additional_node = true;
-// 			global_local_overlap = true;
-// 			// |(s)........----------........(e)|
-// 			fprintf(stderr,"\n |(s)........----------........(e)| \n");
-// 			nd_global = nd+1;
-// 		} else if (uni_no2gnodeGp[s][g][nd]->start > bundlenode->start && uni_no2gnodeGp[s][g][nd]->end == bundlenode->end) {
-// 			additional_node = true;
-// 			global_local_overlap = true;
-// 			// |(s)............----------(e)|
-// 			fprintf(stderr,"\n &&& Bundle: |(s)............----------(e)| \n");
-// 			nd_global = nd+1;
-// 		} else if (uni_no2gnodeGp[s][g][nd]->start == bundlenode->start && uni_no2gnodeGp[s][g][nd]->end == bundlenode->end) {
-// 			additional_node = true;
-// 			global_local_overlap = true;
-// 			// |(s)----------(e)|
-// 			fprintf(stderr,"\n &&& Bundle: |(s)----------(e)| \n");
-// 			nd_global = nd+1;
-// 		} else if (uni_no2gnodeGp[s][g][nd]->start <= bundlenode->end && uni_no2gnodeGp[s][g][nd]->end > bundlenode->end) {
-// 			additional_node = true;
-// 			global_local_overlap = true;
-// 			// |(s)...............------(e)|-----    or   |(s).................(e)|----------   
-// 			fprintf(stderr,"\n &&& Bundle: (s)...............------(e)|-----    or   |(s).................(e)|---------- \n");
-// 			nd_global = nd+1;
-// 		} else if (uni_no2gnodeGp[s][g][nd]->start > bundlenode->end) {
-// 			// The node is outside the current bundle => This node belongs to the next bundlenode
-// 			// |(s).................(e)|   ----------
-// 			fprintf(stderr,"\n &&& Bundle: |(s).................(e)|   ---------- \n");
-// 			// I should create another bundle node!!!
-// 			// bundlenode=bundlenode->nextnode; // advance to next bundlenode
-// 			break;
-// 		}
-// 		if (additional_node) {
-// 			unispg_tmp.clear();
-// 			unispg_tmp.push_back(uni_no2gnodeGp[s][g][nd]->start);
-// 			unispg_tmp.push_back(uni_no2gnodeGp[s][g][nd]->end);
-// 			exonIntervals_unispg.push_back(unispg_tmp);
-// 		// 	CGraphnode *graphnode=create_graphnode_multi_cov(s,g,uni_no2gnodeGp[s][g][nd]->start,uni_no2gnodeGp[s][g][nd]->end,graphno,uni_no2gnodeGp[s][g][nd]->cov+1,bundlenode,bundle2graph,no2gnode); // creates a $graphno graphnode  with start at bundle start, and end at bundle end
-// 		// 	fprintf(stderr, "\nAdding !!! ^^^ global: %d, local: %d.  \n", nd, graphno);
-// 		// 	global2local_nodehash.Add(nd, graphno);
-// 		// 	// I need to create a mapping from old node id to new node id!!!
-// 		// 	// Adding edges here
-// 		// 	for(int p=0;p<uni_no2gnodeGp[s][g][nd]->parent.Count();p++) {
-// 		// 		fprintf(stderr,"%d->%d;", uni_no2gnodeGp[s][g][nd]->parent[p], nd);
-// 		// 		const int* local_node_idx=global2local_nodehash[uni_no2gnodeGp[s][g][nd]->parent[p]];
-// 		// 		if (local_node_idx) {
-// 		// 			fprintf(stderr, "\nRetrieving!! ^^^ global: %d, local: %d.  \n", uni_no2gnodeGp[s][g][nd]->parent[p], *local_node_idx);
-// 		// 			// int local_node_idx = global2local_nodehash[uni_no2gnodeGp[s][g][nd]->parent[p]];
-// 		// 			// In a matched graph, now I need to add edges.
-// 		// 			// CGraphnode *node_p=no2gnode[s][g][uni_no2gnodeGp[s][g][nd]->parent[p]];
-
-
-
-// 		// 			graphnode -> parent.Add(uni_no2gnodeGp[s][g][nd]->parent[p]);
-
-// 		// 			CGraphnode *node_p=no2gnode[s][g][uni_no2gnodeGp[s][g][nd]->parent[p]];
-// 		// 			node_p -> child.Add(graphnode->nodeid);
-
-// 		// 			// COUNT EDGE HERE
-// 		// 			edgeno++;
-// 		// 			// fprintf(stderr,"1 Edge %d-%d, edgeno=%d\n",node_p->nodeid,graphnode->nodeid,edgeno);
-// 		// 		}
-// 		// 	}
-// 		// 	graphno++;
-
-// 		// 	// This is the sink of the universal splice graph.
-// 		// 	// CGraphnode *unispg_sink = uni_no2gnodeGp[s][g][uni_graphnoGp[s][g]-1];
-			
-// 		// 	for(int c=0;c<uni_no2gnodeGp[s][g][nd]->child.Count();c++) {
-// 		// 		if (uni_no2gnodeGp[s][g][nd]->child[c] == uni_graphnoGp[s][g]-1) {
-// 		// 			fprintf(stderr, "This node connect to the sink!!!\n");
-// 		// 			// graphnode -> child.Add(sink->nodeid);
-// 		// 			sink->parent.Add(graphnode->nodeid);
-// 		// 			edgeno++;
-// 		// 		}
-
-// 		// 	}
-// 		}  // end of => if (additional_node) {	
-// 	}
-
-
-
-
-// 	// for(int nd=0;nd<uni_graphnoGp[s][g];nd++) {
-// 	// 	// fprintf(stderr,"Node %d with parents:",i);
-// 	// 	for(int c=0;c<uni_no2gnodeGp[s][g][nd]->child.Count();c++) {
-// 	// 		fprintf(stderr,"%d->",nd);			
-// 	// 		fprintf(stderr,"%d;",uni_no2gnodeGp[s][g][nd]->child[c]);
-// 	// 	}
-// 	// }
-
-// 	// 	for(int nd=0;nd<uni_graphnoGp[s][g];nd++) {
-// 	// 		// fprintf(stderr,"Node %d with parents:",i);
-// 	// 		for(int c=0;c<uni_no2gnodeGp[s][g][nd]->child.Count();c++) {
-// 	// 			fprintf(stderr,"%d->",nd);			
-// 	// 			fprintf(stderr,"%d;",uni_no2gnodeGp[s][g][nd]->child[c]);
-// 	// 		}
-// 	// 	}
-// 	fprintf(stderr,"}\n");
-// }
-
-// /****************
-//  **  This is the global graph (End)
-// ****************/
-
-
-					// We need to consider the global graph and the local junctions distribution.
-// We need to massage the node!
 					uint currentstart=bundlenode->start; // current start is bundlenode's start
 					uint endbundle=bundlenode->end; // initialize end with bundlenode's end for now
 
@@ -1068,7 +557,7 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 			/****************
 			 **  Creating node based on the universal splice graph
 			****************/
-					// CGraphnode *graphnode=create_graphnode_multi_cov(s,g,uni_no2gnodeGp[s][g][nd]->start,uni_no2gnodeGp[s][g][nd]->end,graphno,uni_no2gnodeGp[s][g][nd]->cov+1,bundlenode,bundle2graph,no2gnode); // creates a $graphno graphnode  with start at bundle start, and end at bundle end
+					// CGraphnode *graphnode=create_graphnode_unispg_cov(s,g,uni_no2gnodeGp[s][g][nd]->start,uni_no2gnodeGp[s][g][nd]->end,graphno,uni_no2gnodeGp[s][g][nd]->cov+1,bundlenode,bundle2graph,no2gnode); // creates a $graphno graphnode  with start at bundle start, and end at bundle end
 					// fprintf(stderr, "\nAdding !!! ^^^ global: %d, local: %d.  \n", nd, graphno);
 					// global2local_nodehash.Add(nd, graphno);
 					// // I need to create a mapping from old node id to new node id!!!
@@ -1096,14 +585,8 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 			 **  Creating node based on the universal splice graph
 			****************/
 
-			/****************
-			 **  original
-			****************/
-					CGraphnode *graphnode=create_graphnode_multi(s,g,currentstart,endbundle,graphno,bundlenode,bundle2graph,no2gnode); // creates a $graphno graphnode  with start at bundle start, and end at bundle end
+					CGraphnode *graphnode=create_graphnode_unispg(s,g,currentstart,endbundle,graphno,bundlenode,bundle2graph,no2gnode); // creates a $graphno graphnode  with start at bundle start, and end at bundle end
 					graphno++;
-			/****************
-			 **  original
-			****************/
 
 			// KH: For multi-samples, I should just skip this.
 			/****************
@@ -1143,11 +626,9 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 			****************/
 
 					bool completed=false;
-
 					bool dropcov=false; // false(0) means start of bundle or junction end (raise in coverage); true(1) means junction start (drop in coverage)
 					int nls=0; // index in longstart
 					int nle=0; // index in longend
-
 
 					do {
 						while(nje<njunctions && (((int)ejunction[nje]->strand+1) != 2*s)) nje++; // skip junctions that don't have the same strand
@@ -1172,53 +653,50 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 						if(nje<njunctions) fprintf(stderr,"Found junction:%d-%d(%d)\n",ejunction[nje]->start,ejunction[nje]->end,ejunction[nje]->strand);
 
 
-			/****************
-			**  original
-			****************/
 						if(minjunction == 0 ) { // found a start junction here
 
-		// add guide starts/ends first
-		if(processguide) {
-			while(nge<guideedge.Count() && guideedge[nge].val<=graphnode->start) nge++;
-			if(nge<guideedge.Count()) {
+                            // add guide starts/ends first
+                            if(processguide) {
+                                while(nge<guideedge.Count() && guideedge[nge].val<=graphnode->start) nge++;
+                                if(nge<guideedge.Count()) {
 
-				while(true) {
+                                    while(true) {
 
-					while(nge<guideedge.Count() && guideedge[nge].strand!=s) nge++;
+                                        while(nge<guideedge.Count() && guideedge[nge].strand!=s) nge++;
 
-					if(nge>=guideedge.Count() || guideedge[nge].val>=junction[njs]->start) break;
+                                        if(nge>=guideedge.Count() || guideedge[nge].val>=junction[njs]->start) break;
 
-					uint gstart=guideedge[nge].val;
-					uint gend=junction[njs]->start;
-					bool sourceguide=false;
-					if(guideedge[nge].val<guideedge[nge].endval) sourceguide=true;
-					nge++;
-					if(sourceguide) { if(guideedge[nge-1].endval>endbundle) continue;}
-					else if(guideedge[nge-1].endval<currentstart) continue;
+                                        uint gstart=guideedge[nge].val;
+                                        uint gend=junction[njs]->start;
+                                        bool sourceguide=false;
+                                        if(guideedge[nge].val<guideedge[nge].endval) sourceguide=true;
+                                        nge++;
+                                        if(sourceguide) { if(guideedge[nge-1].endval>endbundle) continue;}
+                                        else if(guideedge[nge-1].endval<currentstart) continue;
 
-					while(nge<guideedge.Count() && guideedge[nge].strand!=s) nge++;
-					if(nge<guideedge.Count() && guideedge[nge].val<junction[njs]->start) gend=guideedge[nge].val;
+                                        while(nge<guideedge.Count() && guideedge[nge].strand!=s) nge++;
+                                        if(nge<guideedge.Count() && guideedge[nge].val<junction[njs]->start) gend=guideedge[nge].val;
 
-					// I need to check there is no other trimming needed due to drops from longreads
-					if(longreads && (lstart.Count() || lend.Count())) graphnode=longtrim(s,g,refstart,gstart,nls,nle,dropcov,!sourceguide,lstart,lend,
-							graphnode,source,sink,futuretr,graphno,bpcov,bundlenode,bundle2graph,no2gnode,edgeno);
+                                        // I need to check there is no other trimming needed due to drops from longreads
+                                        if(longreads && (lstart.Count() || lend.Count())) graphnode=longtrim(s,g,refstart,gstart,nls,nle,dropcov,!sourceguide,lstart,lend,
+                                                graphnode,source,sink,futuretr,graphno,bpcov,bundlenode,bundle2graph,no2gnode,edgeno);
 
-					if(sourceguide)	{
-						graphnode=source2guide(s,g,refstart,gstart,gend,graphnode,source,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);
-						dropcov=false;
-					}
-					else {
-						graphnode=guide2sink(s,g,refstart,gstart,gend,graphnode,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);
-						dropcov=true;
-					}
+                                        if(sourceguide)	{
+                                            graphnode=source2guide(s,g,refstart,gstart,gend,graphnode,source,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);
+                                            dropcov=false;
+                                        }
+                                        else {
+                                            graphnode=guide2sink(s,g,refstart,gstart,gend,graphnode,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);
+                                            dropcov=true;
+                                        }
 
-				}
-			}
-		}
-		// if(trim && !processguide && !mergeMode) graphnode=trimnode(s,g,refstart,junction[njs]->start,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);// do something to find intermediate nodes; alternatively, I could only do this for end nodes
-		else if(longreads && (lstart.Count() || lend.Count())) graphnode=longtrim(s,g,refstart,junction[njs]->start,nls,nle,dropcov,true,lstart,lend,
-					graphnode,source,sink,futuretr,graphno,bpcov,bundlenode,bundle2graph,no2gnode,edgeno);
-		if(trim && !longreads && !mergeMode) graphnode=trimnode_all(s,g,refstart,junction[njs]->start,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);// do something to find intermediate nodes; alternatively, I could only do this for end nodes
+                                    }
+                                }
+                            }
+                            // if(trim && !processguide && !mergeMode) graphnode=trimnode(s,g,refstart,junction[njs]->start,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);// do something to find intermediate nodes; alternatively, I could only do this for end nodes
+                            else if(longreads && (lstart.Count() || lend.Count())) graphnode=longtrim(s,g,refstart,junction[njs]->start,nls,nle,dropcov,true,lstart,lend,
+                                        graphnode,source,sink,futuretr,graphno,bpcov,bundlenode,bundle2graph,no2gnode,edgeno);
+                            if(trim && !longreads && !mergeMode) graphnode=trimnode_all(s,g,refstart,junction[njs]->start,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);// do something to find intermediate nodes; alternatively, I could only do this for end nodes
 
 
 							dropcov=true;
@@ -1226,9 +704,6 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 							graphnode->end=junction[njs]->start; // set the end of current graphnode to here; introduce smaller nodes if trimming is activated
 							uint pos=junction[njs]->start;
 							while(njs<njunctions && junction[njs]->start==pos ) { // remember ends here
-			/****************
-			**  KH comment out
-			****************/
 								if((junction[njs]->strand+1) == 2*s) {
 									//seenjunc++;
 									if(mergeMode && (int)junction[njs]->end==refend) { // this node goes straight to sink
@@ -1247,15 +722,9 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 										e->Add(graphnode->nodeid);
 									}
 								}
-			/****************
-			** End of KH comment out
-			****************/
 								njs++;
 							}
 
-			/****************
-			**  KH comment out
-			****************/
 				    		if(pos<endbundle) { // there is still place for another node in this bundle (I might put a limit of length here for the graphnode -> because otherwise one can assume this is just a pre-mRNA fragment)
 				    			// see if I should just skip node
 				    			if(endbundle-pos<junctionsupport) {
@@ -1271,8 +740,8 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 
 				    			if(!completed) {
 				    				//fprintf(stderr,"create graph 2\n");
-				    				// CGraphnode *nextnode = create_graphnode_multi_cov(s,g,pos+1,endbundle,graphno,1,bundlenode,bundle2graph,no2gnode);
-	    							CGraphnode *nextnode = create_graphnode_multi(s,g,pos+1,endbundle,graphno,bundlenode,bundle2graph,no2gnode);
+				    				// CGraphnode *nextnode = create_graphnode_unispg_cov(s,g,pos+1,endbundle,graphno,1,bundlenode,bundle2graph,no2gnode);
+	    							CGraphnode *nextnode = create_graphnode_unispg(s,g,pos+1,endbundle,graphno,bundlenode,bundle2graph,no2gnode);
 				    				graphno++;
 				    				graphnode->child.Add(nextnode->nodeid); // make nextnode a child of current graphnode
 				    				nextnode->parent.Add(graphnode->nodeid);// make graphnode a parent of nextnode
@@ -1283,9 +752,6 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 				    			}
 				    		}
 				    		else completed=true;
-			/****************
-			** End of KH comment out
-			****************/
 						}
 						else if(minjunction == 1) { // found a junction end here
 
@@ -1293,61 +759,51 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 							while(nje<njunctions && ejunction[nje]->end==pos) { // read all junction ends at the current start
 								nje++;
 							}
-
-			/****************
-			**  KH comment out
-			****************/
 							if(graphnode->start<pos) { // last created node starts before the position of the new node I want to create
 
+                                // add guide starts/ends first
+                                if(processguide) {
+                                    while(nge<guideedge.Count() && guideedge[nge].val<=graphnode->start) nge++;
+                                    if(nge<guideedge.Count()) {
 
+                                        while(true) {
 
+                                            while(nge<guideedge.Count() && guideedge[nge].strand!=s) nge++;
 
-		// add guide starts/ends first
-		if(processguide) {
-			while(nge<guideedge.Count() && guideedge[nge].val<=graphnode->start) nge++;
-			if(nge<guideedge.Count()) {
+                                            if(nge>=guideedge.Count() || guideedge[nge].val>=pos-1) break;
 
-				while(true) {
+                                            uint start=guideedge[nge].val;
+                                            uint end=pos-1;
+                                            bool sourceguide=false;
+                                            if(guideedge[nge].val<guideedge[nge].endval) sourceguide=true;
+                                            nge++;
+                                            if(sourceguide) { if(guideedge[nge-1].endval>endbundle) continue;}
+                                            else if(guideedge[nge-1].endval<currentstart) continue;
 
-					while(nge<guideedge.Count() && guideedge[nge].strand!=s) nge++;
+                                            while(nge<guideedge.Count() && guideedge[nge].strand!=s) nge++;
+                                            if(nge<guideedge.Count() && guideedge[nge].val<pos-1) end=guideedge[nge].val;
 
-					if(nge>=guideedge.Count() || guideedge[nge].val>=pos-1) break;
+                                            // I need to check there is no other trimming needed due to drops from longreads
+                                            if(longreads && (lstart.Count() || lend.Count())) graphnode=longtrim(s,g,refstart,start,nls,nle,dropcov,!sourceguide,lstart,lend,
+                                                    graphnode,source,sink,futuretr,graphno,bpcov,bundlenode,bundle2graph,no2gnode,edgeno);
 
-					uint start=guideedge[nge].val;
-					uint end=pos-1;
-					bool sourceguide=false;
-					if(guideedge[nge].val<guideedge[nge].endval) sourceguide=true;
-					nge++;
-					if(sourceguide) { if(guideedge[nge-1].endval>endbundle) continue;}
-					else if(guideedge[nge-1].endval<currentstart) continue;
+                                            if(sourceguide)	graphnode=source2guide(s,g,refstart,start,end,graphnode,source,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);
+                                            else graphnode=guide2sink(s,g,refstart,start,end,graphnode,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);
 
-					while(nge<guideedge.Count() && guideedge[nge].strand!=s) nge++;
-					if(nge<guideedge.Count() && guideedge[nge].val<pos-1) end=guideedge[nge].val;
-
-					// I need to check there is no other trimming needed due to drops from longreads
-					if(longreads && (lstart.Count() || lend.Count())) graphnode=longtrim(s,g,refstart,start,nls,nle,dropcov,!sourceguide,lstart,lend,
-							graphnode,source,sink,futuretr,graphno,bpcov,bundlenode,bundle2graph,no2gnode,edgeno);
-
-					if(sourceguide)	graphnode=source2guide(s,g,refstart,start,end,graphnode,source,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);
-					else graphnode=guide2sink(s,g,refstart,start,end,graphnode,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);
-
-				}
-			}
-		}
-		//if(trim && !processguide && !mergeMode) graphnode=trimnode(s,g,refstart,pos-1,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);// do something to find intermediate nodes; alternatively, I could only do this for end nodes
-		else if(longreads && (lstart.Count() || lend.Count())) graphnode=longtrim(s,g,refstart,pos-1,nls,nle,dropcov,false,lstart,lend,
-					graphnode,source,sink,futuretr,graphno,bpcov,bundlenode,bundle2graph,no2gnode,edgeno);
-		if(trim && !longreads && !mergeMode) graphnode=trimnode_all(s,g,refstart,pos-1,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);// do something to find intermediate nodes; alternatively, I could only do this for end nodes
-
-
-
+                                        }
+                                    }
+                                }
+                                //if(trim && !processguide && !mergeMode) graphnode=trimnode(s,g,refstart,pos-1,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);// do something to find intermediate nodes; alternatively, I could only do this for end nodes
+                                else if(longreads && (lstart.Count() || lend.Count())) graphnode=longtrim(s,g,refstart,pos-1,nls,nle,dropcov,false,lstart,lend,
+                                            graphnode,source,sink,futuretr,graphno,bpcov,bundlenode,bundle2graph,no2gnode,edgeno);
+                                if(trim && !longreads && !mergeMode) graphnode=trimnode_all(s,g,refstart,pos-1,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);// do something to find intermediate nodes; alternatively, I could only do this for end nodes
 
 
 								graphnode->end=pos-1; // set end of current graphnode here
 								dropcov=false;
 								// fprintf(stderr,"create graph 3\n");
-								// CGraphnode *nextnode = create_graphnode_multi_cov(s,g,pos,endbundle,graphno,1,bundlenode,bundle2graph,no2gnode);
-	    						CGraphnode *nextnode = create_graphnode_multi(s,g,pos,endbundle,graphno,bundlenode,bundle2graph,no2gnode);
+								// CGraphnode *nextnode = create_graphnode_unispg_cov(s,g,pos,endbundle,graphno,1,bundlenode,bundle2graph,no2gnode);
+	    						CGraphnode *nextnode = create_graphnode_unispg(s,g,pos,endbundle,graphno,bundlenode,bundle2graph,no2gnode);
 								graphno++;
 								graphnode->child.Add(nextnode->nodeid); // make nextnode a child of current graphnode
 								nextnode->parent.Add(graphnode->nodeid);// make graphnode a parent of nextnode
@@ -1358,13 +814,6 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 
 								graphnode=nextnode;
 							}
-			/****************
-			** End of KH comment out
-			****************/	
-
-			/****************
-			**  KH comment out
-			****************/
 							// GStr spos((int)pos);
 							// GVec<int> *e=ends[spos.chars()]; // WHY DOESN'T THIS REPEAT THE SAME THING IN CASE THE START HASN'T BEEN ADJUSTED? because nje is bigger now than the ones that end at the currentstart
 
@@ -1377,66 +826,47 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 								edgeno++;
 								fprintf(stderr,"6 Edge %d-%d, edgeno=%d\n",node->nodeid,graphnode->nodeid,edgeno);
 							}
-			/****************
-			** End of KH comment out
-			****************/	
 						}
-			/****************
-			**  original
-			****************/
-
-
 					} while((nje<njunctions && (ejunction[nje]->end<=endbundle)) || (njs<njunctions && (junction[njs]->start<=endbundle)));
 
-
-			/****************
-			**  KH comment out
-			****************/
 					if(!completed) { // I did not finish node --> this will be an ending node
 
+                        // add guide starts/ends first
+                        if(processguide) {
+                            while(nge<guideedge.Count() && guideedge[nge].val<=graphnode->start) nge++;
+                            if(nge<guideedge.Count()) {
 
+                                while(true) {
 
+                                    while(nge<guideedge.Count() && guideedge[nge].strand!=s) nge++;
 
+                                    if(nge>=guideedge.Count() || guideedge[nge].val>=endbundle) break;
 
-		// add guide starts/ends first
-		if(processguide) {
-			while(nge<guideedge.Count() && guideedge[nge].val<=graphnode->start) nge++;
-			if(nge<guideedge.Count()) {
+                                    uint start=guideedge[nge].val;
+                                    uint end=endbundle;
+                                    bool sourceguide=false;
+                                    if(guideedge[nge].val<guideedge[nge].endval) sourceguide=true;
+                                    nge++;
+                                    if(sourceguide) { if(guideedge[nge-1].endval>endbundle) continue;}
+                                    else if(guideedge[nge-1].endval<currentstart) continue;
 
-				while(true) {
+                                    while(nge<guideedge.Count() && guideedge[nge].strand!=s) nge++;
+                                    if(nge<guideedge.Count() && guideedge[nge].val<endbundle) end=guideedge[nge].val;
 
-					while(nge<guideedge.Count() && guideedge[nge].strand!=s) nge++;
+                                    // I need to check there is no other trimming needed due to drops from longreads
+                                    if(longreads && (lstart.Count() || lend.Count())) graphnode=longtrim(s,g,refstart,start,nls,nle,dropcov,!sourceguide,lstart,lend,
+                                            graphnode,source,sink,futuretr,graphno,bpcov,bundlenode,bundle2graph,no2gnode,edgeno);
 
-					if(nge>=guideedge.Count() || guideedge[nge].val>=endbundle) break;
+                                    if(sourceguide)	graphnode=source2guide(s,g,refstart,start,end,graphnode,source,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);
+                                    else graphnode=guide2sink(s,g,refstart,start,end,graphnode,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);
 
-					uint start=guideedge[nge].val;
-					uint end=endbundle;
-					bool sourceguide=false;
-					if(guideedge[nge].val<guideedge[nge].endval) sourceguide=true;
-					nge++;
-					if(sourceguide) { if(guideedge[nge-1].endval>endbundle) continue;}
-					else if(guideedge[nge-1].endval<currentstart) continue;
-
-					while(nge<guideedge.Count() && guideedge[nge].strand!=s) nge++;
-					if(nge<guideedge.Count() && guideedge[nge].val<endbundle) end=guideedge[nge].val;
-
-					// I need to check there is no other trimming needed due to drops from longreads
-					if(longreads && (lstart.Count() || lend.Count())) graphnode=longtrim(s,g,refstart,start,nls,nle,dropcov,!sourceguide,lstart,lend,
-							graphnode,source,sink,futuretr,graphno,bpcov,bundlenode,bundle2graph,no2gnode,edgeno);
-
-					if(sourceguide)	graphnode=source2guide(s,g,refstart,start,end,graphnode,source,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);
-					else graphnode=guide2sink(s,g,refstart,start,end,graphnode,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno);
-
-				}
-			}
-		}
-		// if(trim && !processguide && !mergeMode) graphnode=trimnode(s,g,refstart,endbundle,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno); // do something to find intermediate nodes; alternatively, I could only do this for end nodes
-		else if(longreads && (lstart.Count() || lend.Count())) graphnode=longtrim(s,g,refstart,endbundle,nls,nle,dropcov,true,lstart,lend,
-					graphnode,source,sink,futuretr,graphno,bpcov,bundlenode,bundle2graph,no2gnode,edgeno);
-		if(trim && !longreads && !mergeMode) graphnode=trimnode_all(s,g,refstart,endbundle,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno); // do something to find intermediate nodes; alternatively, I could only do this for end nodes
-
-
-
+                                }
+                            }
+                        }
+                        // if(trim && !processguide && !mergeMode) graphnode=trimnode(s,g,refstart,endbundle,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno); // do something to find intermediate nodes; alternatively, I could only do this for end nodes
+                        else if(longreads && (lstart.Count() || lend.Count())) graphnode=longtrim(s,g,refstart,endbundle,nls,nle,dropcov,true,lstart,lend,
+                                    graphnode,source,sink,futuretr,graphno,bpcov,bundlenode,bundle2graph,no2gnode,edgeno);
+                        if(trim && !longreads && !mergeMode) graphnode=trimnode_all(s,g,refstart,endbundle,graphnode,source,sink,bpcov,futuretr,graphno,bundlenode,bundle2graph,no2gnode,edgeno); // do something to find intermediate nodes; alternatively, I could only do this for end nodes
 
 
 						graphnode->end=endbundle;
@@ -1444,19 +874,6 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 						edgeno++;
 						fprintf(stderr,"7 Edge to sink from %d, edgeno=%d\n",graphnode->nodeid,edgeno);
 					}
-			/****************
-			** End of KH comment out
-			****************/	
-
-/****************
- **  This is the start of global graph (Lower part)
-****************/
-				
-		// }
-/****************
- **  This is the end of the global graph (Lower part)
-****************/
-
 	    bundlenode=bundlenode->nextnode; // advance to next bundle
 	} // end while(bundlenode!=NULL)
 
@@ -1563,7 +980,7 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 					}
 				}
 			}
-			else edgeno++; // node has no children so it might get linked to sink in traverse_dfs_multi function
+			else edgeno++; // node has no children so it might get linked to sink in traverse_dfs function
 		}
 	}
 
@@ -1575,17 +992,9 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 		graphno=prune_graph_nodes(graphno,s,g,bundle2graph,bnode.Count(),no2gnode,junction,edgeno,futuretr,sink);
 	}
 
-/****************
- **  `no2gnode` need to be modified
- ****************/
 	sink->nodeid=graphno;
 	no2gnode[s][g].Add(sink);
 	graphno++;
-
-	// fprintf(stderr, "&&&& sink id: %d;  graphno: %d \n", sink->nodeid, graphno);
-/****************
- **  `no2gnode` need to be modified
- ****************/
 
 	if(mergeMode) { // I might have a bunch of sink's parents that are not linked to sink
 		for(int i=0;i<sink->parent.Count();i++) {
@@ -1596,7 +1005,6 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 
 	// fprintf(stderr,"This graph has %d nodes and %d edges and starts at lastpos=%d\n",graphno,edgeno,graphno);
 	lastgpos=graphno; // nodes are from 0 to graphno-1, so the first "available" position in GBitVec is graphno
-
 
 
 
@@ -1745,35 +1153,44 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 			}
 			CTransfrag *tr=new CTransfrag(nodes,trpat,futuretr[i+2]);
 
-			// /*
+			/*
 			{ // DEBUG ONLY
 				fprintf(stderr,"Add future transfrag[%d][%d]= %d with %d nodes n1=%d n2=%d graphno=%d, abundance=%f and pattern",s,g,transfrag[s][g].Count(),tr->nodes.Count(),n1,n2,graphno,futuretr[i+2]);
 				//printBitVec(trpat);
 				fprintf(stderr,"\n");
 			}
-			// */
+			*/
 
 			/*if(mixedMode) {
 				tr->abundance*=2;
 			}*/
 
 			transfrag[s][g].Add(tr);
+			if(mixedMode) {
+				CTransfrag *longtr=new CTransfrag(nodes,trpat,futuretr[i+2]);
+				longtr->longread=true;
+				transfrag[s][g].Add(longtr);
+			}
+			else
+			if(longreads)// || mixedMode)
+				transfrag[s][g].Last()->longread=true;
 		}
 	}
 
+
 	/*****************************
-	 ** Step 7: 'traverse_dfs_multi' function
+	 ** Step 7: 'traverse_dfs_unispg' function
 	 ** 	finished reading bundle -> now create the parents' and children's patterns
 	 *****************************/
 	GVec<bool> visit;
 	visit.Resize(graphno);
 	GBitVec parents(graphno+edgeno);
 
-	fprintf(stderr,"traverse graph[%d][%d] now with %d nodes, %d edges and lastgpos=%d....\n",s,g,graphno,edgeno,lastgpos);//edgeno=0;
-	traverse_dfs_multi(s,g,source,sink,parents,graphno,visit,no2gnode,transfrag,edgeno,gpos,lastgpos);
-	fprintf(stderr,"done traversing with edgeno=%d lastgpos=%d\n",edgeno,lastgpos);
+	// fprintf(stderr,"traverse graph[%d][%d] now with %d nodes, %d edges and lastgpos=%d....\n",s,g,graphno,edgeno,lastgpos);//edgeno=0;
+	traverse_dfs_unispg(s,g,source,sink,parents,graphno,visit,no2gnode,transfrag,edgeno,gpos,lastgpos);
+	// fprintf(stderr,"done traversing with edgeno=%d lastgpos=%d\n",edgeno,lastgpos);
 
-	// /*
+	/*
 	{ //DEBUG ONLY
 		fprintf(stderr,"after traverse:\n");
 		for(int i=0;i<graphno;i++) {
@@ -1784,7 +1201,7 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 			fprintf(stderr,"\n");
 		}
 	}
-	// */
+	*/
 
 	// delete variables created here, like e.g. ends; do I need to delete the GVec<int> elements created too?
 	ends.Clear();
@@ -1795,9 +1212,7 @@ int create_graph_multi(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenod
 
 
 
-
-
-CTreePat *construct_treepat_multi(int gno, GIntHash<int>& gpos,GPVec<CTransfrag>& transfrag) {
+CTreePat *construct_treepat_unispg(int gno, GIntHash<int>& gpos,GPVec<CTransfrag>& transfrag) {
 
 	/**********************
 	 ** create root CTreePat first
@@ -1836,12 +1251,7 @@ CTreePat *construct_treepat_multi(int gno, GIntHash<int>& gpos,GPVec<CTransfrag>
 
 
 
-
-
-
-
-
-int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) {
+int build_graphs_unispg(BundleData* bdata, int fidx) {
 	int refstart = bdata->start;
 	int refend = bdata->end+1;
 	GList<CReadAln>& readlist = bdata->readlist;
@@ -1849,6 +1259,10 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 	GPVec<GffObj>& guides = bdata->keepguides;
 	GVec<float>* bpcov = bdata->bpcov; // I might want to use a different type of data for bpcov to save memory in the case of very long bundles
 	GList<CPrediction>& pred = bdata->pred;
+
+	/****************
+	 **  These are parameters initialized to build graphs. 
+	 ****************/
 	// form groups on strands: all groups below are like this: 0 = negative strand; 1 = unknown strand; 2 = positive strand
 	GPVec<CGroup> group;
 	CGroup *currgroup[3]={NULL,NULL,NULL}; // current group of each type
@@ -1870,11 +1284,13 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 			fprintf(stderr,"CPAS at position %d on strand %d\n",feature[i]->coord,feature[i]->strand);
 	}
 	*/
-
+	/****************
+	 **  These are parameters initialized to build graphs. 
+	 ****************/
 	fprintf(stderr,"build_graphs with %d guides\n",guides.Count());
 
-	/*****************************
-	 ** Step 1: this part is for setting guides for introns are covered by at least one read. 
+    /*****************************
+	 ** Step 0: this part is for setting guides for introns are covered by at least one read. 
 	 *****************************/
 	if(guides.Count()) {
 
@@ -1916,7 +1332,7 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 				if(guides[g]->strand=='+') s=1; // guide on positive strand
 				else if(guides[g]->strand=='-') s=0; // guide on negative strand
 
-				fprintf(stderr,"Look to add guide g=%d start %d-%d and end %d-%d on strand %d\n",g,guides[g]->start,guides[g]->exons[0]->end,guides[g]->end,guides[g]->exons.Last()->start,s);
+				//fprintf(stderr,"Look to add guide g=%d start %d-%d and end %d-%d on strand %d\n",g,guides[g]->start,guides[g]->exons[0]->end,guides[g]->end,guides[g]->exons.Last()->start,s);
 
 				int uses=s;
 				if(s<0) uses=0;
@@ -1924,7 +1340,7 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 				GEdge ge(guides[g]->start,guides[g]->exons[0]->end,uses);
 				int idx=guideedge.IndexOf(ge);
 
-				fprintf(stderr,"look for ge(%d,%d,%d) => start idx=%d\n",ge.val,ge.endval,ge.strand,idx);
+				//fprintf(stderr,"look for ge(%d,%d,%d) => start idx=%d\n",ge.val,ge.endval,ge.strand,idx);
 
 				if(idx<0) guideedge.Add(ge);
 				else if(guideedge[idx].endval>guides[g]->exons[0]->end) guideedge[idx].endval=guides[g]->exons[0]->end;
@@ -1939,7 +1355,7 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 				ge.endval=guides[g]->exons.Last()->start;
 				idx=guideedge.IndexOf(ge);
 
-				fprintf(stderr,"look for ge(%d,%d,%d) => end idx=%d\n",ge.val,ge.endval,ge.strand,idx);
+				//fprintf(stderr,"look for ge(%d,%d,%d) => end idx=%d\n",ge.val,ge.endval,ge.strand,idx);
 
 				if(idx<0) guideedge.Add(ge);
 				else if(guideedge[idx].endval<guides[g]->exons.Last()->start) guideedge[idx].endval=guides[g]->exons.Last()->start;
@@ -1954,7 +1370,7 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 	}
 
 	/*****************************
-	 ** Step 2: this part is for adjusting leftsupport and rightsupport when considering all junctions that start at a given point
+	 ** Step 1: this part is for adjusting leftsupport and rightsupport when considering all junctions that start at a given point
 	 ** 	sort junctions -> junctions are sorted already according with their start, but not their end
 	 *****************************/
 	GList<CJunction> ejunction(junction);
@@ -2105,7 +1521,7 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 	//fprintf(stderr,"junction support computed\n");
 
 	/*****************************
-	 ** Step 3: there are some reads that contain very bad junctions -> need to find better closest junctions
+	 ** Step 2: there are some reads that contain very bad junctions -> need to find better closest junctions
 	 *****************************/
 	if(higherr) { 
 		uint juncsupport=junctionsupport;
@@ -2327,7 +1743,6 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 			}
 		}
 	} //if higherr
-
 	/*
 	{ // DEBUG ONLY
 		for(int i=0;i<junction.Count();i++) {
@@ -2350,7 +1765,7 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 */
 
 	/*****************************
-	 ** Step 4: junctions filtering & sort
+	 ** Step 3: junctions filtering & sort
 	 *****************************/
 	//float fraglen=0;
 	//uint fragno=0;
@@ -2368,15 +1783,16 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 		bool keep=true;
 		int i=0;
 
-		/*fprintf(stderr,"check read[%d]:%d-%d:%d refstart=%d w/exons:",n,readlist[n]->start,readlist[n]->end,readlist[n]->strand,refstart);
+		/*
+		fprintf(stderr,"check read[%d]:%d-%d:%d refstart=%d w/exons:",n,rd.start,rd.end,rd.strand,refstart);
 		for(i=0;i<rd.juncs.Count();i++) { fprintf(stderr," %d-%d:%d",rd.segs[i].start,rd.segs[i].end,rd.juncs[i]->strand);}
 		fprintf(stderr," %d-%d\n",rd.segs[i].start,rd.segs[i].end);
-		i=0;*/
-
+		i=0;
+		*/
 
 		while(i<rd.juncs.Count()) {
 			CJunction& jd=*(rd.juncs[i]);
-			//fprintf(stderr, " read junc %d-%d:%d nreads=%f nreads_good=%f nm=%f support=%f,%f between exons:%d-%d and %d-%d\n", jd.start, jd.end, jd.strand,jd.nreads,jd.nreads_good,jd.nm,jd.leftsupport,jd.rightsupport,rd.segs[i].start,rd.segs[i].end,rd.segs[i+1].start,rd.segs[i+1].end);
+			// fprintf(stderr, " read junc %d-%d:%d nreads=%f nreads_good=%f nm=%f support=%f,%f between exons:%d-%d and %d-%d\n", jd.start, jd.end, jd.strand,jd.nreads,jd.nreads_good,jd.nm,jd.leftsupport,jd.rightsupport,rd.segs[i].start,rd.segs[i].end,rd.segs[i+1].start,rd.segs[i+1].end);
 
 			bool changeright=jd.nreads_good<0;
 			bool changeleft=jd.nreads<0;
@@ -2386,6 +1802,7 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 			}
 
 			if(jd.strand) {
+				// Definition of `double mm`; // number of reads that support a junction with both anchors bigger than longintronanchor
 				if(!good_junc(jd,refstart,bpcov)) jd.mm=-1; // bad junction
 				if(changeleft || changeright) jd.strand=0;
 				if(jd.mm<0) jd.strand=0; // I can't believe the junction because it's too low
@@ -2646,8 +2063,9 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 	//fprintf(stderr,"fragno=%d fraglen=%g\n",fragno,fraglen);
 	//if(fragno) fraglen/=fragno;
 
+
 	/*****************************
-	 ** Step 5: 'merge_fwd_groups' function
+	 ** Step 4: 'merge_fwd_groups' function
 	 ** 	merge groups that are close together or __groups that are within the same exon of a reference gene__
 	 *****************************/
 	if(bundledist || (guides.Count() && !longreads)) {
@@ -2703,9 +2121,8 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 	GMessage("\t\tM(after groups created):build_graphs memory usage: rsm=%6.1fMB vm=%6.1fMB\n",rsm/1024,vm/1024);
 #endif
 */
-
-	/*****************************
-	 ** Step 6: form bundles here
+    /*****************************
+	 ** Step 5: form bundles here
      ** 	first do color assignment
 	 *****************************/
 	for (int i=0;i<3;i++) currgroup[i]=startgroup[i];
@@ -2717,10 +2134,9 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 	eqposcol.Resize(equalcolor.Count(),-1);
 	eqnegcol.Resize(equalcolor.Count(),-1);
 
-
-	// each unstranded group needs to remember what proportion of stranded group it overlaps so that it can distribute reads later on -> maybe I can do this in the following while?
+    // each unstranded group needs to remember what proportion of stranded group it overlaps so that it can distribute reads later on -> maybe I can do this in the following while?
 	/*****************************
-	 ** Step 7: 'set_strandcol' function
+	 ** Step 6: 'set_strandcol' function
      ** 	set the color of strands
 	 *****************************/
 	while(currgroup[0]!=NULL || currgroup[1]!=NULL || currgroup[2]!=NULL) { // there are still groups to process
@@ -2851,9 +2267,8 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
     */
 
 
-
 	/*****************************
-	 ** Step 8: 'create_bundle' function. 
+	 ** Step 7: 'create_bundle' function. 
 	 ** 	create bundles : bundles collect connected groups (with same color)
 	 *****************************/
 	for (int i=0;i<3;i++) {
@@ -2949,7 +2364,7 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 
 
 	/*****************************
-	 ** Step 9: Clean up no longer needed variables
+	 ** Step 8: Clean up no longer needed variables
 	 ** 	group.Clear(); maybe I still need this?
 	 *****************************/
 	equalcolor.Clear();
@@ -2966,7 +2381,7 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 */
 
 	/*****************************
-	 ** Step 10: 'get_covered' function
+	 ** Step 9: 'get_covered' function
 	 ** 	next variables are in order to remember if I get guide coverage
 	 *****************************/
 	GVec<int>* bnodeguides=NULL;
@@ -3009,11 +2424,10 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 		}
 	}
 	// */
-
 	int geneno=0;
 
 	/*****************************
-	 ** Step 11: 'CPrediction': constructor
+	 ** Step 10: 'CPrediction': constructor
 	 **		predict transcripts for unstranded bundles here
 	 *****************************/
 	//if(fraglen)
@@ -3140,8 +2554,10 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
     //fprintf(stderr,"Done with unstranded bundles\n");
     if (bnodeguides) delete[] bnodeguides;
 
+
+
 	/*****************************
-	 ** Step 12: Defining parameters here!!!!
+	 ** Step 11: Defining parameters here!!!!
 	 ** 	build graphs for stranded bundles here
 	 *****************************/
     if(startgroup[0]!=NULL || startgroup[2]!=NULL) {  // Condition 1: there are stranded groups to process
@@ -3178,7 +2594,7 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 
 		/*****************************
 		 ** 1. build graph structure
-	 	 **     'create_graph_multi', 'construct_treepat_multi'
+	 	 **     'create_graph_unispg', 'construct_treepat_unispg'
 		 *****************************/
     	for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
 
@@ -3189,7 +2605,8 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
     		int s=sno/2; // adjusted strand due to ignoring neutral strand
 
 			int graph_no = bundle[sno].Count();
-			// uni_splice_graphGp -> get_gpSize()[s];
+			fprintf(stderr, "** graph_no: %d\n", graph_no);
+			// unispg_gp -> get_gpSize()[s];
 			// bundle[sno].Count();
 
     		char strnd='-';
@@ -3198,63 +2615,24 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
     		bundle2graph[s]=NULL;
     		if(bnode[sno].Count()) bundle2graph[s]=new GVec<CGraphinfo>[bnode[sno].Count()];
     		transfrag[s]=NULL;
-
     		no2gnode[s] = NULL;
-
     		tr2no[s]=NULL;
     		gpos[s]=NULL;
 
-
-			// int refstart = uni_splice_graphGp -> get_refstart();
-			// int refend = uni_splice_graphGp -> get_refend();
-			// int gpSize = uni_splice_graphGp -> get_gpSize()[s];
-			// GVec<int> graphnoGp = uni_splice_graphGp -> get_graphnoGp()[s];
-			// GVec<int> edgenoGp = uni_splice_graphGp -> get_graphnoGp()[s];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
-			// GPVec<CGraphnode>* no2gnodeGp = uni_splice_graphGp -> get_no2gnodeGp()[s]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
-
-			// gpSize[s];
-			// graphnoGp[s];
-			// edgenoGp[s];
-			// no2gnodeGp[s];
-
+			// fprintf(stderr, "0 bundle[sno].Count(): %d\n", bundle[sno].Count());
     		if(graph_no) {
     			transfrag[s]=new GPVec<CTransfrag>[graph_no]; // for each bundle I have a graph ? only if I don't ignore the short bundles
 
-
-				/****************
-				 **  KH Adding comment out
-				 ****************/
     			no2gnode[s]=new GPVec<CGraphnode>[graph_no];
-				// no2gnode[s] = no2gnodeGp;
-				/****************
-				 **  END of KH comment out
-				 ****************/
-
-
-
     			gpos[s]=new GIntHash<int>[graph_no];
-
 
     			GCALLOC(tr2no[s],graph_no*sizeof(CTreePat *));
     			bno[s]=graph_no;
 
     			for(int b=0;b<graph_no;b++) {
 
-
-
-					/****************
-					 **  KH Adding comment out
-					 ****************/
     				graphno[s].cAdd(0);
-					// graphno = uni_splice_graphGp -> get_graphnoGp()[s];
     				edgeno[s].cAdd(0);
-					// edgeno = uni_splice_graphGp -> get_edgenoGp()[s];
-					/****************
-					 **  END of KH comment out
-					 ****************/
-
-
-
     				lastgpos[s].cAdd(0);
     				// I am overestmating the edgeno below, hopefully not by too much
 
@@ -3273,17 +2651,7 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
     					//fprintf(stderr,"...consider guide cg=%d with strand=%c and in_bundle=%d\n",cg,guides[cg]->strand,((RC_TData*)(guides[cg]->uptr))->in_bundle);
     					if((guides[cg]->strand==strnd || guides[cg]->strand=='.') && ((RC_TData*)(guides[cg]->uptr))->in_bundle>=2) {
     						//fprintf(stderr,"Add guide g=%d with start=%d end=%d\n",cg,guides[cg]->start,guides[cg]->end);
-
-
-							/****************
-							 **  KH Adding comment out
-							 ****************/
     						edgeno[s][b]+=2; // this is an overestimate: possibly I have both an extra source and an extra sink link
-							/****************
-							 **  END of KH comment out
-							 ****************/
-
-
     						nolap++;
     					}
     					cg++;
@@ -3323,27 +2691,26 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
     							fprintf(stderr,"\n");
     						}
     					}
-    					graphno[s][b]=create_graph_multi(s,b,bundle[sno][b],bnode[sno],junction,ejunction,
+    					graphno[s][b]=create_graph_unispg(s,b,bundle[sno][b],bnode[sno],junction,ejunction,
     							bundle2graph,no2gnode,transfrag,trims); // also I need to remember graph coverages somewhere -> probably in the create_graph procedure
     					*
     					*/
-
 
 						/****************
 						 **  KH modify
 						 ****************/
     					// create graph then
-    					graphno[s][b]=create_graph_multi(refstart,s,b,bundle[sno][b],bnode[sno],junction,ejunction,
-    							bundle2graph,no2gnode,transfrag,gpos,bdata,edgeno[s][b],lastgpos[s][b],guideedge, uni_splice_graphGp); // also I need to remember graph coverages somewhere -> probably in the create_graph procedure
+    					graphno[s][b]=create_graph_unispg(refstart,s,b,bundle[sno][b],bnode[sno],junction,ejunction,
+    							bundle2graph,no2gnode,transfrag,gpos,bdata,edgeno[s][b],lastgpos[s][b],guideedge); // also I need to remember graph coverages somewhere -> probably in the create_graph procedure
 
-// int refstart = uni_splice_graphGp -> get_refstart();
-// int refend = uni_splice_graphGp -> get_refend();
-// int gpSize = uni_splice_graphGp -> get_gpSize()[s];
-// GVec<int> graphnoGp = uni_splice_graphGp -> get_graphnoGp()[s];
-// GVec<int> edgenoGp = uni_splice_graphGp -> get_graphnoGp()[s];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
-// GPVec<CGraphnode>* no2gnodeGp = uni_splice_graphGp -> get_no2gnodeGp()[s]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+// int refstart = unispg_gp -> get_refstart();
+// int refend = unispg_gp -> get_refend();
+// int gpSize = unispg_gp -> get_gpSize()[s];
+// GVec<int> graphnoGp = unispg_gp -> get_graphnoGp()[s];
+// GVec<int> edgenoGp = unispg_gp -> get_graphnoGp()[s];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+// GPVec<CGraphnode>* no2gnodeGp = unispg_gp -> get_no2gnodeGp()[s]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
 
-    					if(graphno[s][b]) tr2no[s][b]=construct_treepat_multi(graphno[s][b],gpos[s][b],transfrag[s][b]);
+    					if(graphno[s][b]) tr2no[s][b]=construct_treepat_unispg(graphno[s][b],gpos[s][b],transfrag[s][b]);
 						/****************
 						 **  End of KH modify
 						 ****************/
@@ -3363,6 +2730,8 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
     		for(int s=0;s<2;s++) {
     			fprintf(stderr, "There are %d stranded[%d] graphs\n",bno[s],int(2*s));
     			for(int b=0;b<bno[s];b++) {
+				fprintf(stderr, ">>>>>>> 1 bundle[%d].Count(): %d\n", s, bno[s]);
+				fprintf(stderr, ">>>>>>> 1 graphno[%d][%d]: %d\n", s, b, graphno[s][b]);
     				if(graphno[s][b]) {
     					GStr pat;
     					fprintf(stderr,"Graph[%d][%d] with %d nodes and %d edges with lastgpos=%d:",int(2*s),b,graphno[s][b],edgeno[s][b],lastgpos[s][b]);
@@ -3419,7 +2788,7 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 
 
 		/*****************************
-		 ** 3. Write out global splice graph in DOT format
+		 ** 3-1. Write out global splice graph in DOT format
 		*****************************/
 		/****************
 		 **  KH Adding 
@@ -3459,30 +2828,79 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 		/****************
 		 **  END KH Adding 
 		****************/
+        /*****************************
+		 ** 3-2. Creating the Unispg for the universal graph and add it into UnispgGp
+		*****************************/
+        // if (multiMode) {
+		// 	// unispg_gp = new UnispgGp(currentstart, currentend);
+		// 	// unispg_gp->UpdateRefStartEnd(int(no2gnode[s][g][1]->start), int(no2gnode[s][g][no2gnode[s][g].Count()-2]->end));
+		// 	for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+		// 		int s=sno/2; // adjusted strand due to ignoring neutral strand
+		// 		// fprintf(stderr, "2 bundle[sno].Count(): %d\n", bundle[sno].Count());
+		// 		// unispg_gp->SetUnispgCapacity(s);
+		// 		for(int b=0;b<bundle[sno].Count();b++) {
+		// 			// Unispg unispg = new Unispg();
+        //             if(no2gnode[s][g].Count()) {
+		// 				unispg_gp->AddGraph(fidx, s, current_gidx+b, no2gnode[s]+b);
+		// 			}
+		// 		}
+		// 	}
+		// 	// unispg_gp->PrintGraphGp();
+		// 	// GVec<int> graphno[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
+		// 	// GVec<int> edgeno[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+		// 	// GPVec<CGraphnode> *no2gnode[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i            
+        // }
 
-	if (multiMode) {
-		// Traverse the graph
-		for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-			int s=sno/2; // adjusted strand due to ignoring neutral strand
-			for(int g=0;g<bundle[sno].Count();g++) {
-				if(no2gnode[s][g].Count()) {
-					// uint bundle_start=no2gnode[s][g][1]->start;
-					// uint bundle_end=no2gnode[s][g][no2gnode[s][g].Count()-2]->end;
 
-					GStr bundle_start(int(no2gnode[s][g][1]->start));
-					GStr bundle_end(int(no2gnode[s][g][no2gnode[s][g].Count()-2]->end));
+        if (multiMode) {
+
+            for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> thoses shouldn't have junctions
+                int s=sno/2; // adjusted strand due to ignoring neutral strand
+                for(int g=0;g<bundle[sno].Count();g++) {
 					GStr node_g(g);
-					GStr strand_symbol;
+                    GStr strand_symbol;
 					if (s == 0) {
 						strand_symbol = "-";
 					} else if (s == 1) {
 						strand_symbol = "+";
 					}
+					GStr bundle_start("");
+					GStr bundle_end("");
+					/****************
+					 **  Writing out the visualization graph for the local graph.
+					 ****************/
+                    if(no2gnode[s][g].Count()) {
+                        // uint bundle_start=no2gnode[s][g][1]->start;
+                        // uint bundle_end=no2gnode[s][g][no2gnode[s][g].Count()-2]->end;
 
-					fprintf(stderr,"Traversing the created graph!!!\n");
-					fprintf(stderr,"Digraph %d_%d_%d_%d {", bdata->start,bdata->end, s, g);
-					// graphno[s][b]: number of nodes in graph.
-					if(no2gnode[s][g].Count() >= 4) {
+
+
+// GStr nodecovposfname = outfname_prefix + "_node_pos_cov.bed";
+// GStr edgecovposfname = outfname_prefix + "_edge_pos_cov.bed";	
+// FILE* node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
+// FILE* edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
+
+// fprintf(node_cov_pos_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
+// fprintf(edge_cov_pos_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
+
+// nodecovnegfname = outfname_prefix + "_node_neg_cov.bed";
+// edgecovnegfname = outfname_prefix + "_edge_neg_cov.bed";	
+// node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
+// edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
+
+// fprintf(node_cov_neg_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
+// fprintf(edge_cov_neg_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
+// chr1    10071   85823   JUNC00000002    1       -
+
+
+
+                        // graphno[s][b]: number of nodes in graph.
+                        // if(no2gnode[s][g].Count() >= 4) {
+						unispg_gp->AddGraph(fidx, s, current_gidx, no2gnode[s]+g);
+						bundle_start = int(no2gnode[s][g][1]->start);
+						bundle_end = int(no2gnode[s][g][no2gnode[s][g].Count()-2]->end);
+						fprintf(stderr,"Traversing the created graph!!!\n");
+						fprintf(stderr,"Digraph %d_%d_%d_%d {", bdata->start,bdata->end, s, g);
 						for(int nd=0;nd<no2gnode[s][g].Count();nd++) {
 							fprintf(stderr,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][g][nd]->start,no2gnode[s][g][nd]->end,no2gnode[s][g][nd]->cov);
 							// exon_tmp.clear();
@@ -3514,26 +2932,25 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 
 							if (nd == 0) {
 								if(s == 0) {
-									fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%s\t%f\t+\n", node_start, node_end, node_name.chars(), 0);
+									fprintf(node_cov_neg_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t+\n", node_start, node_end, node_name.chars(), 0);
 								} else if (s == 1) {
-									fprintf(node_cov_pos_bed, "chr22\t%d\t%d\t%s\t%f\t-\n", node_start, node_end, node_name.chars(), 0);
+									fprintf(node_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t-\n", node_start, node_end, node_name.chars(), 0);
 								}
 							} else if (nd == no2gnode[s][g].Count()-1){
 								if(s == 0) {
-								// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
-
-									fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%s\t%f\t+\n", node_start, node_end, node_name.chars(), 0);
+									// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
+									fprintf(node_cov_neg_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t+\n", node_start, node_end, node_name.chars(), 0);
 								} else if (s == 1) {
 									// fprintf(node_cov_pos_bed, "chr22\t%d\t%d\tNODE\t%f\t-\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
 
-									fprintf(node_cov_pos_bed, "chr22\t%d\t%d\t%s\t%f\t-\n", node_start, node_end, node_name.chars(), 0);
+									fprintf(node_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t-\n", node_start, node_end, node_name.chars(), 0);
 								}
 							} else {
 								if(s == 0) {
 									// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", no2gnode[s][g][nd]->start, no2gnode[s][g][nd]->end, no2gnode[s][g][nd]->cov, strand_symbol.chars());
-									fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnode[s][g][nd]->cov, node_name.chars(), strand_symbol.chars());
+									fprintf(node_cov_neg_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnode[s][g][nd]->cov, node_name.chars(), strand_symbol.chars());
 								} else if (s == 1) {
-									fprintf(node_cov_pos_bed, "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnode[s][g][nd]->cov, node_name.chars(), strand_symbol.chars());
+									fprintf(node_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnode[s][g][nd]->cov, node_name.chars(), strand_symbol.chars());
 								}
 							}
 						}
@@ -3568,29 +2985,135 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
 									junc_end = no2gnode[s][g][ no2gnode[s][g][nd]->child[c] ] -> start;
 								}
 								if(s == 0) {
-									fprintf(edge_cov_neg_bed, "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+									fprintf(edge_cov_neg_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
 								} else if (s == 1) {
-									fprintf(edge_cov_pos_bed, "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+									fprintf(edge_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
 								}
 							}
 						}
-					}
-					fprintf(stderr,"}\n");
-				}
-			}
-		}
-		// if (!exonIntervals.empty()) {
-		// 	if (exonIntervals.size() >= 4) {
-		// 		draw(exonIntervals, intronIntervals, string(plot_dir.chars())+"/plot_"+to_string(bundle_start)+"_"+to_string(bundle_end)+"_"+to_string(s)+"_"+to_string(g)+".png");
-		// 	}
-		// }
+						fprintf(stderr,"}\n");
 
-	}
+
+						/****************
+						 **  Writing out the visualization graph for the global graph.
+						****************/
+						fprintf(stderr, "&& current_gidx: %d\n", current_gidx);
+						GPVec<CGraphnode>** no2gnode_unispg = unispg_gp->get_no2gnodeGp();
+						fprintf(stderr, "no2gnode_unispg[s][current_gidx].Count(): %d \n", no2gnode_unispg[s][current_gidx].Count());
+						// int refstart_unispg = no2gnode_unispg[s][g][1]->start;
+						// int refend_unispg = no2gnode_unispg[s][g][no2gnode_unispg[s][g].Count()-2]->end;
+						// GVec<int>* graphno_unispg = unispg_gp->get_graphnoGp();
+						// GVec<int>* edgeno_unispg = unispg_gp->get_edgenoGp();
+
+						fprintf(stderr,"Traversing the universal splice graph!!!\n");
+						fprintf(stderr,"Unispg %d_%d_%d_%d {", bdata->start, bdata->end, s, g);
+						// graphno[s][b]: number of nodes in graph.
+						for(int nd=0;nd<no2gnode_unispg[s][current_gidx].Count();nd++) {
+							fprintf(stderr,"%d[start=%d end=%d cov=%f];",nd,no2gnode_unispg[s][current_gidx][nd]->start,no2gnode_unispg[s][current_gidx][nd]->end,no2gnode_unispg[s][current_gidx][nd]->cov);
+							// exon_tmp.clear();
+							// exon_tmp.push_back(no2gnode[s][g][nd]->start);
+							// exon_tmp.push_back(no2gnode[s][g][nd]->end);
+							// // exon_tmp.push_back(nd*3);
+							// // exon_tmp.push_back(nd*3+1);
+							// exonIntervals.push_back(exon_tmp);
+							// for (int i = no2gnode[s][g][nd]->start; i < no2gnode[s][g][nd]->end; i++) {
+							// 	fprintf(node_cov_bed, "chr22\t%d\t%d\tNODE\t%f\t%s\n", i, i+1, no2gnode[s][g][nd]->cov, strand_symbol.chars());
+							// }
+							int node_start = 0;
+							int node_end = 0;
+							GStr node_nd(nd);
+							GStr node_name = "Node_" + bundle_start + "_" + bundle_end + "_ " + node_g + "_" + node_nd;
+							fprintf(stderr, "node_name: %s\n", node_name.chars());
+
+							if (nd == 0) {
+								node_start = no2gnode_unispg[s][current_gidx][1]->start-200;
+								node_end = no2gnode_unispg[s][current_gidx][1]->start;
+							} else if (nd == no2gnode_unispg[s][current_gidx].Count()-1){
+								node_start = no2gnode_unispg[s][current_gidx][no2gnode_unispg[s][current_gidx].Count()-2]->end-1;
+								node_end = 	no2gnode_unispg[s][current_gidx][no2gnode_unispg[s][current_gidx].Count()-2]->end+200;
+							} else {
+								node_start = no2gnode_unispg[s][current_gidx][nd]->start-1;
+								node_end = no2gnode_unispg[s][current_gidx][nd]->end;		
+							}
+
+
+							if (nd == 0) {
+								if(s == 0) {
+									fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t+\n", node_start, node_end, node_name.chars(), 0);
+								} else if (s == 1) {
+									fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t-\n", node_start, node_end, node_name.chars(), 0);
+								}
+							} else if (nd == no2gnode_unispg[s][current_gidx].Count()-1){
+								if(s == 0) {
+								// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
+
+									fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t+\n", node_start, node_end, node_name.chars(), 0);
+								} else if (s == 1) {
+									// fprintf(node_cov_pos_bed, "chr22\t%d\t%d\tNODE\t%f\t-\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
+
+									fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t-\n", node_start, node_end, node_name.chars(), 0);
+								}
+							} else {
+								if(s == 0) {
+									// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", no2gnode[s][g][nd]->start, no2gnode[s][g][nd]->end, no2gnode[s][g][nd]->cov, strand_symbol.chars());
+									fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnode_unispg[s][current_gidx][nd]->cov, node_name.chars(), strand_symbol.chars());
+								} else if (s == 1) {
+									fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnode_unispg[s][current_gidx][nd]->cov, node_name.chars(), strand_symbol.chars());
+								}
+							}
+						}
+
+						
+
+
+						for(int nd=0;nd<no2gnode_unispg[s][current_gidx].Count()-1;nd++) {
+							// fprintf(stderr,"Node %d with parents:",i);
+							GStr node_parent_nd(nd);
+							
+							for(int c=0;c<no2gnode_unispg[s][current_gidx][nd]->child.Count();c++) {
+								GStr node_child_nd(no2gnode_unispg[s][current_gidx][nd]->child[c]);
+								fprintf(stderr,"%d->",nd);			
+								fprintf(stderr,"%d;",no2gnode_unispg[s][current_gidx][nd]->child[c]);
+								GStr junction_name = "Junc_" + bundle_start + "_" + bundle_end + "_" + node_g + "_" + node_parent_nd + "->" + node_child_nd;
+								fprintf(stderr, "junction_name: %s\n", junction_name.chars());
+								
+								int junc_start = 0;
+								int junc_end = 0;
+								if (nd == 0) {
+									// It's the source node.
+									junc_start = no2gnode_unispg[s][current_gidx][1]->start;
+								} else {
+									junc_start = no2gnode_unispg[s][current_gidx][nd]->end;
+								}
+								if (no2gnode_unispg[s][current_gidx][ no2gnode_unispg[s][current_gidx][nd]->child[c] ] -> start == 0) {
+									// The node goes to the sink.
+									junc_end = no2gnode_unispg[s][current_gidx][no2gnode_unispg[s][current_gidx].Count()-2]->end;
+								} else {
+									junc_end = no2gnode_unispg[s][current_gidx][ no2gnode_unispg[s][current_gidx][nd]->child[c] ] -> start;
+								}
+								if(s == 0) {
+									fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+								} else if (s == 1) {
+									fprintf(edge_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+								}
+							}
+						}
+						fprintf(stderr,"}\n");
+						current_gidx++;
+                    }
+				}
+            }
+            // if (!exonIntervals.empty()) {
+            // 	if (exonIntervals.size() >= 4) {
+            // 		draw(exonIntervals, intronIntervals, string(plot_dir.chars())+"/plot_"+to_string(bundle_start)+"_"+to_string(bundle_end)+"_"+to_string(s)+"_"+to_string(g)+".png");
+            // 	}
+            // }
+        }
 
 		/*****************************
 		 ** 4. I can clean up some data here:
 		*****************************/
-    	for(int sno=0;sno<3;sno++) {
+        for(int sno=0;sno<3;sno++) {
     		int n=bnode[sno].Count();
     		for(int b=0;b<n;b++) delete bnode[sno][b];
     		bnode[sno].Clear();
@@ -3755,9 +3278,11 @@ int build_graphs_multi(BundleData* bdata, UniSpliceGraphGp* uni_splice_graphGp) 
     return(geneno);
 }
 
-int infer_transcripts_multi(BundleData* bundle, UniSpliceGraphGp* uni_splice_graphGp) {
-	int geneno=0;
 
+
+
+int infer_transcripts_unispg(BundleData* bundle, int fidx) {
+    int geneno=0;
 	//DEBUG ONLY: 	showReads(refname, readlist);
 
 /*
@@ -3774,14 +3299,16 @@ int infer_transcripts_multi(BundleData* bundle, UniSpliceGraphGp* uni_splice_gra
 	// else if (multiMode && (bundle->keepguides.Count() || !eonly)) {
 	// 	fprintf(stderr, "This is the multiMiode of the graph.\n");
 	// 	count_good_junctions(bundle);
-	// 	geneno = build_graphs_multi(bundle, uni_splice_graphGp);
+	// 	geneno = build_graphs_multi(bundle, unispg_gp);
 	// }
 	else if(bundle->keepguides.Count() || !eonly) {
 		//fprintf(stderr,"Process %d reads from %lu.\n",bundle->readlist.Count(),bundle->numreads);
 
 		count_good_junctions(bundle);
 
-		geneno = build_graphs_multi(bundle, uni_splice_graphGp);
+		// geneno = build_graphs(bundle);
+		geneno = build_graphs_unispg(bundle, fidx);
+		// geneno = build_graphs_unispg(bundle, unispg_gp);
 	}
 
 

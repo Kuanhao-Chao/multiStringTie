@@ -68,6 +68,7 @@ struct TInputFiles {
 	void start_fidx(int fidx);
 	GSamRecord* next();
 	void stop(); //
+	void stop_fidx(int fidx);
 };
 
 

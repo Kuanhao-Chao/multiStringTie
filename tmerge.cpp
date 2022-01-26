@@ -214,3 +214,8 @@ void TInputFiles::stop() {
  }
 }
 
+void TInputFiles::stop_fidx(int fidx) {
+ for (int i=0;i<readers.Count();++i) {
+	 readers[i]->bclose();
+ }
+}

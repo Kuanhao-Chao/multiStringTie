@@ -1,9 +1,11 @@
 //#define GFF_DEBUG 1 //debugging guides loading
 #include "rlink.h"
 #include "rlink_multi.h"
+#include "rlink_unispg.h"
 #include "tmerge.h"
 #include <vector>
 #include "multist.h"
+#include "unispg.h"
 #ifndef NOTHREADS
 #include "GThreads.h"
 #endif
@@ -138,16 +140,20 @@ Transcript multi usage mode: \n\
 FILE* f_out=NULL;
 FILE* c_out=NULL;
 //#define B_DEBUG 1
-#ifdef B_DEBUG
+#ifdef B_DEBUG 
  FILE* dbg_out=NULL;
 #endif
 /****************
  **  KH Adding 
  ****************/
+GStr outfname_prefix;
+UnispgGp* unispg_gp = new UnispgGp();
+int current_gidx = 0;
 bool universal_splice_graph = false;
 FILE* uinigraph_out = NULL;
 GStr unigraphfname; 
 GStr plot_dir;
+
 
 FILE* node_cov_pos_bed = NULL;
 GStr nodecovposfname; 
@@ -158,6 +164,27 @@ FILE* node_cov_neg_bed = NULL;
 GStr nodecovnegfname; 
 FILE* edge_cov_neg_bed = NULL;
 GStr edgecovnegfname; 
+
+GVec<FILE*> node_cov_pos_bed_vec = NULL;
+GVec<GStr> nodecovposfname_vec; 
+GVec<FILE*> edge_cov_pos_bed_vec = NULL;
+GVec<GStr> edgecovposfname_vec; 
+
+GVec<FILE*> node_cov_neg_bed_vec = NULL;
+GVec<GStr> nodecovnegfname_vec; 
+GVec<FILE*> edge_cov_neg_bed_vec = NULL;
+GVec<GStr> edgecovnegfname_vec; 
+
+
+GVec<FILE*> node_cov_pos_bed_unispg_vec = NULL;
+GVec<GStr> nodecovposfname_unispg_vec; 
+GVec<FILE*> edge_cov_pos_bed_unispg_vec = NULL;
+GVec<GStr> edgecovposfname_unispg_vec; 
+
+GVec<FILE*> node_cov_neg_bed_unispg_vec = NULL;
+GVec<GStr> nodecovnegfname_unispg_vec; 
+GVec<FILE*> edge_cov_neg_bed_unispg_vec = NULL;
+GVec<GStr> edgecovnegfname_unispg_vec; 
 /****************
  **  END KH Adding 
  ****************/
@@ -296,7 +323,7 @@ int loadPtFeatures(FILE* f, GArray<GRefPtData>& refpts);
 char* sprintTime();
 
 void processBundle(BundleData* bundle, UniSpliceGraphGp* uni_splice_graphGp=NULL);
-//void processBundle1stPass(BundleData* bundle); //two-pass testing
+void processBundleUnispg(BundleData* bundle, int fidx); //two-pass testing
 
 void writeUnbundledGuides(GVec<GRefData>& refdata, FILE* fout, FILE* gout=NULL);
 
@@ -394,25 +421,25 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
-		GStr outfname_prefix = outfname.copy();		
+		outfname_prefix = outfname.copy();		
 		if (outfname.endsWith(".gtf")) {
 			outfname_prefix.chomp(".gtf");
 		}
-		nodecovposfname = outfname_prefix + "_node_pos_cov.bed";
-		edgecovposfname = outfname_prefix + "_edge_pos_cov.bed";	
-		node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
-		edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
+		// nodecovposfname = outfname_prefix + "_node_pos_cov.bed";
+		// edgecovposfname = outfname_prefix + "_edge_pos_cov.bed";	
+		// node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
+		// edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
 
-		fprintf(node_cov_pos_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
-		fprintf(edge_cov_pos_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
+		// fprintf(node_cov_pos_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
+		// fprintf(edge_cov_pos_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
 
-		nodecovnegfname = outfname_prefix + "_node_neg_cov.bed";
-		edgecovnegfname = outfname_prefix + "_edge_neg_cov.bed";	
-		node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
-		edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
+		// nodecovnegfname = outfname_prefix + "_node_neg_cov.bed";
+		// edgecovnegfname = outfname_prefix + "_edge_neg_cov.bed";	
+		// node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
+		// edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
 
-		fprintf(node_cov_neg_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
-		fprintf(edge_cov_neg_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
+		// fprintf(node_cov_neg_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
+		// fprintf(edge_cov_neg_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
 		// chr1    10071   85823   JUNC00000002    1       -
 		fprintf(stderr, "plot_dir: %s\n", plot_dir.chars());
 	} else if (unispgMode) {
@@ -626,20 +653,74 @@ int main(int argc, char* argv[]) {
 	if (multiMode) {
 		for (int file_idx = 0; file_idx < bamcount; file_idx++) {
 
+
+		nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+".bed";
+		edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+".bed";	
+		node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
+		edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
+		fprintf(node_cov_pos_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
+		fprintf(edge_cov_pos_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
+		nodecovposfname_vec.Add(nodecovposfname);
+		edgecovposfname_vec.Add(edgecovposfname);
+		node_cov_pos_bed_vec.Add(node_cov_pos_bed);
+		edge_cov_pos_bed_vec.Add(edge_cov_pos_bed);
+
+		nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+"_unispg.bed";
+		edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+"_unispg.bed";	
+		node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
+		edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
+		fprintf(node_cov_pos_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
+		fprintf(edge_cov_pos_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
+		nodecovposfname_unispg_vec.Add(nodecovposfname);
+		edgecovposfname_unispg_vec.Add(edgecovposfname);
+		node_cov_pos_bed_unispg_vec.Add(node_cov_pos_bed);
+		edge_cov_pos_bed_unispg_vec.Add(edge_cov_pos_bed);
+
+		nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+".bed";
+		edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+".bed";	
+		node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
+		edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
+		fprintf(node_cov_neg_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
+		fprintf(edge_cov_neg_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
+		nodecovnegfname_vec.Add(nodecovnegfname);
+		edgecovnegfname_vec.Add(edgecovnegfname);
+		node_cov_neg_bed_vec.Add(node_cov_neg_bed);
+		edge_cov_neg_bed_vec.Add(edge_cov_neg_bed);
+
+		nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+"_unispg.bed";
+		edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+"_unispg.bed";	
+		node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
+		edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
+		fprintf(node_cov_neg_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
+		fprintf(edge_cov_neg_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
+		nodecovnegfname_unispg_vec.Add(nodecovnegfname);
+		edgecovnegfname_unispg_vec.Add(edgecovnegfname);
+		node_cov_neg_bed_unispg_vec.Add(node_cov_neg_bed);
+		edge_cov_neg_bed_unispg_vec.Add(edge_cov_neg_bed);
+		// chr1    10071   85823   JUNC00000002    1       -
+
+
+
+			bundle->Clear();
 			brec=NULL;	
 			more_alns=true;
 			tinfo=NULL; // for --merge
 			prev_pos=0;
 			skipGseq=false;
 
-			drec=NULL;
+			currentstart=0;
+			currentend=0;
+			ng_start=0;
+			ng_end=-1;
+			ptf_idx=0; //point-feature current index in the current (*refptfs)[]
+			ng=0;
 
 
 			fprintf(stderr, "** file_idx: %d\n", file_idx);
 			bamreader.start_fidx(file_idx);
 
 
-			while (more_alns) {
+			while (more_alns) { 
 				bool chr_changed=false;
 				int pos=0;
 				const char* refseqName=NULL;
@@ -748,74 +829,76 @@ int main(int argc, char* argv[]) {
 				if (new_bundle || chr_changed) {
 					hashread.Clear();
 					if (bundle->readlist.Count()>0) { // process reads in previous bundle
-					// (readthr, junctionthr, mintranscriptlen are globals)
-					if (refptfs) { //point-features defined for this reference
-						while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<currentstart)
-							ptf_idx++;
-						//TODO: what if a PtFeature is nearby, just outside the bundle?
-						while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<=currentend) {
-							bundle->ptfs.Add(refptfs->Get(ptf_idx)); //keep this PtFeature
-							ptf_idx++;
+						// (readthr, junctionthr, mintranscriptlen are globals)
+						if (refptfs) { //point-features defined for this reference
+							while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<currentstart)
+								ptf_idx++;
+							//TODO: what if a PtFeature is nearby, just outside the bundle?
+							while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<=currentend) {
+								bundle->ptfs.Add(refptfs->Get(ptf_idx)); //keep this PtFeature
+								ptf_idx++;
+							}
 						}
-					}
-					bundle->getReady(currentstart, currentend);
-					if (gfasta!=NULL) { //genomic sequence data requested
-						GFaSeqGet* faseq=gfasta->fetch(bundle->refseq.chars());
-						if (faseq==NULL) {
-							GError("Error: could not retrieve sequence data for %s!\n", bundle->refseq.chars());
+						bundle->getReady(currentstart, currentend);
+						// unispg_gp = new UnispgGp(currentstart, currentend);
+
+						if (gfasta!=NULL) { //genomic sequence data requested
+							GFaSeqGet* faseq=gfasta->fetch(bundle->refseq.chars());
+							if (faseq==NULL) {
+								GError("Error: could not retrieve sequence data for %s!\n", bundle->refseq.chars());
+							}
+							bundle->gseq=faseq->copyRange(bundle->start, bundle->end, false, true);
 						}
-						bundle->gseq=faseq->copyRange(bundle->start, bundle->end, false, true);
-					}
-		#ifndef NOTHREADS
-					//push this in the bundle queue where it'll be picked up by the threads
-					DBGPRINT2("##> Locking queueMutex to push loaded bundle into the queue (bundle.start=%d)\n", bundle->start);
-					int qCount=0;
-					queueMutex.lock();
-					bundleQueue.Push(bundle);
-					bundleWork |= 0x02; //set bit 1
-					qCount=bundleQueue.Count();
-					queueMutex.unlock();
-					DBGPRINT2("##> bundleQueue.Count()=%d)\n", qCount);
-					//wait for a thread to pop this bundle from the queue
-					waitMutex.lock();
-					DBGPRINT("##> waiting for a thread to become available..\n");
-					while (threadsWaiting==0) {
-						haveThreads.wait(waitMutex);
-					}
-					waitMutex.unlock();
-					haveBundles.notify_one();
-					DBGPRINT("##> waitMutex unlocked, haveBundles notified, current thread yielding\n");
-					current_thread::yield();
-					queueMutex.lock();
-					DBGPRINT("##> queueMutex locked until bundleQueue.Count()==qCount\n");
-					while (bundleQueue.Count()==qCount) {
+			#ifndef NOTHREADS
+						//push this in the bundle queue where it'll be picked up by the threads
+						DBGPRINT2("##> Locking queueMutex to push loaded bundle into the queue (bundle.start=%d)\n", bundle->start);
+						int qCount=0;
+						queueMutex.lock();
+						bundleQueue.Push(bundle);
+						bundleWork |= 0x02; //set bit 1
+						qCount=bundleQueue.Count();
 						queueMutex.unlock();
-						DBGPRINT2("##> queueMutex unlocked as bundleQueue.Count()==%d\n", qCount);
+						DBGPRINT2("##> bundleQueue.Count()=%d)\n", qCount);
+						//wait for a thread to pop this bundle from the queue
+						waitMutex.lock();
+						DBGPRINT("##> waiting for a thread to become available..\n");
+						while (threadsWaiting==0) {
+							haveThreads.wait(waitMutex);
+						}
+						waitMutex.unlock();
 						haveBundles.notify_one();
+						DBGPRINT("##> waitMutex unlocked, haveBundles notified, current thread yielding\n");
 						current_thread::yield();
 						queueMutex.lock();
-						DBGPRINT("##> queueMutex locked again within while loop\n");
-					}
-					queueMutex.unlock();
+						DBGPRINT("##> queueMutex locked until bundleQueue.Count()==qCount\n");
+						while (bundleQueue.Count()==qCount) {
+							queueMutex.unlock();
+							DBGPRINT2("##> queueMutex unlocked as bundleQueue.Count()==%d\n", qCount);
+							haveBundles.notify_one();
+							current_thread::yield();
+							queueMutex.lock();
+							DBGPRINT("##> queueMutex locked again within while loop\n");
+						}
+						queueMutex.unlock();
 
-		#else //no threads
-					//Num_Fragments+=bundle->num_fragments;
-					//Frag_Len+=bundle->frag_len;
-					// processBundle(bundle);
-		#endif
-					// ncluster++; used it for debug purposes only
+			#else //no threads
+						//Num_Fragments+=bundle->num_fragments;
+						//Frag_Len+=bundle->frag_len;
+						processBundleUnispg(bundle, file_idx);
+			#endif
+						// ncluster++; used it for debug purposes only
 					} //have alignments to process
 					else { //no read alignments in this bundle?
-		#ifndef NOTHREADS
-					dataMutex.lock();
-					DBGPRINT2("##> dataMutex locked for bundle #%d clearing..\n", bundle->idx);
-		#endif
-					bundle->Clear();
-		#ifndef NOTHREADS
-					dataClear.Push(bundle->idx);
-					DBGPRINT2("##> dataMutex unlocking as dataClear got pushed idx #%d\n", bundle->idx);
-					dataMutex.unlock();
-		#endif
+			#ifndef NOTHREADS
+						dataMutex.lock();
+						DBGPRINT2("##> dataMutex locked for bundle #%d clearing..\n", bundle->idx);
+			#endif
+						bundle->Clear();
+			#ifndef NOTHREADS
+						dataClear.Push(bundle->idx);
+						DBGPRINT2("##> dataMutex unlocking as dataClear got pushed idx #%d\n", bundle->idx);
+						dataMutex.unlock();
+			#endif
 					} //nothing to do with this bundle
 
 					if (chr_changed) {
@@ -960,8 +1043,9 @@ int main(int argc, char* argv[]) {
 					processRead(currentstart, currentend, *bundle, hashread, alndata);
 				}
 			} //for each read alignment
-
-
+			
+			delete brec;
+			bamreader.stop_fidx(file_idx);
 
 
 
@@ -1804,14 +1888,16 @@ int main(int argc, char* argv[]) {
 	 *******************************************
 	 *******************************************/
 	if (multiMode) {
+		delete brec;
+		bamreader.stop(); //close all BAM files
 	} else if (unispgMode) {
 		delete drec;
 		dotreader.stop(); //close all DOT files
 	} else {
 		// normalMode
+		delete brec;
+		bamreader.stop(); //close all BAM files
 	}
-	delete brec;
-	bamreader.stop(); //close all BAM files
 
 	if (guided && no_ref_used) {
 		GMessage("WARNING: no reference transcripts were found for the genomic sequences where reads were mapped!\n"
@@ -2501,6 +2587,108 @@ void processBundle(BundleData* bundle, UniSpliceGraphGp* uni_splice_graphGp) {
 #endif
 
 	infer_transcripts_multi(bundle, uni_splice_graphGp);
+
+	if (ballgown && bundle->rc_data) {
+		rc_update_exons(*(bundle->rc_data));
+	}
+	if (bundle->pred.Count()>0 || ((eonly || geneabundance) && bundle->keepguides.Count()>0)) {
+#ifndef NOTHREADS
+		GLockGuard<GFastMutex> lock(printMutex);
+#endif
+		if(mergeMode) GeneNo=printMergeResults(bundle, GeneNo,bundle->refseq);
+		else GeneNo=printResults(bundle, GeneNo, bundle->refseq);
+	}
+
+	if (bundle->num_fragments) {
+		#ifndef NOTHREADS
+				GLockGuard<GFastMutex> lock(countMutex);
+		#endif
+		Num_Fragments+=bundle->num_fragments;
+		Frag_Len+=bundle->frag_len;
+		Cov_Sum+=bundle->sum_cov;
+	}
+
+	if (verbose) {
+#ifndef NOTHREADS
+		GLockGuard<GFastMutex> lock(logMutex);
+#endif
+	  /*
+	  SumReads+=bundle->sumreads;
+	  SumFrag+=bundle->sumfrag;
+	  NumCov+=bundle->num_cov;
+	  NumReads+=bundle->num_reads;
+	  NumFrag+=bundle->num_frag;
+	  NumFrag3+=bundle->num_fragments3;
+	  SumFrag3+=bundle->sum_fragments3;
+	  fprintf(stderr,"Number of fragments in bundle: %g with length %g\n",bundle->num_fragments,bundle->frag_len);
+	  fprintf(stderr,"Number of fragments in bundle: %g with sum %g\n",bundle->num_fragments,bundle->frag_len);
+	  */
+		printTime(stderr);
+		GMessage("^bundle %s:%d-%d done (%d processed potential transcripts).\n",bundle->refseq.chars(),
+				bundle->start, bundle->end, bundle->pred.Count());
+#ifdef GMEMTRACE
+		double vm,rsm;
+		get_mem_usage(vm, rsm);
+		GMessage("\t\tfinal memory usage: %6.1fMB\n",rsm/1024);
+		if (rsm>maxMemRS) {
+			maxMemRS=rsm;
+			maxMemVM=vm;
+			maxMemBundle.format("%s:%d-%d(%d)", bundle->refseq.chars(), bundle->start, bundle->end, bundle->readlist.Count());
+		}
+#endif
+	}
+	bundle->Clear();
+}
+
+
+void processBundleUnispg(BundleData* bundle, int fidx) {
+	if (verbose) {
+#ifndef NOTHREADS
+		GLockGuard<GFastMutex> lock(logMutex);
+#endif
+		printTime(stderr);
+		GMessage(">bundle %s:%d-%d [%lu alignments (%d distinct), %d junctions, %d guides] begins processing...\n",
+				bundle->refseq.chars(), bundle->start, bundle->end, bundle->numreads, bundle->readlist.Count(), bundle->junction.Count(),
+                bundle->keepguides.Count());
+#ifdef GMEMTRACE
+			double vm,rsm;
+			get_mem_usage(vm, rsm);
+			GMessage("\t\tstart memory usage: %6.1fMB\n",rsm/1024);
+			if (rsm>maxMemRS) {
+				maxMemRS=rsm;
+				maxMemVM=vm;
+				maxMemBundle.format("%s:%d-%d(%d)", bundle->refseq.chars(), bundle->start, bundle->end, bundle->readlist.Count());
+			}
+#endif
+	}
+#ifdef B_DEBUG
+	for (int i=0;i<bundle->keepguides.Count();++i) {
+		GffObj& t=*(bundle->keepguides[i]);
+		RC_TData* tdata=(RC_TData*)(t.uptr);
+		fprintf(dbg_out, ">%s (t_id=%d) %s%c %d %d\n", t.getID(), tdata->t_id, t.getGSeqName(), t.strand, t.start, t.end );
+		for (int fe=0;fe < tdata->t_exons.Count(); ++fe) {
+			RC_Feature& exoninfo = *(tdata->t_exons[fe]);
+			fprintf(dbg_out, "%d\texon\t%d\t%d\t%c\t%d\t%d\n", exoninfo.id, exoninfo.l, exoninfo.r,
+					    exoninfo.strand, exoninfo.rcount, exoninfo.ucount);
+			if (! (exoninfo==*(bundle->rc_data->guides_RC_exons->Get(exoninfo.id-1))))
+				 GError("exoninfo with id (%d) not matching!\n", exoninfo.id);
+		}
+		for (int fi=0;fi < tdata->t_introns.Count(); ++fi) {
+			RC_Feature& introninfo = *(tdata->t_introns[fi]);
+			fprintf(dbg_out, "%d\tintron\t%d\t%d\t%c\t%d\t%d\n", introninfo.id, introninfo.l, introninfo.r,
+					introninfo.strand, introninfo.rcount, introninfo.ucount);
+			if (! (introninfo==*(bundle->rc_data->guides_RC_introns->Get(introninfo.id-1))))
+				 GError("introninfo with id (%d) not matching!\n", introninfo.id);
+		}
+		//check that IDs are properly assigned
+		if (tdata->t_id!=(uint)t.udata) GError("tdata->t_id(%d) not matching t.udata(%d)!\n",tdata->t_id, t.udata);
+		if (tdata->t_id!=bundle->rc_data->guides_RC_tdata->Get(tdata->t_id-1)->t_id)
+			 GError("tdata->t_id(%d) not matching rc_data[t_id-1]->t_id (%d)\n", tdata->t_id, bundle->rc_data->g_tdata[tdata->t_id-1]->t_id);
+
+	}
+#endif
+
+	infer_transcripts_unispg(bundle, fidx);
 
 	if (ballgown && bundle->rc_data) {
 		rc_update_exons(*(bundle->rc_data));
