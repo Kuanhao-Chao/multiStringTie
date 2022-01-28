@@ -558,6 +558,39 @@ struct CGraphnode:public GSeg {
 	//CGraphnode(int s=0,int e=0,unsigned int id=MAX_NODE,float nodecov=0,float cap=0,float r=0,float f=0):GSeg(s,e),nodeid(id),cov(nodecov),capacity(cap),rate(r),frag(f),child(),parent(),childpat(),parentpat(),trf(){}
 	CGraphnode(int s=0,int e=0,unsigned int id=MAX_NODE,float nodecov=0,float cap=0,float r=0):GSeg(s,e),
 			nodeid(id),cov(nodecov),capacity(cap),rate(r),child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){}
+
+
+	CGraphnode(CGraphnode* node) {
+		fprintf(stderr, "Copying node start!! //\n");
+		start = node->start;
+		end = node->end;
+		nodeid = node->nodeid;
+		cov = node->cov;
+		capacity = node->capacity;
+		rate = node->rate;
+		GVec<int>* child_cp = new GVec<int>(node->child);
+		child = *child_cp;
+		// for (int i = 0; i < node->child.Count(); i++) {
+		// 	child.Add(node->child.Get(i));
+		// }
+		GVec<int>* parent_cp = new GVec<int>(node->parent);
+		parent = *parent_cp;
+		// for (int i = 0; i < node->parent.Count(); i++) {
+		// 	parent.Add(node->parent.Get(i));
+		// }
+
+		
+		// childpat = node->childpat;
+		// parentpat = node->parentpat;
+		GVec<int>* trf_cp = new GVec<int>(node->trf);
+		trf = *trf_cp;
+		// for (int i = 0; i < node->trf.Count(); i++) {
+		// 	trf.Add(node->trf.Get(i));
+		// }
+		hardstart = node->hardstart;
+		hardend = node->hardend;
+		fprintf(stderr, "End of copying node!!\n");
+	}
 };
 
 // # 0: strand; 1: start; 2: end; 3: nreads; 4: nreads_good;

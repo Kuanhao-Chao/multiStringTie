@@ -3,9 +3,9 @@
 #include "rlink_multi.h"
 #include "rlink_unispg.h"
 #include "tmerge.h"
-#include <vector>
+#include <vector> 
 #include "multist.h"
-#include "unispg.h"
+#include "unispg.h" 
 #ifndef NOTHREADS
 #include "GThreads.h"
 #endif
@@ -147,8 +147,11 @@ FILE* c_out=NULL;
  **  KH Adding 
  ****************/
 GStr outfname_prefix;
-UnispgGp* unispg_gp = new UnispgGp();
-int current_gidx = 0;
+// UnispgGp* unispg_gp = new UnispgGp();
+int track_idx = 0;
+GPVec<CGraphnode>* no2gnodeGp_unispg[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+GVec<int> current_gidx;
+
 bool universal_splice_graph = false;
 FILE* uinigraph_out = NULL;
 GStr unigraphfname; 
@@ -410,6 +413,15 @@ int main(int argc, char* argv[]) {
 	 **  KH Adding 
 	****************/
 	if (multiMode) {
+
+		track_idx = 0;
+		for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+			int s=sno/2; // adjusted strand due to ignoring neutral strand
+			no2gnodeGp_unispg[s] = new GPVec<CGraphnode>[20000];
+			current_gidx[s] = 0;
+		}
+
+
 		plot_dir = outfname.copy();		
 		if (outfname.endsWith(".gtf")) {
 			plot_dir.chomp(".gtf");
@@ -653,51 +665,53 @@ int main(int argc, char* argv[]) {
 	if (multiMode) {
 		for (int file_idx = 0; file_idx < bamcount; file_idx++) {
 
+			for (int s = 0; s < 2; s++) {
+				current_gidx[s] = 0;
+			}
+			nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+".bed";
+			edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+".bed";	
+			node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
+			edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
+			fprintf(node_cov_pos_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
+			fprintf(edge_cov_pos_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
+			nodecovposfname_vec.Add(nodecovposfname);
+			edgecovposfname_vec.Add(edgecovposfname);
+			node_cov_pos_bed_vec.Add(node_cov_pos_bed);
+			edge_cov_pos_bed_vec.Add(edge_cov_pos_bed);
 
-		nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+".bed";
-		edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+".bed";	
-		node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
-		edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
-		fprintf(node_cov_pos_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
-		fprintf(edge_cov_pos_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
-		nodecovposfname_vec.Add(nodecovposfname);
-		edgecovposfname_vec.Add(edgecovposfname);
-		node_cov_pos_bed_vec.Add(node_cov_pos_bed);
-		edge_cov_pos_bed_vec.Add(edge_cov_pos_bed);
+			nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+"_unispg.bed";
+			edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+"_unispg.bed";	
+			node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
+			edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
+			fprintf(node_cov_pos_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
+			fprintf(edge_cov_pos_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
+			nodecovposfname_unispg_vec.Add(nodecovposfname);
+			edgecovposfname_unispg_vec.Add(edgecovposfname);
+			node_cov_pos_bed_unispg_vec.Add(node_cov_pos_bed);
+			edge_cov_pos_bed_unispg_vec.Add(edge_cov_pos_bed);
 
-		nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+"_unispg.bed";
-		edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+"_unispg.bed";	
-		node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
-		edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
-		fprintf(node_cov_pos_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
-		fprintf(edge_cov_pos_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
-		nodecovposfname_unispg_vec.Add(nodecovposfname);
-		edgecovposfname_unispg_vec.Add(edgecovposfname);
-		node_cov_pos_bed_unispg_vec.Add(node_cov_pos_bed);
-		edge_cov_pos_bed_unispg_vec.Add(edge_cov_pos_bed);
+			nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+".bed";
+			edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+".bed";	
+			node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
+			edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
+			fprintf(node_cov_neg_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
+			fprintf(edge_cov_neg_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
+			nodecovnegfname_vec.Add(nodecovnegfname);
+			edgecovnegfname_vec.Add(edgecovnegfname);
+			node_cov_neg_bed_vec.Add(node_cov_neg_bed);
+			edge_cov_neg_bed_vec.Add(edge_cov_neg_bed);
 
-		nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+".bed";
-		edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+".bed";	
-		node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
-		edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
-		fprintf(node_cov_neg_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
-		fprintf(edge_cov_neg_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
-		nodecovnegfname_vec.Add(nodecovnegfname);
-		edgecovnegfname_vec.Add(edgecovnegfname);
-		node_cov_neg_bed_vec.Add(node_cov_neg_bed);
-		edge_cov_neg_bed_vec.Add(edge_cov_neg_bed);
-
-		nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+"_unispg.bed";
-		edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+"_unispg.bed";	
-		node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
-		edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
-		fprintf(node_cov_neg_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
-		fprintf(edge_cov_neg_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
-		nodecovnegfname_unispg_vec.Add(nodecovnegfname);
-		edgecovnegfname_unispg_vec.Add(edgecovnegfname);
-		node_cov_neg_bed_unispg_vec.Add(node_cov_neg_bed);
-		edge_cov_neg_bed_unispg_vec.Add(edge_cov_neg_bed);
-		// chr1    10071   85823   JUNC00000002    1       -
+			nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+"_unispg.bed";
+			edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+"_unispg.bed";	
+			node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
+			edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
+			fprintf(node_cov_neg_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
+			fprintf(edge_cov_neg_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
+			nodecovnegfname_unispg_vec.Add(nodecovnegfname);
+			edgecovnegfname_unispg_vec.Add(edgecovnegfname);
+			node_cov_neg_bed_unispg_vec.Add(node_cov_neg_bed);
+			edge_cov_neg_bed_unispg_vec.Add(edge_cov_neg_bed);
+			// chr1    10071   85823   JUNC00000002    1       -
 
 
 

@@ -17,8 +17,13 @@ PYTHONFLAGS := -I ${PYTHONDIR} -I ${NUMPYDIR} -L ${LD_LIBRARY_PATH}  -lpython3.8
 
 CXX   := $(if $(CXX),$(CXX),g++)
 
-BASEFLAGS := -Wall -Wextra ${INCDIRS} ${PYTHONFLAGS} -fsigned-char -D_FILE_OFFSET_BITS=64 \
+# BASEFLAGS := -Wall -Wextra ${INCDIRS} ${PYTHONFLAGS} -fsigned-char -D_FILE_OFFSET_BITS=64 \
+# -D_LARGEFILE_SOURCE -std=c++11 -fno-strict-aliasing -fno-rtti
+
+BASEFLAGS := -Wall -Wextra ${INCDIRS} -fsigned-char -D_FILE_OFFSET_BITS=64 \
 -D_LARGEFILE_SOURCE -std=c++11 -fno-strict-aliasing -fno-rtti
+
+
 # disable flag
 # -fno-exceptions
 #for gcc 8+ add: -Wno-class-memaccess
@@ -203,11 +208,12 @@ ${HTSLIB}/libhts.a:
 ############################
 ## KH ADD
 multistringtie${EXE}: ${HTSLIB}/libhts.a $(OBJS_MULTI) multistringtie.o
-	${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS} ${PYTHONFLAGS}
+	${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 	@echo
 	${DBG_WARN}
 ## END of KH ADD
 ############################
+# ${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS} ${PYTHONFLAGS}
 
 stringtie${EXE}: ${HTSLIB}/libhts.a $(OBJS) stringtie.o
 	${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
@@ -225,6 +231,8 @@ test demo tests: stringtie${EXE}
 clean:
 	${RM} stringtie${EXE} stringtie.o*  $(OBJS) $(OBJS_MULTI)
 	${RM} core.*  multistringtie${EXE} multistringtie.o*
+
+# pr: rm -rf multistringtie.o unispg.o
 ## END of KH ADD
 ############################
 ##allclean cleanAll cleanall:
