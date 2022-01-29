@@ -561,9 +561,10 @@ struct CGraphnode:public GSeg {
 
 
 	CGraphnode(CGraphnode* node) {
-		fprintf(stderr, "Copying node start!! //\n");
-		start = node->start;
-		end = node->end;
+		// fprintf(stderr, "Copying node start!! //\n");
+		this->start = node->start;
+		this->end = node->end;
+		fprintf(stderr, "Start - end: %u - %u !!\n", this->start, this->end);
 		nodeid = node->nodeid;
 		cov = node->cov;
 		capacity = node->capacity;
@@ -589,7 +590,7 @@ struct CGraphnode:public GSeg {
 		// }
 		hardstart = node->hardstart;
 		hardend = node->hardend;
-		fprintf(stderr, "End of copying node!!\n");
+		// fprintf(stderr, "End of copying node!!\n");
 	}
 };
 

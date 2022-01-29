@@ -421,7 +421,6 @@ int main(int argc, char* argv[]) {
 			current_gidx[s] = 0;
 		}
 
-
 		plot_dir = outfname.copy();		
 		if (outfname.endsWith(".gtf")) {
 			plot_dir.chomp(".gtf");
@@ -665,6 +664,7 @@ int main(int argc, char* argv[]) {
 	if (multiMode) {
 		for (int file_idx = 0; file_idx < bamcount; file_idx++) {
 
+			PrintGraphGp();
 			for (int s = 0; s < 2; s++) {
 				current_gidx[s] = 0;
 			}

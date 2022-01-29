@@ -44,10 +44,6 @@ void unispgGp_clean() {
 // }
 
 void AddGraph(int fidx, int s, int track_idx, GPVec<CGraphnode>* no2gnode) {
-    int cgidx = current_gidx[s];
-    fprintf(stderr, "*****************************\n");
-    fprintf(stderr, "*********** AddGraph ********\n");
-    fprintf(stderr, "*****************************\n");
         // GVec<int> graphno[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
         // GVec<int> edgeno[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
         // GPVec<CGraphnode> *no2gnode[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
@@ -69,160 +65,279 @@ void AddGraph(int fidx, int s, int track_idx, GPVec<CGraphnode>* no2gnode) {
     // int edgeno;  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
     // GPVec<CGraphnode>* no2gnode; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
 
-    for (int i=0; i<no2gnode->Count(); i++) {
-        CGraphnode* node = new CGraphnode(no2gnode->Get(i));
-        // fprintf(stderr, "New node address %p\n", node);
-        // fprintf(stderr, "New node sizeof  %d\n", sizeof(node));
-        // fprintf(stderr, "Old node address %p\n", no2gnode->Get(i));
-        // fprintf(stderr, "Old node sizeof %p\n", sizeof(no2gnode->Get(i)));
-
-        node = no2gnode->Get(i);
-        // fprintf(stderr, "Before no2gnodeGp_unispg[s][0] graph address %p\n", &(no2gnodeGp_unispg[s][0]));
-        // fprintf(stderr, "Before no2gnodeGp_unispg[s][0] sizeof  %d\n", sizeof(no2gnodeGp_unispg[s][0]));
-        // fprintf(stderr, "Before no2gnodeGp_unispg[s][0].Count()  %d\n", no2gnodeGp_unispg[s][0].Count());
-        no2gnodeGp_unispg[s][cgidx].Add(node);
-        // fprintf(stderr, "After no2gnodeGp_unispg[s][0] graph address %p\n", &no2gnodeGp_unispg[s][0]);
-        // fprintf(stderr, "After no2gnodeGp_unispg[s][0] sizeof  %d\n", sizeof(no2gnodeGp_unispg[s][0]));
-        // fprintf(stderr, "After no2gnodeGp_unispg[s][0].Count()  %d\n", no2gnodeGp_unispg[s][0].Count());
-
-        // fprintf(stderr, "Inside!! cgidx: %d \n", cgidx);
-        // fprintf(stderr, "no2gnode->Get(i)->nodeid: %d \n", node->nodeid);
-        // fprintf(stderr, "no2gnodeGp_unispg[s][cgidx].Last()->nodeid: %d \n", no2gnodeGp_unispg[s][cgidx].Last()->nodeid);
-
-        // fprintf(stderr, "no2gnodeGp_unispg[s][0] graph address: %p \n", &(no2gnodeGp_unispg[s][0]));
-        
-        // fprintf(stderr, "no2gnodeGp_unispg[s][0] sizeof: %d \n", sizeof(no2gnodeGp_unispg[s][0]));
-
-        // fprintf(stderr, "no2gnodeGp_unispg[s][0].Count(): %d \n", no2gnodeGp_unispg[s][0].Count());
-        // fprintf(stderr, "no2gnodeGp_unispg[s][0]->Last()->nodeid: %d \n", no2gnodeGp_unispg[s][0].Last()->nodeid);
-
-
-        // fprintf(stderr, "Inside!! cgidx: %d \n", cgidx);
-        // fprintf(stderr, "no2gnode->Get(i)->nodeid: %d \n", node->nodeid);
-
-        // fprintf(stderr, "no2gnodeGp_unispg[s][cgidx].Last()->nodeid: %d \n", no2gnodeGp_unispg[s][cgidx].Last()->nodeid);
-        // fprintf(stderr, "no2gnodeGp_unispg[s][0] graph address: %p \n", &(no2gnodeGp_unispg[s][0]));
-        
-        // fprintf(stderr, "no2gnodeGp_unispg[s][0] sizeof: %d \n", sizeof(no2gnodeGp_unispg[s][0]));
-
-        // fprintf(stderr, "no2gnodeGp_unispg[s][0].Count(): %d \n", no2gnodeGp_unispg[s][0].Count());
-        // fprintf(stderr, "no2gnodeGp_unispg[s][0]->Last()->nodeid: %d \n", no2gnodeGp_unispg[s][0].Last()->nodeid);
-
-        // if (cgidx >= 1) {
-        //     fprintf(stderr, "no2gnodeGp_unispg[s][cgidx-1]->Last()->nodeid: %d \n", no2gnodeGp_unispg[s][cgidx-1].Last()->nodeid);
-        //     fprintf(stderr, "no2gnodeGp_unispg[s][cgidx]->Last()->nodeid: %d \n", no2gnodeGp_unispg[s][cgidx].Last()->nodeid);
-        //     // fprintf(stderr, "no2gnodeGp_unispg[s][cgidx+1]->Last()->nodeid: %d \n", no2gnodeGp_unispg[s][cgidx+1].Last()->nodeid);
-        // }
-    }
+    
 
     if (fidx == 0) {
+        fprintf(stderr, "*****************************\n");
+        fprintf(stderr, "*********** AddGraph ********\n");
+        fprintf(stderr, "*****************************\n");
+        int cgidx = current_gidx[s];
         // This is the first unispg. Simply add copy it into UnispgGp
-        // graphnoGp[s].Add(graphno);
-        // edgenoGp[s].Add(edgeno);
-        // gpSize[s] = no2gnode->Count();
-        // no2gnodeGp_unispg[s][b].Add(no2gnode->Get(0));
+        for (int i=0; i<no2gnode->Count(); i++) {
+            CGraphnode* node = new CGraphnode(no2gnode->Get(i));
+            no2gnodeGp_unispg[s][cgidx].Add(node);
 
-        // for (int i=0; i<no2gnode->Count(); i++) {
-        //     no2gnodeGp_unispg[s][cgidx].Add(no2gnode->Get(i));
-        //     // cgidx = cgidx+1;
-        //     fprintf(stderr, "Inside!! cgidx: %d \n", cgidx);
-        // }   
-        
-        // fprintf(stderr, "$$$      no2gnodeGp_unispg[s]: %d\n", sizeof(no2gnodeGp_unispg[s]));
+            fprintf(stderr, "Inside!! cgidx: %d \n", cgidx);
+            fprintf(stderr, "no2gnode->Get(i)->nodeid: %d \n", node->nodeid);
+            fprintf(stderr, "no2gnodeGp_unispg[s][cgidx].Last()->nodeid: %d \n", no2gnodeGp_unispg[s][cgidx].Last()->nodeid);
+            fprintf(stderr, "no2gnodeGp_unispg[s][cgidx].Last() start - end : %d - %d \n", int(no2gnodeGp_unispg[s][cgidx].Last()->start), int(no2gnodeGp_unispg[s][cgidx].Last()->end));
 
-        // for (int i = 0; i < no2gnode->Count(); i++) {
-        //     // no2gnode->Get(i);
-        //     fprintf(stderr, "&&&& This is the local graphnode: %d\n", no2gnode->Get(i)->nodeid);
-        // }
+            // fprintf(stderr, "no2gnodeGp_unispg[s][0] graph address: %p \n", &(no2gnodeGp_unispg[s][0]));
+            
+            // fprintf(stderr, "no2gnodeGp_unispg[s][0] sizeof: %d \n", sizeof(no2gnodeGp_unispg[s][0]));
 
-        // for (int i = 0; i < no2gnodeGp_unispg[s][cgidx].Count(); i++) {
-        //     fprintf(stderr, "&&&& This is the global graphnode: %d\n", no2gnodeGp_unispg[s][cgidx][i]->nodeid);
-        // }
+            // fprintf(stderr, "no2gnodeGp_unispg[s][0].Count(): %d \n", no2gnodeGp_unispg[s][0].Count());
+            // fprintf(stderr, "no2gnodeGp_unispg[s][0]->Last()->nodeid: %d \n", no2gnodeGp_unispg[s][0].Last()->nodeid);
 
+
+            // fprintf(stderr, "Inside!! cgidx: %d \n", cgidx);
+            // fprintf(stderr, "no2gnode->Get(i)->nodeid: %d \n", node->nodeid);
+
+            // fprintf(stderr, "no2gnodeGp_unispg[s][cgidx].Last()->nodeid: %d \n", no2gnodeGp_unispg[s][cgidx].Last()->nodeid);
+            // fprintf(stderr, "no2gnodeGp_unispg[s][0] graph address: %p \n", &(no2gnodeGp_unispg[s][0]));
+            
+            // fprintf(stderr, "no2gnodeGp_unispg[s][0] sizeof: %d \n", sizeof(no2gnodeGp_unispg[s][0]));
+
+            // fprintf(stderr, "no2gnodeGp_unispg[s][0].Count(): %d \n", no2gnodeGp_unispg[s][0].Count());
+            // fprintf(stderr, "no2gnodeGp_unispg[s][0]->Last()->nodeid: %d \n", no2gnodeGp_unispg[s][0].Last()->nodeid);
+            // if (cgidx >= 1) {
+            //     fprintf(stderr, "no2gnodeGp_unispg[s][cgidx-1]->Last()->nodeid: %d \n", no2gnodeGp_unispg[s][cgidx-1].Last()->nodeid);
+            //     fprintf(stderr, "no2gnodeGp_unispg[s][0].Last() start - end : %u - %u \n", (no2gnodeGp_unispg[s][0].Last()-1)->start, (no2gnodeGp_unispg[s][0].Last()-1)->end);
+            //     fprintf(stderr, "no2gnodeGp_unispg[s][cgidx-1].Last() start - end : %u - %u \n", (no2gnodeGp_unispg[s][cgidx-1].Last()-1)->start, (no2gnodeGp_unispg[s][cgidx-1].Last()-1)->end);
+
+            //     fprintf(stderr, "no2gnodeGp_unispg[s][cgidx]->Last()->nodeid: %d \n", no2gnodeGp_unispg[s][cgidx].Last()->nodeid);
+            //     // fprintf(stderr, "no2gnodeGp_unispg[s][cgidx+1]->Last()->nodeid: %d \n", no2gnodeGp_unispg[s][cgidx+1].Last()->nodeid);
+            // }
+        }
+        current_gidx[s] += 1;
     } else {
         fprintf(stderr, "************************************\n");
         fprintf(stderr, "*********** Add more graph! ********\n");
         fprintf(stderr, "************************************\n");
-        // Need to check overlapping & new graph creation
+        int next_unispg = true;
+        int graph_overlap = false;
+        while(next_unispg) {
+            int cgidx = current_gidx[s];
+            // Need to check overlapping & new graph creation
 
-        // for(int sno=0; sno<3; sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-        //     int s=sno/2; // adjusted strand due to ignoring neutral strand
-        //     // fprintf(stderr, "2 bundle[sno].Count(): %d\n", bundle[sno].Count());
-        //     for(int b=0;b<bundle[sno].Count();b++) {
-        //     }
-        // }
-
-
-
-        // for (int i = 0; i < no2gnode->Count(); i++) {
-        //     // no2gnode->Get(i);
-        //     fprintf(stderr, "&&&& This is the local graphnode: %d\n", no2gnode->Get(i)->nodeid);
-        // }
-        // for (int i = 0; i < no2gnodeGp_unispg[s][cgidx].Count(); i++) {
-        //     fprintf(stderr, "&&&& This is the global graphnode: %d\n", no2gnodeGp_unispg[s][cgidx][i]->nodeid);
-        // }
-        // track_idx++;
+            // for (int i = 0; i < no2gnode->Count(); i++) {
+            //     // no2gnode->Get(i);
+            //     fprintf(stderr, "&&&& This is the local graphnode: %d\n", no2gnode->Get(i)->nodeid);
+            // }
+            // for (int i = 0; i < no2gnodeGp_unispg[s][cgidx].Count(); i++) {
+            //     fprintf(stderr, "&&&& This is the global graphnode: %d\n", no2gnodeGp_unispg[s][cgidx][i]->nodeid);
+            // }
+            // track_idx++;
 
 
-        int lclg_start = no2gnode->Get(1)->start;
-        int lclg_end = no2gnode->Get(no2gnode->Count()-2)->end;
+            uint lclg_start = no2gnode->Get(1)->start;
+            uint lclg_end = no2gnode->Get(no2gnode->Count()-2)->end;
 
-        int unispg_start = no2gnodeGp_unispg[s][cgidx][1]->start;
-        int unispg_end = no2gnodeGp_unispg[s][cgidx][ no2gnodeGp_unispg[s][cgidx].Count()-2 ]->end;
+            uint unispg_start = no2gnodeGp_unispg[s][cgidx][1]->start;
+            uint unispg_end = no2gnodeGp_unispg[s][cgidx][ no2gnodeGp_unispg[s][cgidx].Count()-2 ]->end;
 
-        fprintf(stderr, "$$$      cgidx: %d\n", cgidx);
-        fprintf(stderr, "$$$      no2gnodeGp_unispg[s]: %d\n", sizeof(no2gnodeGp_unispg[s]));
-        fprintf(stderr, "$$$  track_idx: %d\n", track_idx);
-        fprintf(stderr, "$$$ lclg_start: %d,  lclg_end: %d,  unispg_start: %d,  unispg_end: %d\n", lclg_start, lclg_end, no2gnodeGp_unispg[s][cgidx][1]->start, no2gnodeGp_unispg[s][cgidx][ no2gnodeGp_unispg[s][cgidx].Count()-2 ]->end);
+            fprintf(stderr, "$$$      cgidx: %d\n", cgidx);
+            fprintf(stderr, "$$$      no2gnodeGp_unispg[s]: %d\n", sizeof(no2gnodeGp_unispg[s]));
+            fprintf(stderr, "$$$  track_idx: %d\n", track_idx);
+            fprintf(stderr, "$$$ lclg_start: %u,  lclg_end: %u,  unispg_start: %u,  unispg_end: %u\n", lclg_start, lclg_end, no2gnodeGp_unispg[s][cgidx][1]->start, no2gnodeGp_unispg[s][cgidx][ no2gnodeGp_unispg[s][cgidx].Count()-2 ]->end);
+            
+            // unispg: -------
+            // lclg: ........
+            if (unispg_end < lclg_start) {
+                // ----------   |(s).................(e)|
+                fprintf(stderr,"\n  &&& Graph: ----------   |(s).................(e)| \n");
+                next_unispg = true;
+                graph_overlap = false;
+            } else if (unispg_start < lclg_start && unispg_end >= lclg_start && unispg_end <= lclg_end) {
+                // ----------|(s).................(e)|   or   -----|(s)-----............(e)|
+                fprintf(stderr,"\n  &&& Graph: ----------|(s).................(e)|   or   -----|(s)-----............(e)| \n");
+                next_unispg = true;
+                graph_overlap = true;
+            } else if (unispg_start < lclg_start && unispg_end > lclg_end) {
+                // -----|(s)------------(e)|--
+                fprintf(stderr,"\n &&& Graph: -----|(s)------------(e)|-- \n");
+                next_unispg = true;
+                graph_overlap = true;
+            } else if (unispg_start == lclg_start && unispg_end < lclg_end) {
+                // |(s)----------.................(e)| 
+                fprintf(stderr,"\n &&& Graph: |(s)----------............(e)|\n");
+                next_unispg = true;
+                graph_overlap = true;
+            } else if (unispg_start > lclg_start && unispg_end < lclg_end) {
+                // |(s)........----------........(e)|
+                fprintf(stderr,"\n &&& Graph: |(s)........----------........(e)| \n");
+                next_unispg = true;
+                graph_overlap = true;
+            } else if (unispg_start > lclg_start && unispg_end == lclg_end) {
+                // |(s)............----------(e)|
+                fprintf(stderr,"\n &&& Graph: |(s)............----------(e)| \n");
+                next_unispg = true;
+                graph_overlap = true;
+            } else if (unispg_start == lclg_start && unispg_end == lclg_end) {
+                // |(s)----------(e)|
+                fprintf(stderr,"\n &&& Graph: |(s)----------(e)| \n");
+                next_unispg = true;
+                graph_overlap = true;
+            } else if (unispg_start <= lclg_end && unispg_end > lclg_end) {
+                // |(s)...............------(e)|-----    or   |(s).................(e)|----------   
+                fprintf(stderr,"\n &&& Graph: (s)...............------(e)|-----    or   |(s).................(e)|---------- \n");
+                next_unispg = true;
+                graph_overlap = true;
+            } else if (unispg_start > lclg_end) {
+                // The node is outside the current bundle => This node belongs to the next bundlenode
+                // |(s).................(e)|   ----------
+                fprintf(stderr,"\n &&& Graph: |(s).................(e)|   ---------- \n");
+                next_unispg = false;
+                graph_overlap = false;
+                current_gidx[s] -= 1;
+            } else {
+                fprintf(stderr,"\n &&& Unknown area!!!! \n");
+                next_unispg = false;
+                graph_overlap = false;
+            }
 
-        track_idx++;
+            for (int i = 0; i < no2gnode->Count(); i++) {
+                // no2gnode->Get(i);
+                fprintf(stderr, "&&&& This is the local graphnode: %d\n", no2gnode->Get(i)->nodeid);
+            }
+
+            for (int i = 0; i < no2gnodeGp_unispg[s][10000].Count(); i++) {
+                fprintf(stderr, "&&&& This is the global graphnode: %d\n", no2gnodeGp_unispg[s][10000][i]->nodeid);
+            }
 
 
-        if (unispg_end < lclg_start) {
-            // ----------   |(s).................(e)|
-            fprintf(stderr,"\n  &&& Bundle: ----------   |(s).................(e)| \n");
-            track_idx++;
-        } else if (unispg_start < lclg_start && unispg_end >= lclg_start && unispg_end <= lclg_end) {
-            // ----------|(s).................(e)|   or   -----|(s)-----............(e)|
-            fprintf(stderr,"\n  &&& Bundle: ----------|(s).................(e)|   or   -----|(s)-----............(e)| \n");
-        } else if (unispg_start < lclg_start && unispg_end > lclg_end) {
-            // -----|(s)------------(e)|--
-            fprintf(stderr,"\n &&& Bundle: -----|(s)------------(e)|-- \n");
-        } else if (unispg_start == lclg_start && unispg_end < lclg_end) {
-            // |(s)----------.................(e)| 
-            fprintf(stderr,"\n &&& Bundle: |(s)----------............(e)|\n");
-        } else if (unispg_start > lclg_start && unispg_end < lclg_end) {
-            // |(s)........----------........(e)|
-            fprintf(stderr,"\n |(s)........----------........(e)| \n");
-        } else if (unispg_start > lclg_start && unispg_end == lclg_end) {
-            // |(s)............----------(e)|
-            fprintf(stderr,"\n &&& Bundle: |(s)............----------(e)| \n");
-        } else if (unispg_start == lclg_start && unispg_end == lclg_end) {
-            // |(s)----------(e)|
-            fprintf(stderr,"\n &&& Bundle: |(s)----------(e)| \n");
-        } else if (unispg_start <= lclg_end && unispg_end > lclg_end) {
-            // |(s)...............------(e)|-----    or   |(s).................(e)|----------   
-            fprintf(stderr,"\n &&& Bundle: (s)...............------(e)|-----    or   |(s).................(e)|---------- \n");
-        } else if (unispg_start > lclg_end) {
-            // The node is outside the current bundle => This node belongs to the next bundlenode
-            // |(s).................(e)|   ----------
-            fprintf(stderr,"\n &&& Bundle: |(s).................(e)|   ---------- \n");
-        } else {
-            fprintf(stderr,"\n &&& Unknown area!!!! \n");
+
+            /*****************************
+             * Create a new graph 
+             *****************************/
+            if (graph_overlap == true) {
+                int lclg_idx = 1;
+                int unispg_idx = 1;
+                bool more_comparison = true;
+                bool lclg_is_end = false;
+                bool unispg_is_end = false;
+                while(!lclg_is_end || !unispg_is_end) {
+                    lclg_is_end = (lclg_idx == no2gnode->Count()-2);
+                    unispg_is_end = (unispg_idx == no2gnodeGp_unispg[s][cgidx].Count()-2);
+                    // lclg_more_cmp = (lclg_idx != no2gnode->Count()-1);
+                    // unispg_more_cmp = (unispg_idx != no2gnodeGp_unispg[s]->Count()-1);
+
+                    // if (!lclg_more_cmp && unispg_more_cmp) {
+                    //     unispg_idx += 1;
+                    // } else if (lclg_idx < no2gnode->Count()-1 && unispg_idx == no2gnodeGp_unispg[s]->Count()-1) {
+                    //     lclg_idx += 1;
+                    // } else if (lclg_idx == no2gnode->Count()-1 || unispg_idx == no2gnodeGp_unispg[s]->Count()-1) {
+                    //     more_comparison = false;
+                    // }
+                    CGraphnode* lclg_node =  no2gnode->Get(lclg_idx);
+                    fprintf(stderr, "&& lclg_node: %d (%d - %d)\t", lclg_node->nodeid, lclg_node->start, lclg_node->end);
+                    CGraphnode* unispg_node = no2gnodeGp_unispg[s][cgidx].Get(unispg_idx);       
+                    fprintf(stderr, "&& unispg_node: %d (%d - %d)\t", unispg_node->nodeid, unispg_node->start, unispg_node->end);
+
+
+                    bool lclg_move = false;
+                    bool unispg_move = false;
+                    // unispg: -------
+                    // lclg: ........
+                    if (unispg_node->end < lclg_node->start) {
+                        // ----------   |(s).................(e)|
+                        fprintf(stderr,"\n  &&& Graph node: ----------   |(s).................(e)| \n\n");
+                        if (!unispg_is_end) {
+                            unispg_move = true;
+                        }
+                    } else if (unispg_node->start < lclg_node->start && unispg_node->end >= lclg_node->start && unispg_node->end <= lclg_node->end) {
+                        // ----------|(s).................(e)|   or   -----|(s)-----............(e)|
+                        fprintf(stderr,"\n  &&& Graph node: ----------|(s).................(e)|   or   -----|(s)-----............(e)| \n\n");
+                        if (!unispg_is_end) {
+                            unispg_move = true;
+                        }
+                    } else if (unispg_node->start < lclg_node->start && unispg_node->end > lclg_node->end) {
+                        // -----|(s)------------(e)|--
+                        fprintf(stderr,"\n &&& Graph node: -----|(s)------------(e)|-- \n\n");
+                        if (!lclg_is_end) {
+                            lclg_move = true;
+                        }
+                    } else if (unispg_node->start == lclg_node->start && unispg_node->end < lclg_node->end) {
+                        // |(s)----------.................(e)| 
+                        fprintf(stderr,"\n &&& Graph node: |(s)----------............(e)|\n\n");
+                        if (!unispg_is_end) {
+                            unispg_move = true;
+                        }
+                    } else if (unispg_node->start > lclg_node->start && unispg_node->end < lclg_node->end) {
+                        // |(s)........----------........(e)|
+                        fprintf(stderr,"\n &&& Graph node: |(s)........----------........(e)| \n\n");
+                        if (!unispg_is_end) {
+                            unispg_move = true;
+                        }
+                    } else if (unispg_node->start > lclg_node->start && unispg_node->end == lclg_node->end) {
+                        // |(s)............----------(e)|
+                        fprintf(stderr,"\n &&& Graph node: |(s)............----------(e)| \n\n");
+                        if (!unispg_is_end) {
+                            unispg_move = true;
+                        }
+                        if (!lclg_is_end) {
+                            lclg_move = true;
+                        }
+                    } else if (unispg_node->start == lclg_node->start && unispg_node->end == lclg_node->end) {
+                        // |(s)----------(e)|
+                        fprintf(stderr,"\n &&& Graph node: |(s)----------(e)| \n\n");
+                        if (!unispg_is_end) {
+                            unispg_move = true;
+                        }
+                        if (!lclg_is_end) {
+                            lclg_move = true;
+                        }
+                    } else if (unispg_node->start <= lclg_node->end && unispg_node->end > lclg_node->end) {
+                        // |(s)...............------(e)|-----    or   |(s).................(e)|----------   
+                        fprintf(stderr,"\n &&& Graph node: (s)...............------(e)|-----    or   |(s).................(e)|---------- \n\n");
+                        if (!lclg_is_end) {
+                            lclg_move = true;
+                        }
+                    } else if (unispg_node->start > lclg_node->end) {
+                        // The node is outside the current bundle => This node belongs to the next bundlenode
+                        // |(s).................(e)|   ----------
+                        fprintf(stderr,"\n &&& Graph node: |(s).................(e)|   ---------- \n\n");
+                        if (!lclg_is_end) {
+                            lclg_move = true;
+                        }
+                    }
+
+                    if (lclg_move) {
+                        lclg_idx += 1;
+                    }
+                    if (unispg_move) {
+                        unispg_idx += 1;
+                    }
+                    if (!lclg_move && !unispg_move) {
+
+                        fprintf(stderr, ">>>> Local & global graph node cannot move\n");
+                        // fprintf(stderr, ">>>> Local & global graph node cannot move\n")
+
+                        break;
+                    }
+                }
+
+                // if (lclg_is_end) {
+
+                // }
+                // for (int lclg_idx = 0; lclg_idx < no2gnode->Count(); lclg_idx++) {
+                //     CGraphnode* lclg_node =  no2gnode->Get(lclg_idx);
+                //     fprintf(stderr, "&& lclg_node: %d\n", lclg_node->nodeid);
+
+
+                //     for (int unispg_idx = 0; unispg_idx < no2gnodeGp_unispg[s]->Count(); unispg_idx++) {
+                //         CGraphnode* unispg_node = no2gnodeGp_unispg[s]->Get(unispg_idx);       
+                //         fprintf(stderr, "&& unispg_node: %d\n", unispg_node->nodeid);
+
+
+                //     }
+                // }
+            }
+            current_gidx[s] += 1;
         }
 
-        for (int i = 0; i < no2gnode->Count(); i++) {
-            // no2gnode->Get(i);
-            fprintf(stderr, "&&&& This is the local graphnode: %d\n", no2gnode->Get(i)->nodeid);
-        }
 
-        for (int i = 0; i < no2gnodeGp_unispg[s][10000].Count(); i++) {
-            fprintf(stderr, "&&&& This is the global graphnode: %d\n", no2gnodeGp_unispg[s][10000][i]->nodeid);
-        }
-        // This is the local graph.
-        *no2gnode;
-        // This is the global graph.
-        no2gnodeGp_unispg[s][track_idx];
+
     }
 
     // int g_idx = 0;
@@ -261,27 +376,21 @@ void PrintGraphGp() {
 
     { // DEBUG ONLY
         printTime(stderr);
-        // for(int s=0;s<2;s++) {
-        //     fprintf(stderr, "\n\tThere are %d stranded[%d] graphs\n", gpSize[s],int(2*s));
-        //     // if () {
-
-        //     // }
-        //     for(int b=0;b<gpSize[s];b++) {
-        //         fprintf(stderr, ">>>>>>> 1-2 gpSize[%d]: %d\n", s, gpSize[s]);
-        //         fprintf(stderr, ">>>>>>> 1-2 graphnoGp[%d][%d]: %d\n", s, b, graphnoGp[s][b]);
-        //         if(graphnoGp[s][b]) {
-        //             GStr pat;
-        //             fprintf(stderr,"\t\tGraph[%d][%d] with %d nodes and %d edges :",int(2*s),b,graphnoGp[s][b],edgenoGp[s][b]);
-        //             for(int nd=1;nd<graphnoGp[s][b]-1;nd++) {
-        //                 fprintf(stderr, "&&& nd: %d\n", nd);
-        //                 fprintf(stderr, "&&& no2gnodeGp_unispg[s][b][nd]->start: %d\n", no2gnodeGp_unispg[s][b][nd]->start);
-        //                 fprintf(stderr, "&&& no2gnodeGp_unispg[s][b][nd]->end: %d\n", no2gnodeGp_unispg[s][b][nd]->end);
-        //                 fprintf(stderr," %d(%d-%d)",nd,no2gnodeGp_unispg[s][b][nd]->start,no2gnodeGp_unispg[s][b][nd]->end);
-        //             }
-        //         } 
-        //         fprintf(stderr,"\n");
-        //     }
-        // }
+        for(int s=0;s<2;s++) {
+            fprintf(stderr, "\n\tThere are %d stranded[%d] graphs\n", current_gidx[s]+1,int(2*s));
+            current_gidx[s];
+            for(int b=0;b<current_gidx[s]+1;b++) {                
+                GStr pat;
+                fprintf(stderr,"\t\tGraph[%d][%d] with %d nodes :",int(2*s),b,no2gnodeGp_unispg[s][b].Count());
+                for(int nd=1;nd<no2gnodeGp_unispg[s][b].Count()-1;nd++) {
+                    fprintf(stderr, "&&& nd: %d\n", nd);
+                    fprintf(stderr, "&&& no2gnodeGp_unispg[s][b][nd]->start: %u\n", no2gnodeGp_unispg[s][b][nd]->start);
+                    fprintf(stderr, "&&& no2gnodeGp_unispg[s][b][nd]->end: %u\n", no2gnodeGp_unispg[s][b][nd]->end);
+                    fprintf(stderr," %d(%u-%u)",nd,no2gnodeGp_unispg[s][b][nd]->start,no2gnodeGp_unispg[s][b][nd]->end);
+                }
+                fprintf(stderr,"\n");
+            }
+        }
 
     //     for(int s=0;s<2;s++) {
     // 	fprintf(stderr, "There are %d stranded[%d] graphs\n",bno[s],int(2*s));

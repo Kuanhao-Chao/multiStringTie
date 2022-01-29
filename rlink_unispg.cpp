@@ -2920,14 +2920,12 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 						}
 						fprintf(stderr,"}\n");
 
-
-
-						/****************
-						 **  Writing out the visualization graph for the global graph.
-						****************/
-						// fprintf(stderr, "&& current_gidx: %d\n", current_gidx);
+						// /****************
+						//  **  Writing out the visualization graph for the global graph.
+						// ****************/
+						// fprintf(stderr, "&& current_gidx: %d\n", current_gidx[s]);
 						// // GPVec<CGraphnode>** no2gnodeGp_unispg = unispg_gp->get_no2gnodeGp();
-						// fprintf(stderr, "no2gnodeGp_unispg[s][current_gidx].Count(): %d \n", no2gnodeGp_unispg[s][current_gidx].Count());
+						// fprintf(stderr, "no2gnodeGp_unispg[s][current_gidx[s]].Count(): %d \n", no2gnodeGp_unispg[s][current_gidx[s]].Count());
 						// // int refstart_unispg = no2gnodeGp_unispg[s][g][1]->start;
 						// // int refend_unispg = no2gnodeGp_unispg[s][g][no2gnodeGp_unispg[s][g].Count()-2]->end;
 						// // GVec<int>* graphno_unispg = unispg_gp->get_graphnoGp();
@@ -2936,8 +2934,8 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 						// fprintf(stderr,"Traversing the universal splice graph!!!\n");
 						// fprintf(stderr,"Unispg %d_%d_%d_%d {", bdata->start, bdata->end, s, g);
 						// // graphno[s][b]: number of nodes in graph.
-						// for(int nd=0;nd<no2gnodeGp_unispg[s][current_gidx].Count();nd++) {
-						// 	fprintf(stderr,"%d[start=%d end=%d cov=%f];",nd,no2gnodeGp_unispg[s][current_gidx][nd]->start,no2gnodeGp_unispg[s][current_gidx][nd]->end,no2gnodeGp_unispg[s][current_gidx][nd]->cov);
+						// for(int nd=0;nd<no2gnodeGp_unispg[s][current_gidx[s]].Count();nd++) {
+						// 	fprintf(stderr,"%d[start=%d end=%d cov=%f];",nd,no2gnodeGp_unispg[s][current_gidx[s]][nd]->start,no2gnodeGp_unispg[s][current_gidx[s]][nd]->end,no2gnodeGp_unispg[s][current_gidx[s]][nd]->cov);
 						// 	// exon_tmp.clear();
 						// 	// exon_tmp.push_back(no2gnode[s][g][nd]->start);
 						// 	// exon_tmp.push_back(no2gnode[s][g][nd]->end);
@@ -2954,14 +2952,14 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 						// 	fprintf(stderr, "node_name: %s\n", node_name.chars());
 
 						// 	if (nd == 0) {
-						// 		node_start = no2gnodeGp_unispg[s][current_gidx][1]->start-200;
-						// 		node_end = no2gnodeGp_unispg[s][current_gidx][1]->start;
-						// 	} else if (nd == no2gnodeGp_unispg[s][current_gidx].Count()-1){
-						// 		node_start = no2gnodeGp_unispg[s][current_gidx][no2gnodeGp_unispg[s][current_gidx].Count()-2]->end-1;
-						// 		node_end = 	no2gnodeGp_unispg[s][current_gidx][no2gnodeGp_unispg[s][current_gidx].Count()-2]->end+200;
+						// 		node_start = no2gnodeGp_unispg[s][current_gidx[s]][1]->start-200;
+						// 		node_end = no2gnodeGp_unispg[s][current_gidx[s]][1]->start;
+						// 	} else if (nd == no2gnodeGp_unispg[s][current_gidx[s]].Count()-1){
+						// 		node_start = no2gnodeGp_unispg[s][current_gidx[s]][no2gnodeGp_unispg[s][current_gidx[s]].Count()-2]->end-1;
+						// 		node_end = 	no2gnodeGp_unispg[s][current_gidx[s]][no2gnodeGp_unispg[s][current_gidx[s]].Count()-2]->end+200;
 						// 	} else {
-						// 		node_start = no2gnodeGp_unispg[s][current_gidx][nd]->start-1;
-						// 		node_end = no2gnodeGp_unispg[s][current_gidx][nd]->end;		
+						// 		node_start = no2gnodeGp_unispg[s][current_gidx[s]][nd]->start-1;
+						// 		node_end = no2gnodeGp_unispg[s][current_gidx[s]][nd]->end;		
 						// 	}
 
 
@@ -2971,7 +2969,7 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 						// 		} else if (s == 1) {
 						// 			fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t-\n", node_start, node_end, node_name.chars(), 0);
 						// 		}
-						// 	} else if (nd == no2gnodeGp_unispg[s][current_gidx].Count()-1){
+						// 	} else if (nd == no2gnodeGp_unispg[s][current_gidx[s]].Count()-1){
 						// 		if(s == 0) {
 						// 		// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
 
@@ -2984,21 +2982,21 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 						// 	} else {
 						// 		if(s == 0) {
 						// 			// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", no2gnode[s][g][nd]->start, no2gnode[s][g][nd]->end, no2gnode[s][g][nd]->cov, strand_symbol.chars());
-						// 			fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnodeGp_unispg[s][current_gidx][nd]->cov, node_name.chars(), strand_symbol.chars());
+						// 			fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnodeGp_unispg[s][current_gidx[s]][nd]->cov, node_name.chars(), strand_symbol.chars());
 						// 		} else if (s == 1) {
-						// 			fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnodeGp_unispg[s][current_gidx][nd]->cov, node_name.chars(), strand_symbol.chars());
+						// 			fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnodeGp_unispg[s][current_gidx[s]][nd]->cov, node_name.chars(), strand_symbol.chars());
 						// 		}
 						// 	}
 						// }
 
-						// for(int nd=0;nd<no2gnodeGp_unispg[s][current_gidx].Count()-1;nd++) {
+						// for(int nd=0;nd<no2gnodeGp_unispg[s][current_gidx[s]].Count()-1;nd++) {
 						// 	// fprintf(stderr,"Node %d with parents:",i);
 						// 	GStr node_parent_nd(nd);
 							
-						// 	for(int c=0;c<no2gnodeGp_unispg[s][current_gidx][nd]->child.Count();c++) {
-						// 		GStr node_child_nd(no2gnodeGp_unispg[s][current_gidx][nd]->child[c]);
+						// 	for(int c=0;c<no2gnodeGp_unispg[s][current_gidx[s]][nd]->child.Count();c++) {
+						// 		GStr node_child_nd(no2gnodeGp_unispg[s][current_gidx[s]][nd]->child[c]);
 						// 		fprintf(stderr,"%d->",nd);			
-						// 		fprintf(stderr,"%d;",no2gnodeGp_unispg[s][current_gidx][nd]->child[c]);
+						// 		fprintf(stderr,"%d;",no2gnodeGp_unispg[s][current_gidx[s]][nd]->child[c]);
 						// 		GStr junction_name = "Junc_" + bundle_start + "_" + bundle_end + "_" + node_g + "_" + node_parent_nd + "->" + node_child_nd;
 						// 		fprintf(stderr, "junction_name: %s\n", junction_name.chars());
 								
@@ -3006,15 +3004,15 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 						// 		int junc_end = 0;
 						// 		if (nd == 0) {
 						// 			// It's the source node.
-						// 			junc_start = no2gnodeGp_unispg[s][current_gidx][1]->start;
+						// 			junc_start = no2gnodeGp_unispg[s][current_gidx[s]][1]->start;
 						// 		} else {
-						// 			junc_start = no2gnodeGp_unispg[s][current_gidx][nd]->end;
+						// 			junc_start = no2gnodeGp_unispg[s][current_gidx[s]][nd]->end;
 						// 		}
-						// 		if (no2gnodeGp_unispg[s][current_gidx][ no2gnodeGp_unispg[s][current_gidx][nd]->child[c] ] -> start == 0) {
+						// 		if (no2gnodeGp_unispg[s][current_gidx[s]][ no2gnodeGp_unispg[s][current_gidx[s]][nd]->child[c] ] -> start == 0) {
 						// 			// The node goes to the sink.
-						// 			junc_end = no2gnodeGp_unispg[s][current_gidx][no2gnodeGp_unispg[s][current_gidx].Count()-2]->end;
+						// 			junc_end = no2gnodeGp_unispg[s][current_gidx[s]][no2gnodeGp_unispg[s][current_gidx[s]].Count()-2]->end;
 						// 		} else {
-						// 			junc_end = no2gnodeGp_unispg[s][current_gidx][ no2gnodeGp_unispg[s][current_gidx][nd]->child[c] ] -> start;
+						// 			junc_end = no2gnodeGp_unispg[s][current_gidx[s]][ no2gnodeGp_unispg[s][current_gidx[s]][nd]->child[c] ] -> start;
 						// 		}
 						// 		if(s == 0) {
 						// 			fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
@@ -3024,7 +3022,7 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 						// 	}
 						// }
 						// fprintf(stderr,"}\n");
-						current_gidx[s] += 1;
+						// current_gidx[s] += 1;
                     }
 				}
             }
