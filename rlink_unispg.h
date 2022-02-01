@@ -13,9 +13,11 @@ extern FILE* edge_cov_neg_bed;
 
 
 // extern UnispgGp* unispg_gp;
-extern GPVec<CGraphnode>* no2gnodeGp_unispg[2];
+// extern GPVec<CGraphnode>* no2gnodeGp_unispg[2];
+extern UnispgGp* unispg_gp;
+extern GPVec<CGraphnodeUnispg>* no2gnode_unispg[2];
+
 extern GVec<int> current_gidx;
-extern int track_idx;
 
 extern GVec<FILE*> node_cov_pos_bed_vec;
 // GVec<GStr> nodecovposfname_vec; 

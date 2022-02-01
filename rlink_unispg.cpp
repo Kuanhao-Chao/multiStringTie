@@ -2821,7 +2821,7 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 				// 	}
 				// }
 
-						AddGraph(fidx, s, track_idx, no2gnode[s]+g);
+						unispg_gp->AddGraph(fidx, s, no2gnode[s]+g);
 
 
 

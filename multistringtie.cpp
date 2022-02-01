@@ -147,10 +147,7 @@ FILE* c_out=NULL;
  **  KH Adding 
  ****************/
 GStr outfname_prefix;
-// UnispgGp* unispg_gp = new UnispgGp();
-int track_idx = 0;
-GPVec<CGraphnode>* no2gnodeGp_unispg[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
-GVec<int> current_gidx;
+UnispgGp* unispg_gp;
 
 bool universal_splice_graph = false;
 FILE* uinigraph_out = NULL;
@@ -413,14 +410,7 @@ int main(int argc, char* argv[]) {
 	 **  KH Adding 
 	****************/
 	if (multiMode) {
-
-		track_idx = 0;
-		for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-			int s=sno/2; // adjusted strand due to ignoring neutral strand
-			no2gnodeGp_unispg[s] = new GPVec<CGraphnode>[20000];
-			current_gidx[s] = 0;
-		}
-
+		unispg_gp = new UnispgGp();
 		plot_dir = outfname.copy();		
 		if (outfname.endsWith(".gtf")) {
 			plot_dir.chomp(".gtf");
@@ -663,11 +653,10 @@ int main(int argc, char* argv[]) {
 
 	if (multiMode) {
 		for (int file_idx = 0; file_idx < bamcount; file_idx++) {
+			fprintf(stderr, "bamreader.files.Get(file_idx): %s\n", bamreader.files.Get(file_idx).chars());
+			unispg_gp->ProcessSample(bamreader.files.Get(file_idx));
+			unispg_gp->PrintGraphGp();
 
-			PrintGraphGp();
-			for (int s = 0; s < 2; s++) {
-				current_gidx[s] = 0;
-			}
 			nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+".bed";
 			edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+".bed";	
 			node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
