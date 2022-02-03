@@ -170,7 +170,7 @@ GBitVec traverse_dfs_unispg(int s,int g,CGraphnode *node,CGraphnode *sink,GBitVe
 			/*if(mixedMode) {
 				tr->abundance*=2;
 			}*/
-
+ 
 			transfrag[s][g].Add(tr);
 			if(mixedMode) { // I need to add a long read as well
 				CTransfrag *longtr=new CTransfrag(nodes,trpat,trthr);
