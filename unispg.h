@@ -17,6 +17,49 @@
 #include <vector>
 using namespace std;
 
+enum CGraphBoundaryType {
+	EMPTY_TYPE=0,
+	UNISPG_S,
+	UNISPG_E,
+	LCLG_S,
+	LCLG_E,
+	UNISPG_S_LCLG_S,
+	UNISPG_S_LCLG_E,
+	UNISPG_E_LCLG_S,
+	UNISPG_E_LCLG_E
+	// UNISPG_S_EMPTY=0,
+	// UNISPG_S_LCLG,
+	// UNISPG_E_EMPTY,
+	// UNISPG_E_LCLG,
+	// LCLG_S_EMPTY,
+	// LCLG_S_UNISPG,
+	// LCLG_E_EMPTY,
+	// LCLG_E_UNISPG,
+	// UNISPG_S_LCLG_S,
+	// UNISPG_S_LCLG_E,
+	// UNISPG_E_LCLG_S,
+	// UNISPG_E_LCLG_E
+};
+
+static const char *enum_str[] = { 	
+	"EMPTY_TYPE",
+	"UNISPG_S",
+	"UNISPG_E",
+	"LCLG_S",
+	"LCLG_E",
+	"UNISPG_S_LCLG_S",
+	"UNISPG_S_LCLG_E",
+	"UNISPG_E_LCLG_S",
+	"UNISPG_E_LCLG_E" 
+};
+
+
+enum CGraphnodeUnispgType {
+	UNI_LCL_NODE=0,
+	UNI_NODE,
+	LCL_NODE,
+	EMPTY_NODE
+};
 
 // struct Unispg {
 //    protected:
@@ -122,22 +165,13 @@ using namespace std;
 struct CGraphnodeUnispg:public GSeg {
     int sample_num = 0;
 	int nodeid;
-	// float cov;
-	// float capacity; // sum of all transcripts abundances exiting and through node
-	// float rate; // conversion rate between in and out transfrags of node
-	//float frag; // number of fragments included in node
-
-// Samples vector
-    // GVec<GStr> samples;
-
-// Samples having this node
+	// Samples having this node
     GVec<bool>* is_passed_s;
-// Node coverage for each sample
+	// Node coverage for each sample
     GVec<float>* cov_s;
-// Node capacity for each sample
+	// Node capacity for each sample
     GVec<float>* capacity_s;
 
-    // GVec<>;
 	GVec<CGraphnodeUnispg*> child;
 	GVec<CGraphnodeUnispg*> parent;
 	GBitVec childpat;
@@ -147,81 +181,16 @@ struct CGraphnodeUnispg:public GSeg {
 	bool hardend:1;	// verified/strong end
 	//CGraphnode(int s=0,int e=0,unsigned int id=MAX_NODE,float nodecov=0,float cap=0,float r=0,float f=0):GSeg(s,e),nodeid(id),cov(nodecov),capacity(cap),rate(r),frag(f),child(),parent(),childpat(),parentpat(),trf(){}
 	CGraphnodeUnispg(int sample_num_i=0, int s=0,int e=0,unsigned int id=MAX_NODE, GVec<bool>* is_passed_s_i=NULL, GVec<float>* cov_s_i=NULL, GVec<float>* capacity_s_i=NULL, bool is_passed=false, float cov=0, float capacity=0,float r=0):GSeg(s,e),sample_num(sample_num_i), nodeid(id),is_passed_s(is_passed_s_i),cov_s(cov_s_i),capacity_s(capacity_s_i),child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){
-// for (int i = 0; i < is_passed_s_i->Count(); i++) {
-//     fprintf(stderr, "is_passed_s_i: %d\n", is_passed_s_i->Get(i));
-// }
-// for (int i = 0; i < cov_s_i->Count(); i++) {
-//     fprintf(stderr, "cov_s_i: %f\n", cov_s_i->Get(i));
-// }
-// for (int i = 0; i < capacity_s_i->Count(); i++) {
-//     fprintf(stderr, "capacity_s_i: %f\n", capacity_s_i->Get(i));
-// }
-
-// for (int i = 0; i < is_passed_s->Count(); i++) {
-//     fprintf(stderr, "is_passed_s: %d\n", is_passed_s->Get(i));
-// }
-// for (int i = 0; i < cov_s->Count(); i++) {
-//     fprintf(stderr, "cov_s: %f\n", cov_s->Get(i));
-// }
-// for (int i = 0; i < capacity_s->Count(); i++) {
-//     fprintf(stderr, "capacity_s: %f\n", capacity_s->Get(i));
-// }
 		is_passed_s->cAdd(is_passed);
 		cov_s->cAdd(cov);
 		capacity_s->cAdd(capacity);			
-// for (int i = 0; i < is_passed_s->Count(); i++) {
-//     fprintf(stderr, "ADD is_passed_s: %d\n", is_passed_s->Get(i));
-// }
-// for (int i = 0; i < cov_s->Count(); i++) {
-//     fprintf(stderr, "ADD cov_s: %f\n", cov_s->Get(i));
-// }
-// for (int i = 0; i < capacity_s->Count(); i++) {
-//     fprintf(stderr, "ADD capacity_s: %f\n", capacity_s->Get(i));
-// }
     }
 
     void setup_parent() {
-
     }
 
     void setup_child() {
-
     }
-
-
-
-	// CGraphnode(CGraphnode* node) {
-	// 	// fprintf(stderr, "Copying node start!! //\n");
-	// 	this->start = node->start;
-	// 	this->end = node->end;
-	// 	fprintf(stderr, "Start - end: %u - %u !!\n", this->start, this->end);
-	// 	nodeid = node->nodeid;
-	// 	cov = node->cov;
-	// 	capacity = node->capacity;
-	// 	rate = node->rate;
-	// 	GVec<int>* child_cp = new GVec<int>(node->child);
-	// 	child = *child_cp;
-	// 	// for (int i = 0; i < node->child.Count(); i++) {
-	// 	// 	child.Add(node->child.Get(i));
-	// 	// }
-	// 	GVec<int>* parent_cp = new GVec<int>(node->parent);
-	// 	parent = *parent_cp;
-	// 	// for (int i = 0; i < node->parent.Count(); i++) {
-	// 	// 	parent.Add(node->parent.Get(i));
-	// 	// }
-
-		
-	// 	// childpat = node->childpat;
-	// 	// parentpat = node->parentpat;
-	// 	GVec<int>* trf_cp = new GVec<int>(node->trf);
-	// 	trf = *trf_cp;
-	// 	// for (int i = 0; i < node->trf.Count(); i++) {
-	// 	// 	trf.Add(node->trf.Get(i));
-	// 	// }
-	// 	hardstart = node->hardstart;
-	// 	hardend = node->hardend;
-	// 	// fprintf(stderr, "End of copying node!!\n");
-	// }
 };
 
 
@@ -240,16 +209,17 @@ struct UnispgGp {
 			    // current_gidx[s] = 0;
             }
         }
-
         ~UnispgGp() {
             for(int i=0;i<2;i++) {
             delete [] no2gnode_unispg[i];
             };
         }
-        
         void ProcessSample(GStr sample_name);
-
         void AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode);
+		void AddBoundary(GVec<uint>& boundaries, uint boundary, GVec<CGraphBoundaryType>& boundaries_type, CGraphBoundaryType boundary_type);
+		void MoveUnispg(bool& unispg_is_end, bool& unispg_move);
+		void MoveLclg(bool& lclg_is_end, bool& lclg_move);
+		void WriteGraphGp();
 
         void Clear() {
             // fprintf(stderr, "**** Start Clearing !!!! \n ");

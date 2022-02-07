@@ -443,6 +443,7 @@ int main(int argc, char* argv[]) {
 		// fprintf(edge_cov_neg_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
 		// chr1    10071   85823   JUNC00000002    1       -
 		fprintf(stderr, "plot_dir: %s\n", plot_dir.chars());
+		uinigraph_out = fopen(unigraphfname.chars(), "w");
 	} else if (unispgMode) {
 		if (fileExists(unigraphfname.chars()) == 0) {
 			GError("Error: universal splice graph file (%s) is not found.\n Please run stringtie first to get the universal dot file.\n", unigraphfname.chars());
@@ -652,6 +653,9 @@ int main(int argc, char* argv[]) {
 	// }
 
 	if (multiMode) {
+		// uinigraph_out
+		// 			node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
+
 		for (int file_idx = 0; file_idx < bamcount; file_idx++) {
 			fprintf(stderr, "bamreader.files.Get(file_idx): %s\n", bamreader.files.Get(file_idx).chars());
 			unispg_gp->ProcessSample(bamreader.files.Get(file_idx));
@@ -2060,7 +2064,7 @@ int main(int argc, char* argv[]) {
  **  KH Adding 
  ****************/
 	if (multiMode) {
-		// fclose(uinigraph_out);
+		fclose(uinigraph_out);
 		fclose(node_cov_pos_bed);
 		fclose(edge_cov_pos_bed);
 		fclose(node_cov_neg_bed);
@@ -2174,7 +2178,14 @@ void processOptions(GArgs& args) {
 	 multiMode=(args.getOpt("multi")!=NULL);
 	 if(multiMode) {
 		 longreads=false; // these are not longreads
-		 unigraphfname="";
+		//  unigraphfname="";
+		//-- unispg ref sequence
+		s=args.getOpt("unispg");
+		//  if (s.is_empty())
+		// 	GError("Error: --unispg is missing\n");
+		if (!s.is_empty()) {
+			unigraphfname=s;
+		}
 	 } 
 	 fprintf(stderr, "multiMode: %d\n", multiMode);
 

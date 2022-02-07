@@ -2714,6 +2714,7 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 			//}
     	}
 
+		// unispg_gp->WriteGraphGp();
 
 		/*****************************
 		 ** 3-1. Write out global splice graph in DOT format
