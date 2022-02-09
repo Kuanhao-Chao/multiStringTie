@@ -195,11 +195,10 @@ struct CGraphnodeUnispg:public GSeg {
 
 
 struct UnispgGp {
-    protected:
+    public:
         GPVec<CGraphnodeUnispg>* no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
         GVec<int> current_gidx;
         GVec<GStr> samples;
-    public:
         // s: strand (0 = negative strand; 1 = unknown strand; 2 = positive strand // 0(-),1(.),2(+))
         // b: all bundles on all strands: 0,1,2
         UnispgGp() { 

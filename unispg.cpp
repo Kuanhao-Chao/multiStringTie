@@ -22,7 +22,7 @@ void UnispgGp::ProcessSample(GStr sample_name) {
 void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode) {
     int sample_num = unispg_gp->samples.Count();
     if (fidx == 0) {
-        fprintf(stderr, "*****************************\n");
+        fprintf(stderr, "\n*****************************\n");
         fprintf(stderr, "*********** AddGraph ********\n");
         fprintf(stderr, "*****************************\n");
         int cgidx = current_gidx[s];
@@ -212,7 +212,7 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode) {
 
                 CGraphnode* lclg_node =  no2gnode->Get(1);
                 CGraphnodeUnispg* unispg_node = no2gnode_unispg[s][cgidx].Get(1);
-                prev_boundary = (unispg_node->start < lclg_node->end) ? unispg_node->start:lclg_node->end;
+                prev_boundary = (unispg_node->start < lclg_node->start) ? unispg_node->start:lclg_node->start;
                 while(!lclg_is_end || !unispg_is_end) {
                     lclg_is_end = (lclg_idx == no2gnode->Count()-2);
                     unispg_is_end = (unispg_idx == no2gnode_unispg[s][cgidx].Count()-2);
@@ -510,10 +510,12 @@ fprintf(stderr,"\n  >>>>  Graph node: |(s)..........(e)|  ----------\n");
                                 node_start_pos = unispg_node->start;
                             }
                             // Add new node
+                            fprintf(stderr, "^^^^ node_start_pos: %d,  unispg_node->end: %d \n", node_start_pos, unispg_node->end);
                             node = new CGraphnodeUnispg(sample_num, node_start_pos, unispg_node->end, new_unispg_nodeid, unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, false, 0, 0, 0);
                             new_no2gnode_unispg[cgidx].Add(node);
                             new_unispg_nodeid += 1;
-                            prev_boundary = unispg_node->end;
+                            // !!!!!! Do not update the prev_boundary!!!
+                            // prev_boundary = unispg_node->end;
                             // Move to next node of the unispg
                             unispg_idx += 1;
                         } else if (!lclg_is_end && unispg_is_end) {
@@ -543,10 +545,12 @@ fprintf(stderr,"\n  >>>>  Graph node: ----------|(s).................(e)|\n");
                             GVec<float>* cov_s = new GVec<float>(sample_num-1, 0.0f);
                             GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                             // Add new node
+                            fprintf(stderr, "^^^^ node_start_pos: %d,  unispg_node->end: %d \n", node_start_pos, lclg_node->end);
                             node = new CGraphnodeUnispg(sample_num, node_start_pos, lclg_node->end, new_unispg_nodeid, is_passed_s, cov_s, capacity_s, true, lclg_node->cov, lclg_node->capacity, lclg_node->rate);
                             new_no2gnode_unispg[cgidx].Add(node);
                             new_unispg_nodeid += 1;
-                            prev_boundary = lclg_node->end;
+                            // !!!!!! Do not update the prev_boundary!!!
+                            // prev_boundary = lclg_node->end;
                             // Move to the next node of the lclg
                             lclg_idx += 1;
                         } else if (!lclg_is_end && !unispg_is_end) {
@@ -705,6 +709,7 @@ fprintf(stderr,"\n  >>>>  Graph node: ----------|(s).................(e)|\n");
                 new_no2gnode_unispg[cgidx].Add(sink);
                 // CGraphnodeUnispgType = UNI_LCL_NODE;
 
+                no2gnode_unispg[s][cgidx].Clear();
                 no2gnode_unispg[s][cgidx] = new_no2gnode_unispg[cgidx];
 
                 fprintf(stderr, "Boundaries: ");

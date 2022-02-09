@@ -1180,6 +1180,8 @@ CTreePat *construct_treepat_unispg(int gno, GIntHash<int>& gpos,GPVec<CTransfrag
 
 
 int build_graphs_unispg(BundleData* bdata, int fidx) {
+	// Clear the unispg_gp.
+	// unispg_gp->Clear();
 	int refstart = bdata->start;
 	int refend = bdata->end+1;
 	GList<CReadAln>& readlist = bdata->readlist;
@@ -2534,7 +2536,6 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 
 			int graph_no = bundle[sno].Count();
 			fprintf(stderr, "** graph_no: %d\n", graph_no);
-			// unispg_gp -> get_gpSize()[s];
 			// bundle[sno].Count();
 
     		char strnd='-';
@@ -2630,13 +2631,6 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
     					// create graph then
     					graphno[s][b]=create_graph_unispg(refstart,s,b,bundle[sno][b],bnode[sno],junction,ejunction,
     							bundle2graph,no2gnode,transfrag,gpos,bdata,edgeno[s][b],lastgpos[s][b],guideedge); // also I need to remember graph coverages somewhere -> probably in the create_graph procedure
-
-// int refstart = unispg_gp -> get_refstart();
-// int refend = unispg_gp -> get_refend();
-// int gpSize = unispg_gp -> get_gpSize()[s];
-// GVec<int> graphnoGp = unispg_gp -> get_graphnoGp()[s];
-// GVec<int> edgenoGp = unispg_gp -> get_graphnoGp()[s];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
-// GPVec<CGraphnode>* no2gnodeGp = unispg_gp -> get_no2gnodeGp()[s]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
 
     					if(graphno[s][b]) tr2no[s][b]=construct_treepat_unispg(graphno[s][b],gpos[s][b],transfrag[s][b]);
 						/****************
@@ -2770,7 +2764,7 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 		// 		for(int b=0;b<bundle[sno].Count();b++) {
 		// 			// Unispg unispg = new Unispg();
         //             if(no2gnode[s][g].Count()) {
-		// 				unispg_gp->AddGraph(fidx, s, current_gidx+b, no2gnode[s]+b);
+		// 				unispg_gp->AddGraph(fidx, s, unispg_gp->current_gidx+b, no2gnode[s]+b);
 		// 			}
 		// 		}
 		// 	}
@@ -2805,20 +2799,20 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 						/****************
 						 **  Adding the  out the local graph into the unispg
 						 ****************/						
-						// unispg_gp->AddGraph(fidx, s, current_gidx, no2gnode[s]+g);
+						// unispg_gp->AddGraph(fidx, s, unispg_gp->current_gidx, no2gnode[s]+g);
 
 
 
 				// for (int i=0; i<no2gnode[s][g].Count(); i++) {
 				// 	CGraphnode* node = no2gnode[s][g].Get(i);
-				// 	no2gnode_unispg[s][cgidx].Add(node);
+				// 	unispg_gp->no2gnode_unispg[s][cgidx].Add(node);
 				// 	fprintf(stderr, "Inside!! cgidx: %d \n", cgidx);
 				// 	fprintf(stderr, "no2gnode->Get(i)->nodeid: %d \n", node->nodeid);
-				// 	fprintf(stderr, "no2gnode_unispg[s][0]->Last()->nodeid: %d \n", no2gnode_unispg[s][0].Last()->nodeid);
+				// 	fprintf(stderr, "unispg_gp->no2gnode_unispg[s][0]->Last()->nodeid: %d \n", unispg_gp->no2gnode_unispg[s][0].Last()->nodeid);
 				// 	if (cgidx >= 1) {
-				// 		fprintf(stderr, "no2gnode_unispg[s][cgidx-1]->Last()->nodeid: %d \n", no2gnode_unispg[s][cgidx-1].Last()->nodeid);
-				// 		fprintf(stderr, "no2gnode_unispg[s][cgidx]->Last()->nodeid: %d \n", no2gnode_unispg[s][cgidx].Last()->nodeid);
-				// 		// fprintf(stderr, "no2gnode_unispg[s][cgidx+1]->Last()->nodeid: %d \n", no2gnode_unispg[s][cgidx+1].Last()->nodeid);
+				// 		fprintf(stderr, "unispg_gp->no2gnode_unispg[s][cgidx-1]->Last()->nodeid: %d \n", unispg_gp->no2gnode_unispg[s][cgidx-1].Last()->nodeid);
+				// 		fprintf(stderr, "unispg_gp->no2gnode_unispg[s][cgidx]->Last()->nodeid: %d \n", unispg_gp->no2gnode_unispg[s][cgidx].Last()->nodeid);
+				// 		// fprintf(stderr, "unispg_gp->no2gnode_unispg[s][cgidx+1]->Last()->nodeid: %d \n", unispg_gp->no2gnode_unispg[s][cgidx+1].Last()->nodeid);
 				// 	}
 				// }
 
@@ -2851,11 +2845,11 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 							fprintf(stderr, "node_name: %s\n", node_name.chars());
 
 							if (nd == 0) {
-								node_start = no2gnode[s][g][1]->start-200;
+								node_start = no2gnode[s][g][1]->start-50;
 								node_end = no2gnode[s][g][1]->start;
 							} else if (nd == no2gnode[s][g].Count()-1){
 								node_start = no2gnode[s][g][no2gnode[s][g].Count()-2]->end-1;
-								node_end = 	no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200;
+								node_end = 	no2gnode[s][g][no2gnode[s][g].Count()-2]->end+50;
 							} else {
 								node_start = no2gnode[s][g][nd]->start-1;
 								node_end = no2gnode[s][g][nd]->end;		
@@ -2880,17 +2874,15 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 							} else {
 								if(s == 0) {
 									// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", no2gnode[s][g][nd]->start, no2gnode[s][g][nd]->end, no2gnode[s][g][nd]->cov, strand_symbol.chars());
-									fprintf(node_cov_neg_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnode[s][g][nd]->cov, node_name.chars(), strand_symbol.chars());
+									fprintf(node_cov_neg_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, node_name.chars(), no2gnode[s][g][nd]->cov, strand_symbol.chars());
 								} else if (s == 1) {
-									fprintf(node_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, no2gnode[s][g][nd]->cov, node_name.chars(), strand_symbol.chars());
+									fprintf(node_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, node_name.chars(), no2gnode[s][g][nd]->cov, strand_symbol.chars());
 								}
 							}
 						}
 						for(int nd=0;nd<no2gnode[s][g].Count()-1;nd++) {
 							// fprintf(stderr,"Node %d with parents:",i);
 							GStr node_parent_nd(nd);
-							
-
 							for(int c=0;c<no2gnode[s][g][nd]->child.Count();c++) {
 								GStr node_child_nd(no2gnode[s][g][nd]->child[c]);
 								fprintf(stderr,"%d->",nd);			
@@ -2924,19 +2916,19 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 						/****************
 						 **  Writing out the visualization graph for the global graph.
 						****************/
-						fprintf(stderr, "&& current_gidx: %d\n", current_gidx[s]);
-						// GPVec<CGraphnode>** no2gnode_unispg = unispg_gp->get_no2gnodeGp();
-						fprintf(stderr, "no2gnode_unispg[s][current_gidx[s]].Count(): %d \n", no2gnode_unispg[s][current_gidx[s]].Count());
-						// int refstart_unispg = no2gnode_unispg[s][g][1]->start;
-						// int refend_unispg = no2gnode_unispg[s][g][no2gnode_unispg[s][g].Count()-2]->end;
+						fprintf(stderr, "&& unispg_gp->current_gidx: %d\n", unispg_gp->current_gidx[s]-1);
+						// GPVec<CGraphnode>** unispg_gp->no2gnode_unispg = unispg_gp->get_no2gnodeGp();
+						fprintf(stderr, "unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1].Count(): %d \n", unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1].Count());
+						// int refstart_unispg = unispg_gp->no2gnode_unispg[s][g][1]->start;
+						// int refend_unispg = unispg_gp->no2gnode_unispg[s][g][unispg_gp->no2gnode_unispg[s][g].Count()-2]->end;
 						// GVec<int>* graphno_unispg = unispg_gp->get_graphnoGp();
 						// GVec<int>* edgeno_unispg = unispg_gp->get_edgenoGp();
 
 						fprintf(stderr,"Traversing the universal splice graph!!!\n");
 						fprintf(stderr,"Unispg %d_%d_%d_%d {", bdata->start, bdata->end, s, g);
 						// graphno[s][b]: number of nodes in graph.
-						for(int nd=0;nd<no2gnode_unispg[s][current_gidx[s]].Count();nd++) {
-							fprintf(stderr,"%d[start=%d end=%d];",nd,no2gnode_unispg[s][current_gidx[s]][nd]->start,no2gnode_unispg[s][current_gidx[s]][nd]->end);
+						for(int nd=0;nd<unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1].Count();nd++) {
+							fprintf(stderr,"%d[start=%d end=%d];",nd,unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][nd]->start,unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][nd]->end);
 							// exon_tmp.clear();
 							// exon_tmp.push_back(no2gnode[s][g][nd]->start);
 							// exon_tmp.push_back(no2gnode[s][g][nd]->end);
@@ -2949,81 +2941,81 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 							int node_start = 0;
 							int node_end = 0;
 							GStr node_nd(nd);
-							GStr node_name = "Node_" + bundle_start + "_" + bundle_end + "_ " + node_g + "_" + node_nd;
+							GStr node_name = "Node_" + bundle_start + "_" + bundle_end + "_" + node_g + "_" + node_nd;
 							fprintf(stderr, "node_name: %s\n", node_name.chars());
 
 							if (nd == 0) {
-								node_start = no2gnode_unispg[s][current_gidx[s]][1]->start-200;
-								node_end = no2gnode_unispg[s][current_gidx[s]][1]->start;
-							} else if (nd == no2gnode_unispg[s][current_gidx[s]].Count()-1){
-								node_start = no2gnode_unispg[s][current_gidx[s]][no2gnode_unispg[s][current_gidx[s]].Count()-2]->end-1;
-								node_end = 	no2gnode_unispg[s][current_gidx[s]][no2gnode_unispg[s][current_gidx[s]].Count()-2]->end+200;
+								node_start = unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][1]->start-50;
+								node_end = unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][1]->start;
+							} else if (nd == unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1].Count()-1){
+								node_start = unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1].Count()-2]->end-1;
+								node_end = 	unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1].Count()-2]->end+50;
 							} else {
-								node_start = no2gnode_unispg[s][current_gidx[s]][nd]->start-1;
-								node_end = no2gnode_unispg[s][current_gidx[s]][nd]->end;		
+								node_start = unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][nd]->start-1;
+								node_end = unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][nd]->end;		
 							}
 
 
 							if (nd == 0) {
 								if(s == 0) {
-									fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t+\n", node_start, node_end, node_name.chars(), 0);
+									fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
 								} else if (s == 1) {
-									fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t-\n", node_start, node_end, node_name.chars(), 0);
+									fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
 								}
-							} else if (nd == no2gnode_unispg[s][current_gidx[s]].Count()-1){
+							} else if (nd == unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1].Count()-1){
 								if(s == 0) {
 								// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
 
-									fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t+\n", node_start, node_end, node_name.chars(), 0);
+									fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
 								} else if (s == 1) {
 									// fprintf(node_cov_pos_bed, "chr22\t%d\t%d\tNODE\t%f\t-\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
 
-									fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t-\n", node_start, node_end, node_name.chars(), 0);
+									fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
 								}
 							} else {
 								if(s == 0) {
 									// fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", no2gnode[s][g][nd]->start, no2gnode[s][g][nd]->end, no2gnode[s][g][nd]->cov, strand_symbol.chars());
-									fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%f\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
+									fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
 								} else if (s == 1) {
-									fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%f\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
+									fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
 								}
 							}
 						}
 
-						for(int nd=0;nd<no2gnode_unispg[s][current_gidx[s]].Count()-1;nd++) {
-							// fprintf(stderr,"Node %d with parents:",i);
-							GStr node_parent_nd(nd);
+						// for(int nd=0;nd<unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1].Count()-1;nd++) {
+						// 	// fprintf(stderr,"Node %d with parents:",i);
+						// 	GStr node_parent_nd(nd);
 							
-							for(int c=0;c<no2gnode_unispg[s][current_gidx[s]][nd]->child.Count();c++) {
-								GStr node_child_nd(no2gnode_unispg[s][current_gidx[s]][nd]->child[c]->nodeid);
-								fprintf(stderr,"%d->",nd);			
-								fprintf(stderr,"%d;",no2gnode_unispg[s][current_gidx[s]][nd]->child[c]->nodeid);
-								GStr junction_name = "Junc_" + bundle_start + "_" + bundle_end + "_" + node_g + "_" + node_parent_nd + "->" + node_child_nd;
-								fprintf(stderr, "junction_name: %s\n", junction_name.chars());
+						// 	for(int c=0;c<unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][nd]->child.Count();c++) {
+						// 		GStr node_child_nd(unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][nd]->child[c]->nodeid);
+						// 		fprintf(stderr,"%d->",nd);			
+						// 		fprintf(stderr,"%d;",unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][nd]->child[c]->nodeid);
+						// 		GStr junction_name = "Junc_" + bundle_start + "_" + bundle_end + "_" + node_g + "_" + node_parent_nd + "->" + node_child_nd;
+						// 		fprintf(stderr, "junction_name: %s\n", junction_name.chars());
 								
-								int junc_start = 0;
-								int junc_end = 0;
-								if (nd == 0) {
-									// It's the source node.
-									junc_start = no2gnode_unispg[s][current_gidx[s]][1]->start;
-								} else {
-									junc_start = no2gnode_unispg[s][current_gidx[s]][nd]->end;
-								}
-								if (no2gnode_unispg[s][current_gidx[s]][ no2gnode_unispg[s][current_gidx[s]][nd]->child[c]->nodeid ] -> start == 0) {
-									// The node goes to the sink.
-									junc_end = no2gnode_unispg[s][current_gidx[s]][no2gnode_unispg[s][current_gidx[s]].Count()-2]->end;
-								} else {
-									junc_end = no2gnode_unispg[s][current_gidx[s]][ no2gnode_unispg[s][current_gidx[s]][nd]->child[c]->nodeid ] -> start;
-								}
-								if(s == 0) {
-									fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
-								} else if (s == 1) {
-									fprintf(edge_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
-								}
-							}
-						}
-						fprintf(stderr,"}\n");
-						current_gidx[s] += 1;
+						// 		int junc_start = 0;
+						// 		int junc_end = 0;
+						// 		if (nd == 0) {
+						// 			// It's the source node.
+						// 			junc_start = unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][1]->start;
+						// 		} else {
+						// 			junc_start = unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][nd]->end;
+						// 		}
+						// 		if (unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][ unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][nd]->child[c]->nodeid ] -> start == 0) {
+						// 			// The node goes to the sink.
+						// 			junc_end = unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1].Count()-2]->end;
+						// 		} else {
+						// 			junc_end = unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][ unispg_gp->no2gnode_unispg[s][unispg_gp->current_gidx[s]-1][nd]->child[c]->nodeid ] -> start;
+						// 		}
+						// 		if(s == 0) {
+						// 			fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+						// 		} else if (s == 1) {
+						// 			fprintf(edge_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+						// 		}
+						// 	}
+						// }
+						// fprintf(stderr,"}\n");
+						// unispg_gp->current_gidx[s]-1 += 1;
                     }
 				}
             }

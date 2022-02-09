@@ -847,7 +847,6 @@ int main(int argc, char* argv[]) {
 							}
 						}
 						bundle->getReady(currentstart, currentend);
-						// unispg_gp = new UnispgGp(currentstart, currentend);
 
 						if (gfasta!=NULL) { //genomic sequence data requested
 							GFaSeqGet* faseq=gfasta->fetch(bundle->refseq.chars());
