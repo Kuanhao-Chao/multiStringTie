@@ -2567,6 +2567,10 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 
     				//fprintf(stderr,"Bundle is: %d - %d start at g=%d sno=%d b=%d\n",bnode[sno][bundle[sno][b]->startnode]->start,bnode[sno][bundle[sno][b]->lastnodeid]->end,g,sno,b);
 
+					fprintf(stderr, "bnode[%d][bundle[%d][%d]->startnode]->start: %d \n", sno, sno, b, bnode[sno][bundle[sno][b]->startnode]->start);
+
+					fprintf(stderr, "bnode[%d][bundle[%d][%d]->lastnodeid]->end: %d \n", sno, sno, b, bnode[sno][bundle[sno][b]->lastnodeid]->end);
+
     				while(g<ng && guides[g]->end<bnode[sno][bundle[sno][b]->startnode]->start) g++;
 
     				int cg=g;
@@ -2816,7 +2820,15 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 				// 	}
 				// }
 
-						unispg_gp->AddGraph(fidx, s, no2gnode[s]+g);
+
+						// Make all overlapping lclg & unispg into one new unispg
+						// bool overlap=true;
+						// while (overlap) {
+						// }
+						fprintf(stderr, "bundle[sno].Count(): %d\n", bundle[sno].Count());
+						// if (bundle[sno].Count() > 1) {
+						unispg_gp->AddGraph(fidx, s, no2gnode[s], g, bundle[sno].Count());
+						// }
 
 
 

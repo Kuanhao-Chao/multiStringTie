@@ -214,7 +214,9 @@ struct UnispgGp {
             };
         }
         void ProcessSample(GStr sample_name);
-        void AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode);
+		void AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode_base, int lclg_idx, int lclg_limit);
+
+
 		void AddBoundary(GVec<uint>& boundaries, uint boundary, GVec<CGraphBoundaryType>& boundaries_type, CGraphBoundaryType boundary_type);
 		void MoveUnispg(bool& unispg_is_end, bool& unispg_move);
 		void MoveLclg(bool& lclg_is_end, bool& lclg_move);
