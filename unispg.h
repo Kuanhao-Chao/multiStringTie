@@ -17,6 +17,23 @@
 #include <vector>
 using namespace std;
 
+extern GVec<FILE*> node_cov_pos_bed_vec;
+extern GVec<FILE*> node_cov_neg_bed_vec;
+extern GVec<FILE*> edge_cov_pos_bed_vec;
+extern GVec<FILE*> edge_cov_neg_bed_vec;
+
+extern GVec<FILE*> node_cov_pos_bed_unispg_vec;
+extern GVec<FILE*> node_cov_neg_bed_unispg_vec;
+extern GVec<FILE*> edge_cov_pos_bed_unispg_vec;
+extern GVec<FILE*> edge_cov_neg_bed_unispg_vec;
+
+enum LCLG_ITR_STATUS {
+	OUT_OF_RANGE=0,
+	LASTG_COUNT_0,
+	LASTG_COUNT_N_0,
+	N_LASTG_COUNT_N_0
+};
+
 enum CGraphBoundaryType {
 	EMPTY_TYPE=0,
 	UNISPG_S,
@@ -214,7 +231,7 @@ struct UnispgGp {
             };
         }
         void ProcessSample(GStr sample_name);
-		void AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode_base, int lclg_idx, int lclg_limit);
+		void AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode_base, int lclg_limit);
 
 
 		void AddBoundary(GVec<uint>& boundaries, uint boundary, GVec<CGraphBoundaryType>& boundaries_type, CGraphBoundaryType boundary_type);
