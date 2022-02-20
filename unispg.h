@@ -32,7 +32,8 @@ enum LCLG_ITR_STATUS {
 	LASTG_COUNT_0,
 	LASTG_COUNT_N_0,
 	N_LASTG_COUNT_0,
-	N_LASTG_COUNT_N_0
+	N_LASTG_COUNT_N_0,
+	LCLG_ITR_INIT
 };
 
 enum CGraphBoundaryType {
@@ -246,8 +247,8 @@ struct UnispgGp {
 
 
 		void AddBoundary(GVec<uint>& boundaries, uint boundary, GVec<CGraphBoundaryType>& boundaries_type, CGraphBoundaryType boundary_type);
-		void MoveUnispg(bool& unispg_is_end, bool& unispg_move);
-		void MoveLclg(bool& lclg_is_end, bool& lclg_move);
+		void MoveUnispgNode(bool& unispg_is_end, bool& unispg_move);
+		void MoveLclgNode(bool& lclg_is_end, bool& lclg_move);
 		void WriteGraphGp();
 
         void Clear() {
