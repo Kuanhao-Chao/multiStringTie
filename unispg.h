@@ -27,6 +27,11 @@ extern GVec<FILE*> node_cov_neg_bed_unispg_vec;
 extern GVec<FILE*> edge_cov_pos_bed_unispg_vec;
 extern GVec<FILE*> edge_cov_neg_bed_unispg_vec;
 
+extern GVec<FILE*> node_cov_pos_novp_bed_vec;
+extern GVec<FILE*> node_cov_neg_novp_bed_vec;
+
+extern uint prev_boundary;
+
 enum LCLG_ITR_STATUS {
 	OUT_OF_RANGE=0,
 	LASTG_COUNT_0,
@@ -202,7 +207,11 @@ struct CGraphnodeUnispg:public GSeg {
 	bool hardend:1;	// verified/strong end
 	//CGraphnode(int s=0,int e=0,unsigned int id=MAX_NODE,float nodecov=0,float cap=0,float r=0,float f=0):GSeg(s,e),nodeid(id),cov(nodecov),capacity(cap),rate(r),frag(f),child(),parent(),childpat(),parentpat(),trf(){}
 	// CGraphnodeUnispg(int sample_num_i=0, int s=0,int e=0, int old_graph_id_i=0, int old_node_id_i=0, unsigned int id=MAX_NODE, GVec<bool>* is_passed_s_i=NULL, GVec<float>* cov_s_i=NULL, GVec<float>* capacity_s_i=NULL, bool is_passed=false, float cov=0, float capacity=0,float r=0):GSeg(s,e),sample_num(sample_num_i), old_graph_id(old_graph_id_i), old_node_id(old_node_id_i), nodeid(id),is_passed_s(is_passed_s_i),cov_s(cov_s_i),capacity_s(capacity_s_i),child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){
-	CGraphnodeUnispg(int sample_num_i=0, int s=0,int e=0, unsigned int id=MAX_NODE, GVec<bool>* is_passed_s_i=NULL, GVec<float>* cov_s_i=NULL, GVec<float>* capacity_s_i=NULL, bool is_passed=false, float cov=0, float capacity=0,float r=0):GSeg(s,e),sample_num(sample_num_i), nodeid(id),is_passed_s(is_passed_s_i),cov_s(cov_s_i),capacity_s(capacity_s_i),child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){
+	CGraphnodeUnispg(int sample_num_i=0, int s=0,int e=0, int id=MAX_NODE, GVec<bool>* is_passed_s_i=NULL, GVec<float>* cov_s_i=NULL, GVec<float>* capacity_s_i=NULL, bool is_passed=false, float cov=0, float capacity=0,float r=0):GSeg(s,e),sample_num(sample_num_i), nodeid(id),is_passed_s(is_passed_s_i),cov_s(cov_s_i),capacity_s(capacity_s_i),child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){
+
+		fprintf(stderr, "		************************************\n");
+		fprintf(stderr, "		*** Creating graphnode (%u - %u) \n", s, e);
+		fprintf(stderr, "		************************************\n");
 		is_passed_s->cAdd(is_passed);
 		cov_s->cAdd(cov);
 		capacity_s->cAdd(capacity);			
@@ -243,7 +252,7 @@ struct UnispgGp {
 		void AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode_base, int lclg_limit);
 
 
-		void WriteCheckNonOVP(int fidx, int s, int unispg_start_idx, int unispg_end_idx, GPVec<CGraphnodeUnispg>* lclg_nonoverlap);
+		void WriteNonOVP(int fidx, int s, int unispg_start_idx, int unispg_end_idx, GPVec<CGraphnodeUnispg>* lclg_nonoverlap);
 
 
 		void AddBoundary(GVec<uint>& boundaries, uint boundary, GVec<CGraphBoundaryType>& boundaries_type, CGraphBoundaryType boundary_type);
