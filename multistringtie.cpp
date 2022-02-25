@@ -197,8 +197,6 @@ GVec<GStr> nodecovnegfname_unispg_vec;
 GVec<FILE*> edge_cov_neg_bed_unispg_vec = NULL;
 GVec<GStr> edgecovnegfname_unispg_vec; 
 
-
-uint prev_boundary = 0;
 /****************
  **  END KH Adding 
  ****************/

@@ -30,8 +30,6 @@ extern GVec<FILE*> edge_cov_neg_bed_unispg_vec;
 extern GVec<FILE*> node_cov_pos_novp_bed_vec;
 extern GVec<FILE*> node_cov_neg_novp_bed_vec;
 
-extern uint prev_boundary;
-
 enum LCLG_ITR_STATUS {
 	OUT_OF_RANGE=0,
 	LASTG_COUNT_0,
@@ -228,7 +226,9 @@ struct CGraphnodeUnispg:public GSeg {
 struct UnispgGp {
     public:
         GPVec<CGraphnodeUnispg>* no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
-        GVec<int> current_gidx;
+        GVec<int> current_gidx; // graph id
+        GVec<int> current_nidx; // node id
+		GVec<uint> prev_bdy;
         GVec<GStr> samples;
         // s: strand (0 = negative strand; 1 = unknown strand; 2 = positive strand // 0(-),1(.),2(+))
         // b: all bundles on all strands: 0,1,2
