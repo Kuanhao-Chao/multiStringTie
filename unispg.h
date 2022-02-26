@@ -207,9 +207,9 @@ struct CGraphnodeUnispg:public GSeg {
 	// CGraphnodeUnispg(int sample_num_i=0, int s=0,int e=0, int old_graph_id_i=0, int old_node_id_i=0, unsigned int id=MAX_NODE, GVec<bool>* is_passed_s_i=NULL, GVec<float>* cov_s_i=NULL, GVec<float>* capacity_s_i=NULL, bool is_passed=false, float cov=0, float capacity=0,float r=0):GSeg(s,e),sample_num(sample_num_i), old_graph_id(old_graph_id_i), old_node_id(old_node_id_i), nodeid(id),is_passed_s(is_passed_s_i),cov_s(cov_s_i),capacity_s(capacity_s_i),child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){
 	CGraphnodeUnispg(int sample_num_i=0, int s=0,int e=0, int id=MAX_NODE, GVec<bool>* is_passed_s_i=NULL, GVec<float>* cov_s_i=NULL, GVec<float>* capacity_s_i=NULL, bool is_passed=false, float cov=0, float capacity=0,float r=0):GSeg(s,e),sample_num(sample_num_i), nodeid(id),is_passed_s(is_passed_s_i),cov_s(cov_s_i),capacity_s(capacity_s_i),child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){
 
-		fprintf(stderr, "		************************************\n");
-		fprintf(stderr, "		*** Creating graphnode (%u - %u) \n", s, e);
-		fprintf(stderr, "		************************************\n");
+		fprintf(stderr, "		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+		fprintf(stderr, "		^^^ Creating graphnode (%u - %u) \n", s, e);
+		fprintf(stderr, "		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
 		is_passed_s->cAdd(is_passed);
 		cov_s->cAdd(cov);
 		capacity_s->cAdd(capacity);			
@@ -227,15 +227,22 @@ struct UnispgGp {
     public:
         GPVec<CGraphnodeUnispg>* no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
         GVec<int> current_gidx; // graph id
-        GVec<int> current_nidx; // node id
+        GVec<int> last_nidx; // node id
 		GVec<uint> prev_bdy;
         GVec<GStr> samples;
+		GVec<bool> has_unispg_tail;
+		GVec<uint> new_unispg_nodeid;
+		GPVec<CGraphnodeUnispg>* lclg_nonoverlap[2];
+
+		GPVec<CGraphnodeUnispg>* new_no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[g][i] gives the node i
         // s: strand (0 = negative strand; 1 = unknown strand; 2 = positive strand // 0(-),1(.),2(+))
         // b: all bundles on all strands: 0,1,2
         UnispgGp() { 
             for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
                 int s=sno/2; // adjusted strand due to ignoring neutral strand
-                no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[20000];
+                no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[2000];
+                new_no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[2000];
+
 			    // current_gidx[s] = 0;
             }
         }
@@ -247,12 +254,12 @@ struct UnispgGp {
         void ProcessSample(GStr sample_name);
 		void WriteLCLG(int fidx, int s, GPVec<CGraphnode>* no2gnode, int g);
 		void WriteUNISPG(int fidx, int s, int unispg_start_idx, int unispg_end_idx);
-		void MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int lclg_limit, uint boudleGP_start_idx, uint boudleGP_end_idx, int& new_nonolp_lclg_idx, bool write_unispg, GPVec<CGraphnodeUnispg>* lclg_nonoverlap);
-		void FirstUnispgAlgo(int fidx, int s, int sample_num, GPVec<CGraphnode>* no2gnode, int lclg_limit, int& new_nonolp_lclg_idx, bool write_unispg, GPVec<CGraphnodeUnispg>* lclg_nonoverlap);
+		void MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int lclg_limit, uint boudleGP_start_idx, uint boudleGP_end_idx, int& new_nonolp_lclg_idx, bool write_unispg, GPVec<CGraphnodeUnispg>** lclg_nonoverlap);
+		void FirstUnispgAlgo(int fidx, int s, int sample_num, GPVec<CGraphnode>* no2gnode, int lclg_limit, int& new_nonolp_lclg_idx, bool write_unispg, GPVec<CGraphnodeUnispg>** lclg_nonoverlap);
 		void AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode_base, int lclg_limit);
 
 
-		void WriteNonOVP(int fidx, int s, int unispg_start_idx, int unispg_end_idx, GPVec<CGraphnodeUnispg>* lclg_nonoverlap);
+		void WriteNonOVP(int fidx, int s, int unispg_start_idx, int unispg_end_idx, GPVec<CGraphnodeUnispg>** lclg_nonoverlap);
 
 
 		void AddBoundary(GVec<uint>& boundaries, uint boundary, GVec<CGraphBoundaryType>& boundaries_type, CGraphBoundaryType boundary_type);
@@ -264,7 +271,11 @@ struct UnispgGp {
             // fprintf(stderr, "**** Start Clearing !!!! \n ");
             for(int i=0;i<2;i++) {
                 delete [] no2gnode_unispg[i];
-                no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
+                no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[2000];
+
+
+                delete [] new_no2gnode_unispg[i];
+                new_no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[2000];
             };
         }
 
