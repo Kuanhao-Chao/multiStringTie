@@ -867,14 +867,20 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                         unispg_node = no2gnode_unispg[s][unispg_i][unispg_node_idx];
                         fprintf(stderr, "lclg_node->start: %d,  lclg_node->end: %d\n", lclg_node->start, lclg_node->end);
                         fprintf(stderr, "unispg_node->start: %d,  unispg_node->end: %d\n", unispg_node->start, unispg_node->end);
+                        uint node_start = 0;
                         uint node_end = 0;
+                        if (prev_bdy[s] < unispg_node->start) {
+                            node_start = unispg_node->start;
+                        } else {
+                            node_start = prev_bdy[s];
+                        }
                         if (unispg_node->end <= lclg_node->start) {
                             node_end = unispg_node->end;
                         } else {
                             node_end = lclg_node->start;
                         }
 
-                        node = new CGraphnodeUnispg(sample_num, prev_bdy[s], node_end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, false, 0, 0, 0);
+                        node = new CGraphnodeUnispg(sample_num, node_start, node_end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, false, 0, 0, 0);
                         new_no2gnode_unispg[s]->Add(node);
                         new_unispg_nodeid[s] += 1;
                         prev_bdy[s] = node_end;
