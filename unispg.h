@@ -210,6 +210,9 @@ struct CGraphnodeUnispg:public GSeg {
 		fprintf(stderr, "		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
 		fprintf(stderr, "		^^^ Creating graphnode (%u - %u) \n", s, e);
 		fprintf(stderr, "		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+		fprintf(stderr, "		^^ is_passed: %d\n", is_passed);
+		fprintf(stderr, "		^^ cov      : %f\n", cov);
+		fprintf(stderr, "		^^ capacity : %f\n", capacity);
 		is_passed_s->cAdd(is_passed);
 		cov_s->cAdd(cov);
 		capacity_s->cAdd(capacity);			
@@ -240,15 +243,15 @@ struct UnispgGp {
         UnispgGp() { 
             for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
                 int s=sno/2; // adjusted strand due to ignoring neutral strand
-                no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[2000];
-                new_no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[2000];
-
-			    // current_gidx[s] = 0;
+                no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[20000];
+                new_no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[20000];
             }
         }
         ~UnispgGp() {
             for(int i=0;i<2;i++) {
-            delete [] no2gnode_unispg[i];
+            	delete [] no2gnode_unispg[i];
+            	delete [] lclg_nonoverlap[i];
+            	delete [] new_no2gnode_unispg[i];
             };
         }
         void ProcessSample(GStr sample_name);
@@ -271,11 +274,9 @@ struct UnispgGp {
             // fprintf(stderr, "**** Start Clearing !!!! \n ");
             for(int i=0;i<2;i++) {
                 delete [] no2gnode_unispg[i];
-                no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[2000];
-
-
+                no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
                 delete [] new_no2gnode_unispg[i];
-                new_no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[2000];
+                new_no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
             };
         }
 

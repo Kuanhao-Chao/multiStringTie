@@ -1102,6 +1102,9 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                                     //     ####  Graph node: ------|(s)----------(e)|              (don't need to be last unispg node)
                                     //     ####  Graph node: |(s)------------(e)|                  (don't need to be last unispg node)
                                     //     ####  Graph node: |(s)....----------(e)|                (don't need to be last unispg node)
+                        bool unispg_end_lclg_node_move = false;
+                        bool lclg_node_move = false;
+                        bool unispg_node_move = false;
                         while (!lclg_is_lastnode) {
                             fprintf(stderr, "\t\t************************************************************************\n");
                             fprintf(stderr, "\t\t*********** lclg graph node loop. lclg hasn't reached last node ********\n");
@@ -1193,83 +1196,11 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                             fprintf(stderr, "\t\t****** >> lclg_node->start: %u,  lclg_node->end: %u\n", lclg_node->start, lclg_node->end);
                             fprintf(stderr, "\t\t****** >> unispg_node->start: %u,  unispg_node->end: %u\n", unispg_node->start, unispg_node->end);
 
-                            bool lclg_node_move = false;
-                            bool unispg_node_move = false;
+                            // bool lclg_node_move = false;
+                            // bool unispg_node_move = false;
+                            // lclg_node_move = false;
+                            // unispg_node_move = false;
 
-
-                            /******************************
-                            ** Creating graph nodes before boundary cases.
-                            **  After lclg node & unispg node comparison, it must be one of the following three cases.
-                            **   1. MoveUnispgNode
-                            **   2. MoveLclgNode
-                            **   3. MoveUnispgNode && MoveLclgNode
-                            *******************************/
-                            // if (lclg_is_lastnode && unispg_is_lastnode) {
-                            //     // if (prev_bdy[s] > unispg_node->end) {
-                            //     //     //              ........
-                            //     //     // -----    --------
-                            //     //     // Skip creation. Move unispg to the next node.
-                            //     // } else if (prev_bdy[s] == unispg_node->end) {
-
-                            //     // }  else if (prev_bdy[s] < unispg_node->end) {
-
-                            //     // }
-                            // } else if (lclg_is_lastnode && !unispg_is_lastnode) {
-                            //     // // 1. -----   |........|
-                            //     // // 
-
-                            //     // if (prev_bdy[s] > unispg_node->end) {
-                            //     //     //                 |........|
-                            //     //     // |-----|    |--------|
-                            //     //     // Skip creation. Move unispg to the next node.
-                            //     //     MoveUnispgNode(unispg_is_lastnode, unispg_node_move);   
-                            //     // } else if (prev_bdy[s] == unispg_node->end) {
-                            //     //     MoveUnispgNode(unispg_is_lastnode, unispg_node_move);   
-                            //     // }  else if (prev_bdy[s] < unispg_node->end) {
-
-                            //     //     // x |-------------|
-                            //     //     if (prev_bdy[s] < unispg_node->start) {
-                            //     //         // |-------------|
-                            //     //     } else {
-                            //     //         // Create node. 
-                            //     //         if (unispg_node->end < lclg_node->end) {
-                            //     //             MoveUnispgNode(unispg_is_lastnode, unispg_node_move);   
-                            //     //         } else if (unispg_node->end == lclg_node->end) {
-                            //     //             MoveUnispgNode(unispg_is_lastnode, unispg_node_move);   
-                            //     //         } else if (unispg_node->end > lclg_node->end) {
-                            //     //             MoveUnispgNode(unispg_is_lastnode, unispg_node_move);   
-                            //     //         }
-                            //     //     }
-                            //     // }
-                            // } else if (!lclg_is_lastnode && unispg_is_lastnode) {
-                            //     // int node_start = 0;
-                            //     // int node_end = 0;
-                            //     // bool create_node = true;
-                            //     // if (prev_bdy[s] <= lclg_node->start) {
-                            //     //     node_start = lclg_node->start;
-                            //     //     node_end = lclg_node->end;
-
-                            //     // } else if (prev_bdy[s]>lclg_node->start && prev_bdy[s]<lclg_node->end) {
-                            //     //     node_start = prev_bdy[s];
-                            //     //     node_end = lclg_node->end;
-
-                            //     // } else if (prev_bdy[s]>=lclg_node->end) {
-                            //     //     // Skip the node
-                            //     //     create_node = false;
-
-                            //     // }
-                            //     // if (create_node) {
-
-                            //     // }
-                            //     // MoveLclgNode(lclg_is_lastnode, lclg_node_move);
-
-
-
-
-
-
-                            // }
-                            // } else if (!lclg_is_lastnode && !unispg_is_lastnode) {
                             if (unispg_node->start < lclg_node->start) {
                                 // AddBoundary(boundaries, unispg_node->start, boundaries_types, UNISPG_S);
                                 uint node_start_pos = 0;
@@ -1496,53 +1427,48 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                                     MoveLclgNode(lclg_is_lastnode, lclg_node_move);
                                 }
                             }
-                            // }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                            // if (lclg_is_lastnode) {
-
-                            // } else {
-
-                            // }
-
-                            // FIX BUG!!!!!!!
                             /******************************
                             ** Move node index in graphs.
                             *******************************/
-                            if (lclg_node_move) {
-                                /******************************
-                                ** lclg needs to move and its not the last node of the graph.
-                                *******************************/
-                                fprintf(stderr, "\t\tlclg_node_idx Move ! %d\n", lclg_node_idx);
-                                lclg_node_idx += 1;
-                                // This is just for going into the loop. 
-                                // `unispg_is_lastnode` will be decided in the beginning of the loop
-                                unispg_is_lastnode = false;
-                            }
-                            if (unispg_node_move) {
-                                /******************************
-                                ** unispg needs to move and its not the last node of the graph.
-                                *******************************/
-                                fprintf(stderr, "\t\tlast_nidx[s] Move ! %d\n", unispg_node_idx);
-                                unispg_node_idx += 1;
-                                // This is just for going into the loop. 
-                                // `lclg_is_lastnode` will be decided in the beginning of the loop
-                                lclg_is_lastnode = false;
-                            }
-                            if (!lclg_node_move && !unispg_node_move) {
+                            if (lclg_node_move || unispg_node_move) {
+                                if (lclg_node_move) {
+                                    /******************************
+                                    ** lclg needs to move and its not the last node of the graph.
+                                    *******************************/
+                                    if (unispg_node->end < lclg_node->end && !unispg_node_move && lclg_node_move) {
+                                        // !!! This is a special case. Need to create the tail!!!!!
+                                        // ####  Graph node: ------|(s)----.............(e)|
+                                        GVec<bool>* is_passed_s = new GVec<bool>(sample_num-1, false);
+                                        GVec<float>* cov_s = new GVec<float>(sample_num-1, 0.0f);
+                                        GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
+                                        // Add new node
+                                        node = new CGraphnodeUnispg(sample_num, unispg_node->end, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
+                                        new_no2gnode_unispg[s]->Add(node);
+                                        new_unispg_nodeid[s] += 1;
+                                        prev_bdy[s] = lclg_node->end;
+                                    }
+                                    fprintf(stderr, "\t\tlclg_node_idx Move ! %d\n", lclg_node_idx);
+                                    fprintf(stderr, "\t\tunispg_end_lclg_node_move Move ! %d\n", unispg_end_lclg_node_move);
+                                    lclg_node_idx += 1;
+                                    // This is just for going into the loop. 
+                                    // `unispg_is_lastnode` will be decided in the beginning of the loop
+                                    unispg_is_lastnode = false;
+                                    // Set back to false after moving
+                                    lclg_node_move = false;
+                                }
+                                if (unispg_node_move) {
+                                    /******************************
+                                    ** unispg needs to move and its not the last node of the graph.
+                                    *******************************/
+                                    fprintf(stderr, "\t\tlast_nidx[s] Move ! %d\n", unispg_node_idx);
+                                    unispg_node_idx += 1;
+                                    // This is just for going into the loop. 
+                                    // `lclg_is_lastnode` will be decided in the beginning of the loop
+                                    lclg_is_lastnode = false;
+                                    // Set back to false after moving
+                                    unispg_node_move = false;
+                                }
+                            } else if (!lclg_node_move && !unispg_node_move) {
                                 fprintf(stderr, "\t\t>>>> Local & global graph node cannot move\n");
                                 /******************************
                                 ** 1. Need to move to next node in lclg, but it's the last node of lclg
@@ -1588,9 +1514,6 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                                     // DO NOT CREATE NEW NODE. Compare the the current lclg node & boundary to the first node of the next unispg.
                                     // Move to the first node of the next unispg.
                                     unispg_next = true;
-
-
-
                                     if (unispg_i == unispg_idx_end) {
                                         /******************************
                                         ** Move the unispg index. However, it has already been the last graph. (lclg_i should be lclg_idx_end-1)
@@ -1624,9 +1547,8 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                                         }
                                         prev_bdy[s] = lclg_node->end;
                                     }
-
                                     // Have to break. Or otherwise it'll be stucked in the infinit loop because lclg hasn't reached the end.
-                                    break;
+                                    MoveLclgNode(lclg_is_lastnode, lclg_node_move);
                                 } else if (lclg_is_lastnode && !unispg_is_lastnode) {
                                     // FIX BUG!! Cannot just creating unispg nodes!!!!!!!
 
@@ -2082,12 +2004,14 @@ void UnispgGp::AddBoundary(GVec<uint>& boundaries, uint boundary, GVec<CGraphBou
 
 void UnispgGp::MoveUnispgNode(bool& unispg_is_lastnode, bool& unispg_node_move) {
     if (!unispg_is_lastnode) {
+        fprintf(stderr, "MoveUnispgNode\n");
         unispg_node_move = true;
     }
 }
 
 void UnispgGp::MoveLclgNode(bool& lclg_is_lastnode, bool& lclg_node_move) {
     if (!lclg_is_lastnode) {
+        fprintf(stderr, "MoveLclgNode\n");
         lclg_node_move = true;
     }
 }
