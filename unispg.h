@@ -30,6 +30,15 @@ extern GVec<FILE*> edge_cov_neg_bed_unispg_vec;
 extern GVec<FILE*> node_cov_pos_novp_bed_vec;
 extern GVec<FILE*> node_cov_neg_novp_bed_vec;
 
+typedef std::pair<int, int> g_n_pair;
+
+struct pair_hash {
+	template <class T1, class T2>
+	std::size_t operator() (const std::pair<T1, T2> &p) const {
+		return std::hash<T1>{}(p.first) ^ std::hash<T2>{}(p.second);
+	}
+};
+
 enum LCLG_ITR_STATUS {
 	OUT_OF_RANGE=0,
 	LASTG_COUNT_0,
@@ -186,8 +195,8 @@ enum CGraphnodeUnispgType {
 
 struct CGraphnodeUnispg:public GSeg {
     int sample_num = 0;
-	int old_graph_id;
-	int old_node_id;
+	int old_graph_id = -1;
+	int old_node_id = -1;
 	int nodeid;
 	// Samples having this node
     GVec<bool>* is_passed_s;
@@ -196,8 +205,8 @@ struct CGraphnodeUnispg:public GSeg {
 	// Node capacity for each sample
     GVec<float>* capacity_s;
 
-	GVec<CGraphnodeUnispg*> child;
-	GVec<CGraphnodeUnispg*> parent;
+	GVec<int> child;
+	GVec<int> parent;
 	GBitVec childpat;
 	GBitVec parentpat;
 	GVec<int> trf; // transfrags that pass the node
@@ -205,7 +214,7 @@ struct CGraphnodeUnispg:public GSeg {
 	bool hardend:1;	// verified/strong end
 	//CGraphnode(int s=0,int e=0,unsigned int id=MAX_NODE,float nodecov=0,float cap=0,float r=0,float f=0):GSeg(s,e),nodeid(id),cov(nodecov),capacity(cap),rate(r),frag(f),child(),parent(),childpat(),parentpat(),trf(){}
 	// CGraphnodeUnispg(int sample_num_i=0, int s=0,int e=0, int old_graph_id_i=0, int old_node_id_i=0, unsigned int id=MAX_NODE, GVec<bool>* is_passed_s_i=NULL, GVec<float>* cov_s_i=NULL, GVec<float>* capacity_s_i=NULL, bool is_passed=false, float cov=0, float capacity=0,float r=0):GSeg(s,e),sample_num(sample_num_i), old_graph_id(old_graph_id_i), old_node_id(old_node_id_i), nodeid(id),is_passed_s(is_passed_s_i),cov_s(cov_s_i),capacity_s(capacity_s_i),child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){
-	CGraphnodeUnispg(int sample_num_i=0, int s=0,int e=0, int id=MAX_NODE, GVec<bool>* is_passed_s_i=NULL, GVec<float>* cov_s_i=NULL, GVec<float>* capacity_s_i=NULL, bool is_passed=false, float cov=0, float capacity=0,float r=0):GSeg(s,e),sample_num(sample_num_i), nodeid(id),is_passed_s(is_passed_s_i),cov_s(cov_s_i),capacity_s(capacity_s_i),child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){
+	CGraphnodeUnispg(int sample_num_i=0, int s=0,int e=0, int id=MAX_NODE, GVec<bool>* is_passed_s_i=NULL, GVec<float>* cov_s_i=NULL, GVec<float>* capacity_s_i=NULL, bool is_passed=false, float cov=0, float capacity=0,float r=0, bool set_g_n_idx=false, int g_idx=-1, int n_idx=-1):GSeg(s,e),sample_num(sample_num_i), nodeid(id),is_passed_s(is_passed_s_i),cov_s(cov_s_i),capacity_s(capacity_s_i), child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){
 
 		fprintf(stderr, "		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
 		fprintf(stderr, "		^^^ Creating graphnode id: %d (%u - %u) \n", id, s, e);
@@ -215,7 +224,11 @@ struct CGraphnodeUnispg:public GSeg {
 		fprintf(stderr, "		^^ capacity : %f\n", capacity);
 		is_passed_s->cAdd(is_passed);
 		cov_s->cAdd(cov);
-		capacity_s->cAdd(capacity);			
+		capacity_s->cAdd(capacity);	
+		if (set_g_n_idx) {
+			old_graph_id = g_idx;
+			old_node_id = n_idx;
+		}
     }
 
     void setup_parent() {
