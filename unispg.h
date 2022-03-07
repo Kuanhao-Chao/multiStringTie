@@ -33,12 +33,21 @@ extern GVec<FILE*> node_cov_neg_novp_bed_vec;
 extern GVec<FILE*> edge_cov_pos_novp_bed_vec;
 extern GVec<FILE*> edge_cov_neg_novp_bed_vec;
 
-typedef std::pair<int, int> g_n_pair;
+typedef std::tuple<int, int, int> b_g_n_tuple;
 
 struct pair_hash {
 	template <class T1, class T2>
-	std::size_t operator() (const std::pair<T1, T2> &p) const {
+	std::size_t operator() (const std::pair<T1, T2>& p) const {
 		return std::hash<T1>{}(p.first) ^ std::hash<T2>{}(p.second);
+		// return std::hash<T1>{}(std::get<0>(p)) ^ std::hash<T2>{}(std::get<1>(p)) ^ std::hash<T3>{}(std::get<2>(p));
+	}
+};
+
+struct tuple_hash {
+	template <class T1, class T2, class T3>
+	std::size_t operator() (const std::tuple<T1, T2, T3>& p) const {
+		return std::hash<T1>{}(std::get<0>(p)) ^ std::hash<T2>{}(std::get<1>(p)) ^ std::hash<T3>{}(std::get<2>(p));
+		// return std::hash<T1>{}(std::get<0>(p)) ^ std::hash<T2>{}(std::get<1>(p)) ^ std::hash<T3>{}(std::get<2>(p));
 	}
 };
 
@@ -247,13 +256,18 @@ struct UnispgGp {
         GVec<int> last_nidx; // node id
 		GVec<uint> prev_bdy;
         GVec<GStr> samples;
+		GVec<int> lclg_bundle_num;
 		GVec<bool> has_unispg_tail;
-		GVec<uint> new_unispg_nodeid;
+		GVec<int> new_unispg_nodeid;
 		GPVec<CGraphnodeUnispg>* lclg_nonoverlap[2];
 		GPVec<CGraphnodeUnispg>* new_no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[g][i] gives the node i
 
 		CGraphnodeUnispg* source_gp[2];
 		CGraphnodeUnispg* sink_gp[2];
+
+		// GVec<CGraphnodeUnispg> source_gp;
+		// GVec<CGraphnodeUnispg> sink_gp;
+
         // s: strand (0 = negative strand; 1 = unknown strand; 2 = positive strand // 0(-),1(.),2(+))
         // b: all bundles on all strands: 0,1,2
 
@@ -264,17 +278,21 @@ struct UnispgGp {
 		// std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> lclg_nidx_2_new_nidx_ls;
     	// std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> unispg_nidx_2_new_nidx_ls;
 
-		std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> lclg_nidx_2_new_nidx_ls_pos;
-    	std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> unispg_nidx_2_new_nidx_ls_pos;
+		std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> lclg_nidx_2_new_nidx_ls_pos;
+    	std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> unispg_nidx_2_new_nidx_ls_pos;
 
-		std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> lclg_nidx_2_new_nidx_ls_neg;
-    	std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> unispg_nidx_2_new_nidx_ls_neg;
+		std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> lclg_nidx_2_new_nidx_ls_neg;
+    	std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> unispg_nidx_2_new_nidx_ls_neg;
 
         UnispgGp() { 
             for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
                 int s=sno/2; // adjusted strand due to ignoring neutral strand
                 no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[20000];
                 new_no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[20000];
+                lclg_nonoverlap[s] = new GPVec<CGraphnodeUnispg>[20000];
+
+                // source_gp[s] = new CGraphnodeUnispg[1];
+                // sink_gp[s] = new CGraphnodeUnispg[1];
             }
         }
         ~UnispgGp() {
@@ -282,6 +300,8 @@ struct UnispgGp {
             	delete [] no2gnode_unispg[i];
             	delete [] lclg_nonoverlap[i];
             	delete [] new_no2gnode_unispg[i];
+            	delete [] source_gp[i];
+            	delete [] sink_gp[i];
             };
         }
         void ProcessSample(GStr sample_name);
