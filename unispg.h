@@ -13,6 +13,7 @@
 #include <regex>
 #include <string>
 #include <typeinfo>
+#include <unordered_map>
 
 #include <vector>
 using namespace std;
@@ -29,6 +30,8 @@ extern GVec<FILE*> edge_cov_neg_bed_unispg_vec;
 
 extern GVec<FILE*> node_cov_pos_novp_bed_vec;
 extern GVec<FILE*> node_cov_neg_novp_bed_vec;
+extern GVec<FILE*> edge_cov_pos_novp_bed_vec;
+extern GVec<FILE*> edge_cov_neg_novp_bed_vec;
 
 typedef std::pair<int, int> g_n_pair;
 
@@ -231,11 +234,9 @@ struct CGraphnodeUnispg:public GSeg {
 		}
     }
 
-    void setup_parent() {
-    }
-
-    void setup_child() {
-    }
+	void set_nodeid(int new_node_id) {
+		nodeid = new_node_id;
+	}
 };
 
 
@@ -249,10 +250,26 @@ struct UnispgGp {
 		GVec<bool> has_unispg_tail;
 		GVec<uint> new_unispg_nodeid;
 		GPVec<CGraphnodeUnispg>* lclg_nonoverlap[2];
-
 		GPVec<CGraphnodeUnispg>* new_no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[g][i] gives the node i
+
+		CGraphnodeUnispg* source_gp[2];
+		CGraphnodeUnispg* sink_gp[2];
         // s: strand (0 = negative strand; 1 = unknown strand; 2 = positive strand // 0(-),1(.),2(+))
         // b: all bundles on all strands: 0,1,2
+
+    	// std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> lclg_nidx_2_new_nidx_ls;
+    	// std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> unispg_nidx_2_new_nidx_ls;
+
+
+		// std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> lclg_nidx_2_new_nidx_ls;
+    	// std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> unispg_nidx_2_new_nidx_ls;
+
+		std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> lclg_nidx_2_new_nidx_ls_pos;
+    	std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> unispg_nidx_2_new_nidx_ls_pos;
+
+		std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> lclg_nidx_2_new_nidx_ls_neg;
+    	std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> unispg_nidx_2_new_nidx_ls_neg;
+
         UnispgGp() { 
             for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
                 int s=sno/2; // adjusted strand due to ignoring neutral strand
@@ -274,6 +291,8 @@ struct UnispgGp {
 		void FirstUnispgAlgo(int fidx, int s, int sample_num, GPVec<CGraphnode>* no2gnode, int lclg_limit, int& new_nonolp_lclg_idx, bool write_unispg);
 		bool RecruitMRGGP(int s, int& lclg_idx, int& new_nonolp_lclg_idx, LCLG_ITR_STATUS& lclg_itr_status, bool& more_lclg, bool& try_more_unispg, int& process_ovp_graphs, int& lclg_idx_start, int& lclg_idx_end, int& unispg_idx_start, int& unispg_idx_end, int& unispg_node_idx);
 
+		int CreateThirdAlgHashEnt(int s, bool lclg_or_unispg, int g_idx, int n_idx, int new_unispg_n_idx);
+		void AddThirdAlgParentEdge(int s, CGraphnodeUnispg*& node, int lclg_i, CGraphnodeUnispg* lclg_node, int unispg_i, CGraphnodeUnispg* unispg_node, int pre_parent_lclg, int pre_parent_unispg);
 		void CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnodeUnispg*& node, bool& lclg_node_move, int& lclg_i, int& lclg_idx_start, int& lclg_idx_end, CGraphnodeUnispg*& lclg_node, int& lclg_node_idx, bool& lclg_is_lastnode, uint& lclg_start_pcs, uint& lclg_end_pcs, bool& unispg_node_move, int& unispg_i, int& unispg_idx_start, int& unispg_idx_end, CGraphnodeUnispg*& unispg_node, int& unispg_node_idx, bool& unispg_is_lastnode, uint& unispg_start_pcs, uint& unispg_end_pcs);
 
 		void SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnispg*& node, bool& lclg_node_move, int& lclg_i, int& lclg_idx_start, int& lclg_idx_end, CGraphnodeUnispg*& lclg_node, int& lclg_node_idx, bool& lclg_is_lastnode, uint& lclg_start_pcs, uint& lclg_end_pcs, bool& lclg_next, bool& unispg_node_move, int& unispg_i, int& unispg_idx_start, int& unispg_idx_end, CGraphnodeUnispg*& unispg_node, int& unispg_node_idx, bool& unispg_is_lastnode, uint& unispg_start_pcs, uint& unispg_end_pcs, bool& unispg_next);

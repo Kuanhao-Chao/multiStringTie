@@ -76,7 +76,8 @@
         "type_traits": "cpp",
         "typeinfo": "cpp",
         "utility": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "__functional_base_03": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

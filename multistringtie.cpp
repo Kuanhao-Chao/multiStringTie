@@ -685,14 +685,16 @@ int main(int argc, char* argv[]) {
 			edge_cov_pos_bed_vec.Add(edge_cov_pos_bed);
 
 
-
 			nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+"_nonovp.bed";
+			edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+"_nonovp.bed";
 			node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
+			edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
 			fprintf(node_cov_pos_bed, "track name=Sample_"+GStr(file_idx)+"_node_pos_cov_nonovp color=255,0,0 altColor=0,0,255\n");
+			fprintf(edge_cov_pos_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_pos_cov_nonovp color=255,0,0 altColor=0,0,255\n");
 			nodecovposnovp_fname_vec.Add(nodecovposfname);
+			edgecovposnovp_fname_vec.Add(edgecovposfname);
 			node_cov_pos_novp_bed_vec.Add(node_cov_pos_bed);
-
-
+			edge_cov_pos_novp_bed_vec.Add(edge_cov_pos_bed);
 
 			nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+"_unispg.bed";
 			edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+"_unispg.bed";	
@@ -718,11 +720,16 @@ int main(int argc, char* argv[]) {
 
 
 			nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+"_nonovp.bed";
+			edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+"_nonovp.bed";
 			node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
+			edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
 			fprintf(node_cov_neg_bed, "track name=Sample_"+GStr(file_idx)+"_node_neg_cov_nonovp color=255,0,0 altColor=0,0,255\n");
+			fprintf(edge_cov_neg_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_neg_cov_nonovp color=255,0,0 altColor=0,0,255\n");
 			nodecovnegnovp_fname_vec.Add(nodecovnegfname);
+			edgecovnegnovp_fname_vec.Add(edgecovnegfname);
 			node_cov_neg_novp_bed_vec.Add(node_cov_neg_bed);
-
+			edge_cov_neg_novp_bed_vec.Add(edge_cov_neg_bed);
+			
 
 			nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+"_unispg.bed";
 			edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+"_unispg.bed";	
