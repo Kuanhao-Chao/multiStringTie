@@ -1846,9 +1846,9 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
                                 fprintf(stderr,"\t\t  ####  Graph node: -----|(s)----------(e)|-----\n");
                                 prev_bdy[s] = lclg_node->end;   
                                 lclg_next = true;
-                                if (lclg_i == lclg_idx_end) {
+                                // if (lclg_i == lclg_idx_end) {
                                     has_unispg_tail[s] = true;
-                                }
+                                // }
                             }
                         }
                     } else if (unispg_node->start == lclg_node->start) {
@@ -2184,6 +2184,7 @@ void UnispgGp::ThirdUnispgAlgo(int fidx, int s, int sample_num, bool& lclg_reach
     }
 }
 
+
 void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_limit) {
     int sample_num = unispg_gp->samples.Count();
     if (fidx == 0) {
@@ -2270,15 +2271,15 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                      * Handling cross boundary cases.
                      *****************************************/
                     if (has_unispg_tail[s]) {
-                        /*
+                        // /*
                         { // DEBUG ONLY
                             fprintf(stderr, "***********************************\n");
                             fprintf(stderr, "*********** Adding on tail ********\n");
                             fprintf(stderr, "***********************************\n");
-                            fprintf(stderr, "lclg_node->start: %d,  lclg_node->end: %d\n", lclg_node->start, lclg_node->end);
-                            fprintf(stderr, "unispg_node->start: %d,  unispg_node->end: %d\n", unispg_node->start, unispg_node->end);
+                            // fprintf(stderr, "lclg_node->start: %d,  lclg_node->end: %d\n", lclg_node->start, lclg_node->end);
+                            // fprintf(stderr, "unispg_node->start: %d,  unispg_node->end: %d\n", unispg_node->start, unispg_node->end);
                         }
-                        */
+                        // */
                         lclg_bundle_num[s] += 1;
                         lclg_node = lclg_nonoverlap[s][lclg_i][lclg_node_idx];
                         unispg_node = no2gnode_unispg[s][unispg_i][unispg_node_idx];
@@ -2302,13 +2303,13 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                         has_unispg_tail[s] = false;
                         AddThirdAlgParentEdge(s, node, lclg_i, lclg_node, unispg_i, unispg_node, -1, pre_parent_unispg);
                     } else {
-                        /*
+                        // /*
                         { // DEBUG ONLY
                             fprintf(stderr, "************************************\n");
                             fprintf(stderr, "*********** New UNISPG!!!!! ********\n");
                             fprintf(stderr, "************************************\n");
                         }
-                        */
+                        // */s
                         // Initialize 
                         lclg_bundle_num[s] = 1;
                         new_unispg_nodeid[s] = 1;
@@ -2497,6 +2498,7 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
     }
 }
 
+
 void UnispgGp::PrintGraphGp() {
     fprintf(stderr, "*********************************\n");
     fprintf(stderr, "*********** PrintGraphGp ********\n");
@@ -2542,6 +2544,7 @@ void UnispgGp::PrintGraphGp() {
     // }
     }
 }
+
 
 void UnispgGp::WriteGraphGp() {
     fprintf(stderr, "*********************************\n");

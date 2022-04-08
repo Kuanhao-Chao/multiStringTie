@@ -159,7 +159,7 @@
 /* #undef HAVE_ICONV */
 
 /* Define to 1 if you have the <immintrin.h> header file. */
-#define HAVE_IMMINTRIN_H 1
+/* #undef HAVE_IMMINTRIN_H */
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
@@ -298,7 +298,7 @@
 /* #undef HAVE__FUTIME */
 
 /* Define to 1 if _mm_movemask_epi8 is available. */
-#define HAVE__MM_MOVEMASK_EPI8 1
+/* #undef HAVE__MM_MOVEMASK_EPI8 */
 
 /* Define to 1 if the GNU C extension __builtin_assume_aligned is supported.
    */
@@ -378,7 +378,7 @@
 
 /* Define to 1 if the system supports fast unaligned access to 16-bit and
    32-bit integers. */
-#define TUKLIB_FAST_UNALIGNED_ACCESS 1
+/* #undef TUKLIB_FAST_UNALIGNED_ACCESS */
 
 /* Define to 1 if the amount of physical memory can be detected with
    _system_configuration.physmem. */

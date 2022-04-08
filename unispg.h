@@ -251,7 +251,7 @@ struct CGraphnodeUnispg:public GSeg {
 
 struct UnispgGp {
     public:
-        GPVec<CGraphnodeUnispg>* no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+        GPVec<CGraphnodeUnispg>* no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode_unispg[s][g][i] gives the node i
         GVec<int> current_gidx; // graph id
         GVec<int> last_nidx; // node id
 		GVec<uint> prev_bdy;

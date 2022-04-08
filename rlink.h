@@ -851,6 +851,16 @@ int prune_graph_nodes(int graphno,int s,int g,GVec<CGraphinfo> **bundle2graph, i
 GBitVec traverse_dfs(int s,int g,CGraphnode *node,CGraphnode *sink,GBitVec parents,int gno, GVec<bool>& visit,
 		GPVec<CGraphnode> **no2gnode,GPVec<CTransfrag> **transfrag, int &edgeno,GIntHash<int> **gpos,int &lastgpos);
 
+// These are for update_abundance_unispg function
+CTransfrag *findtrf_in_treepat(int gno,GIntHash<int>& gpos,GVec<int>& node,GBitVec& pattern,CTreePat *tr2no);
+bool eliminate_transfrags_under_thr(int gno,GIntHash<int>& gpos,GPVec<CTransfrag>& transfrag, CTreePat *tr2no,float threshold,GPVec<CTransfrag>& srfrag);
+int trCmp(const pointer p1, const pointer p2);
+int longtrCmp(const pointer p1, const pointer p2);
+int compatible_long(int* t,int *len,GPVec<CTransfrag>& transfrag,GPVec<CGraphnode>& no2gnode,int gno,GIntHash<int> &gpos);
+int compatible_long(int* t,int *len,GPVec<CTransfrag>& transfrag,GPVec<CGraphnode>& no2gnode,int gno,GIntHash<int> &gpos);
+bool assign_incomplete_trf_to_nodes(int t,int n1, int n2,GPVec<CGraphnode>& no2gnode);
+bool trf_real(int t,GPVec<CGraphnode>& no2gnode,GPVec<CTransfrag>& transfrag, GIntHash<int> &gpos,int gno);
+
 // --- utility functions
 void printGff3Header(FILE* f, GArgs& args);
 
