@@ -3785,14 +3785,11 @@ int infer_transcripts_unispg(BundleData* bundle, int fidx) {
 	// }
 	else if(bundle->keepguides.Count() || !eonly) {
 		//fprintf(stderr,"Process %d reads from %lu.\n",bundle->readlist.Count(),bundle->numreads);
-
 		count_good_junctions(bundle);
-
 		// geneno = build_graphs(bundle);
 		geneno = build_graphs_unispg(bundle, fidx);
 		// geneno = build_graphs_unispg(bundle, unispg_gp);
 	}
-
 
 /*
 #ifdef GMEMTRACE
@@ -3801,6 +3798,5 @@ int infer_transcripts_unispg(BundleData* bundle, int fidx) {
 	GMessage("\t\tM(e):infer_transcripts memory usage: rsm=%6.1fMB vm=%6.1fMB\n",rsm/1024,vm/1024);
 #endif
 */
-
 	return(geneno);
 }

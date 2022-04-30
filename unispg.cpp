@@ -1976,7 +1976,6 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
     fprintf(stderr, "*******************************************\n");
 }
 
-
 bool UnispgGp::PairLclgUnispgInMRGGP(int fidx, int s, int sample_num, int& lclg_i, int& lclg_idx_start, int& lclg_idx_end, CGraphnodeUnispg*& lclg_node, int& lclg_node_idx, bool& lclg_is_lastnode, uint& lclg_start_pcs, uint& lclg_end_pcs, bool& lclg_next, int& unispg_i, int& unispg_idx_start, int& unispg_idx_end, CGraphnodeUnispg*& unispg_node, int& unispg_node_idx, bool& unispg_is_lastnode, uint& unispg_start_pcs, uint& unispg_end_pcs, bool& unispg_next){
     /******************************************
      * Move the lclg & unispg graph.
