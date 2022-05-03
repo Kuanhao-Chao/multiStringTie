@@ -795,6 +795,37 @@ int printMergeResults(BundleData* bundleData, int geneno, GStr& refname);
 int infer_transcripts(BundleData* bundle);
 
 
+// --- for rlink_unispg_help.cpp
+bool back_to_source_fast(int i,GVec<int>& path,GBitVec& pathpat,GPVec<CTransfrag>& transfrag,GPVec<CGraphnode>& no2gnode,
+		GVec<float>& nodecov,int gno,GIntHash<int>& gpos);
+bool fwd_to_sink_fast(int i,GVec<int>& path,GBitVec& pathpat,GPVec<CTransfrag>& transfrag,GPVec<CGraphnode>& no2gnode,
+		GVec<float>& nodecov,int gno,GIntHash<int>& gpos);
+float push_max_flow(int gno,GVec<int>& path,GBitVec& istranscript,GPVec<CTransfrag>& transfrag,GPVec<CGraphnode>& no2gnode,
+		GVec<float>& nodeflux,GBitVec& pathpat, GIntHash<int> &gpos, bool &full);
+// float store_transcript(GList<CPrediction>& pred,GVec<int>& path,GVec<float>& nodeflux,GVec<float>& nodecov,
+// 		GPVec<CGraphnode>& no2gnode,int& geneno,bool& first,int strand,int gno,GIntHash<int>& gpos, bool& included,
+// 		GBitVec& prevpath, bool full,BundleData *bdata, GffObj* t);
+float store_transcript(GList<CPrediction>& pred,GVec<int>& path,GVec<float>& nodeflux,GVec<float>& nodecov,
+		GPVec<CGraphnode>& no2gnode,int& geneno,bool& first,int strand,int gno,GIntHash<int>& gpos, bool& included,
+		GBitVec& prevpath, bool full=false,BundleData *bdata=NULL, GffObj* t=NULL);
+void update_guide_pred(GList<CPrediction>& pred,int np, GVec<int>& path,GVec<float>& nodeflux,GVec<float>& nodecov,
+		GPVec<CGraphnode>& no2gnode,int gno,bool update);
+float push_guide_maxflow(int gno,GVec<int>& path,GBitVec& istranscript,GPVec<CTransfrag>& transfrag,GPVec<CGraphnode>& no2gnode,GBitVec& pathpat);
+int guidedabundCmp(const pointer p1, const pointer p2);
+float guidepushflow(int g,GVec<CGuide>& guidetrf,int gno,GBitVec& istranscript,GPVec<CTransfrag>& transfrag,
+		GPVec<CGraphnode>& no2gnode,GVec<float>& nodeflux);
+CTransfrag *find_guide_partial_pat(GffObj *guide,GPVec<CGraphnode>& no2gnode,int gno,int edgeno,GIntHash<int> &gpos,GVec<int>& olen,int &olensum);
+int store_guide_transcript(GList<CPrediction>& pred,GVec<int>& path,GVec<float>& nodeflux,GVec<float>& nodecov,
+		GPVec<CGraphnode>& no2gnode,int& geneno,bool& first,int gno, GffObj* t,bool update);
+int find_cguidepat(GBitVec& pat,GVec<CTrGuidePat>& patvec);
+int partguideCmp(const pointer p1, const pointer p2);
+bool back_to_source_fast_long(int i,GVec<int>& path,int& minpath,int& maxpath,GBitVec& pathpat,GPVec<CTransfrag>& transfrag,GPVec<CGraphnode>& no2gnode,
+		GVec<float>& nodecov,int gno,GIntHash<int>& gpos);
+bool fwd_to_sink_fast_long(int i,GVec<int>& path,int& minpath,int& maxpath,GBitVec& pathpat,GPVec<CTransfrag>& transfrag,GPVec<CGraphnode>& no2gnode,
+		GVec<float>& nodecov,int gno,GIntHash<int>& gpos);
+float long_max_flow(int gno,GVec<int>& path,GBitVec& istranscript,GPVec<CTransfrag>& transfrag,GPVec<CGraphnode>& no2gnode,
+		GVec<float>& nodecapacity,GBitVec& pathpat);
+float best_trf_match(CTransfrag *t,GVec<CTransfrag>& keeptrf,GPVec<CGraphnode>& no2gnode,int gno,GVec<int>& tmatch);
 
 // --- for rlink_multi.cpp
 int juncCmpEnd(const pointer p1, const pointer p2);

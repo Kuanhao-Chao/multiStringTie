@@ -265,25 +265,12 @@ struct UnispgGp {
 		CGraphnodeUnispg* source_gp[2];
 		CGraphnodeUnispg* sink_gp[2];
 
-		// GVec<CGraphnodeUnispg> source_gp;
-		// GVec<CGraphnodeUnispg> sink_gp;
-
-        // s: strand (0 = negative strand; 1 = unknown strand; 2 = positive strand // 0(-),1(.),2(+))
-        // b: all bundles on all strands: 0,1,2
-
-    	// std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> lclg_nidx_2_new_nidx_ls;
-    	// std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> unispg_nidx_2_new_nidx_ls;
-
-
-		// std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> lclg_nidx_2_new_nidx_ls;
-    	// std::unordered_map<std::pair<int, int>, GVec<int>, pair_hash> unispg_nidx_2_new_nidx_ls;
-
 		std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> lclg_nidx_2_new_nidx_ls_pos;
     	std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> unispg_nidx_2_new_nidx_ls_pos;
 
 		std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> lclg_nidx_2_new_nidx_ls_neg;
     	std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> unispg_nidx_2_new_nidx_ls_neg;
-
+		
         UnispgGp() { 
             for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
                 int s=sno/2; // adjusted strand due to ignoring neutral strand

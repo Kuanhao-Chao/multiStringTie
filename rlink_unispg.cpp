@@ -1,5 +1,6 @@
 #include "rlink.h"
 #include "rlink_unispg.h"
+#include "rlink_unispg_help.h"
 #include "GBitVec.h"
 #include <float.h>
 #include <cmath>
@@ -1173,6 +1174,10 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 
 	bool trsort=true;
 
+	/****************************************
+	 ** Step 3:
+	 ** add source/sink links but only if they need to be added to explain the traversals in the graph
+	 ****************************************/
 	if(longreads) { // add source/sink links but only if they need to be added to explain the traversals in the graph
 		transfrag.Sort(longtrCmp); // most abundant transfrag in the graph come first, then the ones with most nodes, then the ones more complete
 		trsort=false;
@@ -1412,7 +1417,6 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 
 			if(transfrag[keeptrf[i].t]->guide || ((no2gnode[n1]->hardstart || (hassource[n1]>=0 && keepsource[n1])) && (no2gnode[n2]->hardend ||(hassink[n2]>=0 && keepsink[n2]))))
 				trflong.Add(keeptrf[i].t);
-
 		}
 
 		/*
@@ -1816,15 +1820,14 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 			trflong.Resize(ntrf,-1);
 	}
 
-
 	/****************************************
-	 ** Step 3:
+	 ** Step 4:
 	 ** add edges between disconnected parent-child nodes
 	 ****************************************/
 	for(int t=0;t<transfrag.Count();t++) allpat=allpat | transfrag[t]->pattern;
 
 	/****************************************
-	 ** Step 4:
+	 ** Step 5:
 	 ** for all nodes check if there is a connection to child
 	 ****************************************/
 	for(int i=1;i<gno-1;i++) { 
@@ -1847,7 +1850,7 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 	}
 
 	/****************************************
-	 ** Step 5:
+	 ** Step 6:
 	 ** sort transfrag with smallest being the one that has the most nodes, and ties are decided by the abundance (largest abundance first); last transfrags all have 1 node
 	 ****************************************/
 	if(trsort)
@@ -1874,20 +1877,15 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 
 
 	GVec<int> incompletetrf; //remembers incomplete transfrags (the ones that don't have edges between two consecutive nodes
-
-
 	/****************************************
-	 ** Step 6:
+	 ** Step 7:
 	 ** create compatibilities
 	 ****************************************/
 	for(int t1=0;t1<transfrag.Count();t1++) { // transfrags are processed in increasing order -> important for the later considerations
-
 		// update nodes
 		int n1=transfrag[t1]->nodes.Count();
-
 		if(mixedMode) {
 			if(transfrag[t1]->usepath<-1) { // this is a mixedMode long transfrag (TODO: consider using this for longreads mode also)
-
 				//fprintf(stderr,"Add transcript %d to trflong with value %d\n",t1,(int)transfrag[t1]->usepath);
 				trflong[abs(2+(int)transfrag[t1]->usepath)]=t1;
 			}
@@ -1932,14 +1930,12 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 					no2gnode[transfrag[t1]->nodes[n]]->trf.Add(t1);
 				}
 			}
-
 			//if(nosplice) transfrag[t1]->abundance*=(1-isofrac);
 			//transfrag[t1]->abundance*=0.5;
 
 
 			if(incomplete) incompletetrf.Add(t1);
 			else transfrag[t1]->real=true;
-
 		}
 		//else if(longreads) no2gnode[n1]->trf.Add(t1);
 		/*
@@ -1958,7 +1954,7 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 
 
 	/****************************************
-	 ** Step 7:
+	 ** Step 8:
 	 **  set source-to-child transfrag abundances: optional in order not to keep these abundances too low:
 	 **  update the abundances of the transfrags coming in from source and going to a node that doesn't have other parents than source
 	 **  * this part was removed to improve performance
@@ -1968,9 +1964,9 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 		float abundance=0;
 		int t0=-1;
 		if(no2gnode[source->child[i]]->parent.Count()==1 && !no2gnode[source->child[i]]->parent[0]) { // source is the only parent of node
-			for(int j=0;j<no2gnode[source->child[i]]->trf.Count();j++) {
+			for(int j=0;j<no2gnode[source->child[i]]->trf.Count();j++) { // iterating all transfrags
 				int t=no2gnode[source->child[i]]->trf[j];
-				if(transfrag[t]->nodes.Last()==source->child[i]) t0=t;
+				if(transfrag[t]->nodes.Last()==source->child[i]) t0=t; // the current node is the last node of the transfrag
 				else abundance+=transfrag[t]->abundance;
 			}
 			if(t0>-1 && transfrag[t0]->abundance) { // found transfrag from source to node and the transfrag wasn't deleted
@@ -1985,6 +1981,121 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 
 }
 
+
+int find_transcripts_unispg(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraphnode>& no2gnode,GPVec<CTransfrag>& transfrag,int geneno,int strand,
+		GVec<CGuide>& guidetrf,GPVec<GffObj>& guides,GVec<int>& guidepred,BundleData* bdata,GVec<int>& trflong) {
+
+	GList<CPrediction>& pred = bdata->pred;
+	/*
+	if(trflong.Count()) get_trf_long_unispg(gno,edgeno, gpos,no2gnode,transfrag,geneno,strand,pred,trflong,bdata);
+	if(longreads) return(geneno);*/
+
+	if(longreads) {
+		if(trflong.Count()) get_trf_long_unispg(gno,edgeno, gpos,no2gnode,transfrag,geneno,strand,pred,trflong,bdata);
+		return(geneno);
+	}
+
+	// process in and out coverages for each node
+	int maxi=0; // node with maximum coverage
+	GVec<float> nodecov; // node coverages
+
+	for(int i=0;i<gno;i++) {
+		CGraphnode *inode=no2gnode[i]; // this is here only because of the DEBUG option below
+		nodecov.cAdd(0.0);
+		if(i) { // for all nodes but the source
+		    if(i<gno-1 && inode->len()) nodecov[i]=inode->cov/inode->len(); // sink also has 0 coverage
+		    if(nodecov[i]>nodecov[maxi]) maxi=i;
+		    int nn=inode->trf.Count();
+		    float abundin=0;
+		    float abundout=0;
+		    float abundthrough=0;
+		    for(int j=0;j<nn;j++){
+		    	int t=inode->trf[j];
+		    	if(transfrag[t]->nodes.Last()==i) { // transfrag ends at this node (in transfrag)
+		    		abundin+=transfrag[t]->abundance;
+		    	}
+		    	else if(transfrag[t]->nodes[0]==i) { // transfrag starts at this node (out transfrag)
+		    		abundout+=transfrag[t]->abundance;
+		    	}
+		    	else if(transfrag[t]->pattern[i]) { // through transfrag (here I checked that the transfrag clearly goes through the node)
+		    		abundthrough+=transfrag[t]->abundance;
+		    	}
+		    }
+		    if(abundin) inode->rate=abundout/abundin;
+		    if(abundout) inode->capacity=abundout+abundthrough; // node capacity tells me how much of that node coverage I can use given how many transfrags leave the node
+		    else inode->capacity=abundin+abundthrough;
+		} // end if i
+
+		/*
+		{ // DEBUG ONLY
+			printTime(stderr);
+			fprintf(stderr,"Node %d: cov=%f capacity=%f rate=%f ",i,inode->cov/(inode->end-inode->start+1),inode->capacity,inode->rate);
+			fprintf(stderr,"trf=");
+			for(int t=0;t<inode->trf.Count();t++) fprintf(stderr," %d(%f)",inode->trf[t],transfrag[inode->trf[t]]->abundance);
+			fprintf(stderr," maxi=%d maxcov=%f\n",maxi,nodecov[maxi]);
+		}
+		*/
+
+	} // end for i
+
+	GBitVec istranscript(transfrag.Count());
+	GBitVec pathpat(gno+edgeno);
+
+/*
+#ifdef GMEMTRACE
+	double vm,rsm;
+	get_mem_usage(vm, rsm);
+	GMessage("\t\tM(after istranscript and pathpat init):find_transcripts memory usage: rsm=%6.1fMB vm=%6.1fMB\n",rsm/1024,vm/1024);
+#endif
+*/
+
+	// process guides first
+	//fprintf(stderr,"guidetrf.count=%d\n",guidetrf.Count());
+	//if(guidetrf.Count()) maxi=guides_flow(gno,no2gnode,transfrag,guidetrf,geneno,strand,pred,nodecov,istranscript,pathpat);
+
+	bool first=true;
+
+	//fprintf(stderr,"guide count=%d\n",guidetrf.Count());
+	if (eonly)
+		guides_pushmaxflow_unispg(gno,edgeno,gpos,no2gnode,transfrag,guidetrf,geneno,strand,pred,nodecov,istranscript,pathpat,first,guides,guidepred,bdata);
+	else { //if(!eonly) {
+		if(mixedMode && trflong.Count()) get_trf_long_mix_unispg(gno,edgeno, gpos,no2gnode,transfrag,geneno,strand,pred,trflong,nodecov,istranscript,pathpat,bdata,first);
+
+		if(!mixedMode && guidetrf.Count()) maxi=guides_pushmaxflow_unispg(gno,edgeno,gpos,no2gnode,transfrag,guidetrf,geneno,strand,pred,nodecov,istranscript,pathpat,first,guides,guidepred,bdata);
+		/*
+		{ // DEBUG ONLY
+			if(mixedMode) {
+				fprintf(stderr,"After get_trf_long_unispg:\n");
+				for(int i=0;i<gno;i++) {
+					CGraphnode *inode=no2gnode[i];
+					printTime(stderr);
+					fprintf(stderr,"Node %d: cov=%f capacity=%f rate=%f ",i,inode->cov/(inode->end-inode->start+1),inode->capacity,inode->rate);
+					fprintf(stderr,"trf=");
+					for(int t=0;t<inode->trf.Count();t++) fprintf(stderr," %d(%f)",inode->trf[t],transfrag[inode->trf[t]]->abundance);
+					fprintf(stderr," maxi=%d maxcov=%f\n",maxi,nodecov[maxi]);
+				}
+				fprintf(stderr,"There are %d transfrags:\n",transfrag.Count());
+				for(int t=0;t<transfrag.Count();t++) {
+					fprintf(stderr,"%d: ",t);
+					//printBitVec(transfrag[s][b][t]->pattern);
+					fprintf(stderr," %f(%f,%d,%d) long=%d nodes=%d",transfrag[t]->abundance,transfrag[t]->srabund, transfrag[t]->longstart,transfrag[t]->longend,transfrag[t]->longread,transfrag[t]->nodes.Count());
+					for(int i=0;i<transfrag[t]->nodes.Count();i++) fprintf(stderr," %d",transfrag[t]->nodes[i]);
+					if(!transfrag[t]->abundance) fprintf(stderr," *");
+					fprintf(stderr,"\n");
+				}
+			}
+		}
+		*/
+		if(nodecov[maxi]>=1) { // sensitive mode only; otherwise >=readthr
+			// 1:
+			// parse_trf_weight_max_flow(gno,no2gnode,transfrag,geneno,strand,pred,nodecov,pathpat);
+			// 2:
+			GBitVec usednode(gno+edgeno);
+			parse_trf_unispg(maxi,gno,edgeno,gpos,no2gnode,transfrag,geneno,first,strand,pred,nodecov,istranscript,usednode,0,pathpat);
+		}
+	}
+	return(geneno);
+}
 
 
 
@@ -2024,7 +2135,7 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 	int color=0; // next color to assign
 	GVec<int> merge; // remembers merged groups
 	GVec<int> equalcolor; // remembers colors for the same bundle
-	GVec<int> *readgroup=new GVec<int>[readlist.Count()]; // remebers groups for each read; don't forget to delete it when no longer needed
+	GVec<int> *readgroup = new GVec<int>[readlist.Count()]; // remebers groups for each read; don't forget to delete it when no longer needed
 	// parameter -e ; for mergeMode includes estimated coverage sum in the merged transcripts
 	GVec<int> guidepred; // for eonly keeps the prediction number associated with a guide
 	GArray<GEdge> guideedge; // 0: negative starts; 1 positive starts
@@ -2047,10 +2158,8 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 	 ** Step 0: this part is for setting guides for introns are covered by at least one read. 
 	 *****************************/
 	if(guides.Count()) {
-
 		guideedge.setSorted(true);
 		guideedge.setUnique(true);
-
 		//if(eonly)
 		for(int g=0;g<guides.Count();g++) {
 			guidepred.cAdd(-1);
@@ -3314,7 +3423,6 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 	 ** 	build graphs for stranded bundles here
 	 *****************************/
     if(startgroup[0]!=NULL || startgroup[2]!=NULL) {  // Condition 1: there are stranded groups to process
-
     	// I don't need the groups here anymore : I only use their numbers
     	// group.Clear(); // I will need the proportions later on
 
@@ -3328,7 +3436,6 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
     	GIntHash<int> *gpos[2]; // for each graph g, on a strand s, gpos[s][g] keeps the hash between edges and positions in the bitvec associated to a pattern
 		// Create here!!
     	GVec<int> lastgpos[2];
-
 
 		// Input variable!!
     	GVec<int> graphno[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
@@ -3373,7 +3480,6 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 			// fprintf(stderr, "0 bundle[sno].Count(): %d\n", bundle[sno].Count());
     		if(graph_no) {
     			transfrag[s]=new GPVec<CTransfrag>[graph_no]; // for each bundle I have a graph ? only if I don't ignore the short bundles
-
     			no2gnode[s]=new GPVec<CGraphnode>[graph_no];
     			gpos[s]=new GIntHash<int>[graph_no];
 
@@ -3381,16 +3487,13 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
     			bno[s]=graph_no;
 
     			for(int b=0;b<graph_no;b++) {
-
     				graphno[s].cAdd(0);
     				edgeno[s].cAdd(0);
     				lastgpos[s].cAdd(0);
     				// I am overestmating the edgeno below, hopefully not by too much
 
-    				//fprintf(stderr,"Bundle is: %d - %d start at g=%d sno=%d b=%d\n",bnode[sno][bundle[sno][b]->startnode]->start,bnode[sno][bundle[sno][b]->lastnodeid]->end,g,sno,b);
-
+    				fprintf(stderr,"Bundle is: %d - %d start at g=%d sno=%d b=%d\n",bnode[sno][bundle[sno][b]->startnode]->start,bnode[sno][bundle[sno][b]->lastnodeid]->end,g,sno,b);
 					fprintf(stderr, "bnode[%d][bundle[%d][%d]->startnode]->start: %d \n", sno, sno, b, bnode[sno][bundle[sno][b]->startnode]->start);
-
 					fprintf(stderr, "bnode[%d][bundle[%d][%d]->lastnodeid]->end: %d \n", sno, sno, b, bnode[sno][bundle[sno][b]->lastnodeid]->end);
 
     				while(g<ng && guides[g]->end<bnode[sno][bundle[sno][b]->startnode]->start) g++;
@@ -3402,10 +3505,9 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 					 **  This is reference guide. Ignore first.
 					 ****************/
     				while(cg<ng && guides[cg]->start<=bnode[sno][bundle[sno][b]->lastnodeid]->end) { // this are potential guides that might overlap the current bundle, and they might introduce extra edges
-
-    					//fprintf(stderr,"...consider guide cg=%d with strand=%c and in_bundle=%d\n",cg,guides[cg]->strand,((RC_TData*)(guides[cg]->uptr))->in_bundle);
+    					// fprintf(stderr,"...consider guide cg=%d with strand=%c and in_bundle=%d\n",cg,guides[cg]->strand,((RC_TData*)(guides[cg]->uptr))->in_bundle);
     					if((guides[cg]->strand==strnd || guides[cg]->strand=='.') && ((RC_TData*)(guides[cg]->uptr))->in_bundle>=2) {
-    						//fprintf(stderr,"Add guide g=%d with start=%d end=%d\n",cg,guides[cg]->start,guides[cg]->end);
+    						// fprintf(stderr,"Add guide g=%d with start=%d end=%d\n",cg,guides[cg]->start,guides[cg]->end);
     						edgeno[s][b]+=2; // this is an overestimate: possibly I have both an extra source and an extra sink link
     						nolap++;
     					}
@@ -3416,7 +3518,7 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 					 ****************/
 
 
-    				/*
+    				// /*
     				{ // DEBUG ONLY
         				fprintf(stderr,"edgeno[%d][%d]=%d\n",s,b,edgeno[s][b]);
     					if(bundle[sno][b]->cov) {
@@ -3425,7 +3527,7 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
     								bundle[sno][b]->len,nolap);
     					}
     				}
-    				*/
+    				// */
 
     				// here I can add something in stringtie to lower the mintranscript len if there are guides?
 					/*****************************
@@ -3455,16 +3557,16 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 						 **  KH modify
 						 ****************/
     					// create graph then
+
+						// no2gnode / transfrag / gpos
     					graphno[s][b]=create_graph_unispg(refstart,s,b,bundle[sno][b],bnode[sno],junction,ejunction,
     							bundle2graph,no2gnode,transfrag,gpos,bdata,edgeno[s][b],lastgpos[s][b],guideedge); // also I need to remember graph coverages somewhere -> probably in the create_graph procedure
 
+						// tr2no
     					if(graphno[s][b]) tr2no[s][b]=construct_treepat_unispg(graphno[s][b],gpos[s][b],transfrag[s][b]);
 						/****************
 						 **  End of KH modify
 						 ****************/
-
-
-
     					else tr2no[s][b]=NULL;
     				}
     				else tr2no[s][b]=NULL;
@@ -3523,6 +3625,7 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
     				if(np>-1) {
     					single_count-=readlist[n]->pair_count[j];
     					if(n<np) {
+							// no2gnode / transfrag / gpos / tr2no
     						get_fragment_pattern(readlist,n,np,readlist[n]->pair_count[j],readgroup,merge,group2bundle,bundle2graph,graphno,edgeno,gpos,no2gnode,transfrag,tr2no,group);
     					}
     				}
@@ -3649,8 +3752,10 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 
     				GVec<int> trflong; // non-redundant long transfrags that I can use to guide the long read assemblies
     				//process transfrags to eliminate noise, and set compatibilities, and node memberships
+
+					// no2gnode / transfrag / tr2no / gpos
     				process_transfrags_unispg(s,graphno[s][b],edgeno[s][b],no2gnode[s][b],transfrag[s][b],tr2no[s][b],gpos[s][b],guidetrf,pred,trflong);
-    				//get_trf_long(graphno[s][b],edgeno[s][b], gpos[s][b],no2gnode[s][b],transfrag[s][b],geneno,s,pred,trflong);
+    				//get_trf_long_unispg(graphno[s][b],edgeno[s][b], gpos[s][b],no2gnode[s][b],transfrag[s][b],geneno,s,pred,trflong);
 
 
     				// /*
@@ -3693,7 +3798,9 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 
     				//if(!longreads) {
     				// find transcripts now
-    				if(!rawreads) geneno=find_transcripts(graphno[s][b],edgeno[s][b],gpos[s][b],no2gnode[s][b],transfrag[s][b],
+
+					// gpos / no2gnode / transfrag
+    				if(!rawreads) geneno=find_transcripts_unispg(graphno[s][b],edgeno[s][b],gpos[s][b],no2gnode[s][b],transfrag[s][b],
     						geneno,s,guidetrf,guides,guidepred,bdata,trflong);
     				//}
     				for(int g=0;g<guidetrf.Count();g++) delete guidetrf[g].trf;
@@ -3727,7 +3834,6 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 
 	} // end if(startgroup[0]!=NULL || startgroup[2]!=NULL)
     else { 	// Condition 2: no stranded groups to process
-
     	delete [] readgroup;
     	// clean up readgroup, bundle
     	for(int sno=0;sno<3;sno++) {

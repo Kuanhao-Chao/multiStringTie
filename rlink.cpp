@@ -4571,7 +4571,6 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 		delete [] rnode;
 		if(pnode) delete [] pnode;
 	}
-
 }
 
 void get_read_to_transfrag(GList<CReadAln>& readlist,int n,GVec<int> *readgroup,GVec<int>& merge,GVec<int> *group2bundle,
@@ -6144,7 +6143,6 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 
 	for(int t=0;t<incompletetrf.Count();t++)
 		transfrag[incompletetrf[t]]->real=trf_real(incompletetrf[t],no2gnode,transfrag,gpos,gno);
-
 }
 
 
@@ -9643,12 +9641,15 @@ float weight_max_flow(int gno,GVec<int>& path,GBitVec& istranscript,GPVec<CTrans
 }
 
 
+// float store_transcript(GList<CPrediction>& pred,GVec<int>& path,GVec<float>& nodeflux,GVec<float>& nodecov,
+// 		GPVec<CGraphnode>& no2gnode,int& geneno,bool& first,int strand,int gno,GIntHash<int>& gpos, bool& included,
+// 		GBitVec& prevpath, bool full=false,BundleData *bdata=NULL, //float fragno, char* id=NULL) {
+// 		   GffObj* t=NULL) {
+
 float store_transcript(GList<CPrediction>& pred,GVec<int>& path,GVec<float>& nodeflux,GVec<float>& nodecov,
 		GPVec<CGraphnode>& no2gnode,int& geneno,bool& first,int strand,int gno,GIntHash<int>& gpos, bool& included,
-		GBitVec& prevpath, bool full=false,BundleData *bdata=NULL, //float fragno, char* id=NULL) {
-		   GffObj* t=NULL) {
-
-
+		GBitVec& prevpath, bool full,BundleData *bdata, //float fragno, char* id=NULL) {
+		   GffObj* t) {
 	float cov=0;
 	int len=0;
 	CGraphnode *prevnode=NULL;
@@ -14839,13 +14840,12 @@ int build_graphs(BundleData* bdata) {
 
     				GVec<int> trflong; // non-redundant long transfrags that I can use to guide the long read assemblies
     				//process transfrags to eliminate noise, and set compatibilities, and node memberships
+
+					// graphno / edgeno / no2gnode / transfrag / tr2no / gpos
     				process_transfrags(s,graphno[s][b],edgeno[s][b],no2gnode[s][b],transfrag[s][b],tr2no[s][b],gpos[s][b],guidetrf,pred,trflong);
     				//get_trf_long(graphno[s][b],edgeno[s][b], gpos[s][b],no2gnode[s][b],transfrag[s][b],geneno,s,pred,trflong);
 
-
-
-
-    				/*
+    				// /*
     				{ //DEBUG ONLY
     					//printTime(stderr);
     					fprintf(stderr,"There are %d nodes for graph[%d][%d]:\n",graphno[s][b],s,b);
@@ -14868,9 +14868,8 @@ int build_graphs(BundleData* bdata) {
     						if(!transfrag[s][b][t]->abundance) fprintf(stderr," *");
     						fprintf(stderr,"\n");
     					}
-
     				}
-    				*/
+    				// */
 
 /*
 #ifdef GMEMTRACE
@@ -14881,9 +14880,10 @@ int build_graphs(BundleData* bdata) {
 */
 
     				// fprintf(stderr,"guidetrf no=%d\n",guidetrf.Count());
-
     				//if(!longreads) {
     				// find transcripts now
+					
+					// graphno / edgeno / no2gnode / transfrag / tr2no / gpos
     				if(!rawreads) geneno=find_transcripts(graphno[s][b],edgeno[s][b],gpos[s][b],no2gnode[s][b],transfrag[s][b],
     						geneno,s,guidetrf,guides,guidepred,bdata,trflong);
     				//}
