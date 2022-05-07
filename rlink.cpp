@@ -3868,7 +3868,6 @@ void get_read_pattern(int s, float readcov,GVec<int> &rgno, float rprop,GVec<int
 						}
 
 						if(lastngraph!=ngraph || lastgnode!=gnode) { // this is a new graph, or a new gnode
-
 							bool trimu=false;
 							if(readlist[n]->unitig) { //f1
 								if(rnode[g].Count()==1) { // deal with first node trimming here
@@ -3884,15 +3883,12 @@ void get_read_pattern(int s, float readcov,GVec<int> &rgno, float rprop,GVec<int
 									}
 								}
 							}
-
-
 							if(!trimu) rnode[g].Add(gnode);
 						}
 
 						lastgnode=gnode;
 						lastngraph=ngraph;
 					} // end if(intersect)
-
 					j++;
 				} // end while(j<nbnode && k<ncoord)
 			} // end hashnode
@@ -4104,7 +4100,6 @@ CTransfrag *findtrf_in_treepat(int gno,GIntHash<int>& gpos,GVec<int>& node,GBitV
 		else tree=tree->nextpat[node[n]-1];
 		if(!tree) return(NULL);
 	}
-
 	return(tree->tr);
 }
 
@@ -6038,7 +6033,6 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 
 	GVec<int> incompletetrf; //remembers incomplete transfrags (the ones that don't have edges between two consecutive nodes
 
-
 	/****************************************
 	 ** create compatibilities
 	 ****************************************/
@@ -6061,13 +6055,11 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 			bool incomplete = false;
 			bool nosplice=true; // try to give less priority to unspliced reads vs spliced reads
 			for(int n=0;n<n1;n++) { // for all nodes in transfrag
-
 				if(nosplice && n) { // reduce abundance of continuous transfrags
 					if(transfrag[t1]->nodes[n]!=1+transfrag[t1]->nodes[n-1] || no2gnode[transfrag[t1]->nodes[n]]->start-1!=no2gnode[transfrag[t1]->nodes[n-1]]->end) {
 						nosplice=false;
 					}
 				}
-
 				if(n && n<transfrag[t1]->nodes.Count()-1) {// not first or last node
 					// add t1 to in and out of node
 					no2gnode[transfrag[t1]->nodes[n]]->trf.Add(t1);
@@ -6097,11 +6089,8 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 
 			//if(nosplice) transfrag[t1]->abundance*=(1-isofrac);
 			//transfrag[t1]->abundance*=0.5;
-
-
 			if(incomplete) incompletetrf.Add(t1);
 			else transfrag[t1]->real=true;
-
 		}
 		//else if(longreads) no2gnode[n1]->trf.Add(t1);
 		/*
@@ -7891,11 +7880,11 @@ bool back_to_source_fast(int i,GVec<int>& path,GBitVec& pathpat,GPVec<CTransfrag
 
 	int nparents=inode->parent.Count(); // number of parents
 
-	/*
+	// /*
 	fprintf(stderr,"Parents of node %d are:",i);
 	for(int p=0;p<nparents;p++) fprintf(stderr," %d",inode->parent[p]);
 	fprintf(stderr,"\n");
-	*/
+	// */
 
 	if(!nparents) return true; // node is source
 	int maxp=-1;

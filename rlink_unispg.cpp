@@ -224,7 +224,6 @@ GBitVec traverse_dfs_unispg(int s,int g,CGraphnode *node,CGraphnode *sink,GBitVe
 	return(children);
 }
 
-
 int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundlenode>& bnode,
 		GList<CJunction>& junction,GList<CJunction>& ejunction,GVec<CGraphinfo> **bundle2graph,
 		GPVec<CGraphnode> **no2gnode,GPVec<CTransfrag> **transfrag,GIntHash<int> **gpos,BundleData* bdata,
@@ -937,9 +936,10 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 				longtr->longread=true;
 				transfrag[s][g].Add(longtr);
 			}
-			else
-			if(longreads)// || mixedMode)
-				transfrag[s][g].Last()->longread=true;
+			else {
+				if(longreads)// || mixedMode)
+					transfrag[s][g].Last()->longread=true;
+			}
 		}
 	}
 
@@ -975,9 +975,6 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 	return(graphno);
 }
 
-
-
-
 CTreePat *construct_treepat_unispg(int gno, GIntHash<int>& gpos,GPVec<CTransfrag>& transfrag) {
 
 	/**********************
@@ -1010,7 +1007,6 @@ CTreePat *construct_treepat_unispg(int gno, GIntHash<int>& gpos,GPVec<CTransfrag
 			}
 			tree->tr=transfrag[t];
 		}
-
 	return(root);
 }
 
@@ -1025,7 +1021,19 @@ CTreePat *construct_treepat_unispg(int gno, GIntHash<int>& gpos,GPVec<CTransfrag
 
 
 
-
+/****************************************
+ **  1. Add reference pattern to the transfrags as backbone
+ **  2. Eliminate transfrags below threshold
+ **  3. Add source / sink links (only if they need to be added to explain the traversals)
+ **  4. Add edges to disconnected parent-child nodes.
+ **  5. For all nodes, check if there is a connection to child.
+ **  6. Sort transfrags
+ **  7. Create compatibilities
+ **  8. 
+	 **  set source-to-child transfrag abundances: optional in order not to keep these abundances too low:
+	 **  update the abundances of the transfrags coming in from source and going to a node that doesn't have other parents than source
+	 **  * this part was removed to improve performance
+ ****************************************/
 void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GPVec<CTransfrag>& transfrag,CTreePat *tr2no,
 		GIntHash<int> &gpos,GVec<CGuide>& guidetrf,GList<CPrediction>& pred,GVec<int>& trflong) {
 	// /*
@@ -1193,7 +1201,6 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 		GVec<float> addsink(gno,zero);
 		int edgedist=CHI_WIN; // I need to be consistent (if I change here then I need to change in update_abundance too)
 		int ssdist=longintronanchor;
-
 		/*
 		{ // DEBUG ONLY
 			//printTime(stderr);
@@ -1206,7 +1213,6 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 			}
 		}
 		*/
-
 		for(int t1=0;t1<transfrag.Count();t1++) {
 			/*fprintf(stderr,"Consider t=%d with abund=%f guide=%d and nodes:",t1,transfrag[t1]->abundance,transfrag[t1]->guide);
 			for(int j=0;j<transfrag[t1]->nodes.Count();j++) {
@@ -1511,313 +1517,314 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 		}
 	}
 	else if(srfrag.Count() && mixedMode) { // add source/sink links but only if they need to be added to explain the traversals in the graph
-			srfrag.Sort(longtrCmp); // most abundant transfrags in the graph come first, then the ones with most nodes, then the ones more complete
-			int source=0;
-			int sink=gno-1;
-			GVec<int> hassource(gno,-1); // remembers transcript number that links given node to source
-			GVec<int> hassink(gno,-1); // remembers transcript number that links given node to sink
-			GBitVec keepsource(gno); // if not set then I can remove link from node to source; keeps source link if it exists otherwise otherwise
-			GBitVec keepsink(gno); // if not set then I can remove link from node to sink; keeps sink link if it exists otherwise otherwise
-			GVec<CLongTrf> keeptrf; // keeps all potential transfrags that will be kept from most abundant to least, unassembled
-			float zero=0;
-			GVec<float> addsource(gno,zero);
-			GVec<float> addsink(gno,zero);
-			int edgedist=CHI_WIN; // I need to be consistent (if I change here then I need to change in update_abundance too)
-			int ssdist=longintronanchor;
-			int ntrf=0; // number of trflong transcripts
+		srfrag.Sort(longtrCmp); // most abundant transfrags in the graph come first, then the ones with most nodes, then the ones more complete
+		int source=0;
+		int sink=gno-1;
+		GVec<int> hassource(gno,-1); // remembers transcript number that links given node to source
+		GVec<int> hassink(gno,-1); // remembers transcript number that links given node to sink
+		GBitVec keepsource(gno); // if not set then I can remove link from node to source; keeps source link if it exists otherwise otherwise
+		GBitVec keepsink(gno); // if not set then I can remove link from node to sink; keeps sink link if it exists otherwise otherwise
+		GVec<CLongTrf> keeptrf; // keeps all potential transfrags that will be kept from most abundant to least, unassembled
+		float zero=0;
+		GVec<float> addsource(gno,zero);
+		GVec<float> addsink(gno,zero);
+		int edgedist=CHI_WIN; // I need to be consistent (if I change here then I need to change in update_abundance too)
+		int ssdist=longintronanchor;
+		int ntrf=0; // number of trflong transcripts
 
-			/*
-			{ // DEBUG ONLY
-				//printTime(stderr);
-				fprintf(stderr,"\nThere are %d longsrtransfrags after clean up:\n",srfrag.Count());
-				for(int i=0;i<srfrag.Count();i++) {
-					fprintf(stderr,"srfrag[%d] longstart=%d longend=%d abund=%f t=%d:",i,srfrag[i]->longstart,srfrag[i]->longend,srfrag[i]->abundance,int(srfrag[i]->usepath));
-					for(int j=0;j<srfrag[i]->nodes.Count();j++) fprintf(stderr," %d",srfrag[i]->nodes[j]);
-					fprintf(stderr,"\n");
-				}
+		// /*
+		{ // DEBUG ONLY
+			//printTime(stderr);
+			fprintf(stderr,"\nThere are %d longsrtransfrags after clean up:\n",srfrag.Count());
+			for(int i=0;i<srfrag.Count();i++) {
+				fprintf(stderr,"srfrag[%d] longstart=%d longend=%d abund=%f t=%d:",i,srfrag[i]->longstart,srfrag[i]->longend,srfrag[i]->abundance,int(srfrag[i]->usepath));
+				for(int j=0;j<srfrag[i]->nodes.Count();j++) fprintf(stderr," %d",srfrag[i]->nodes[j]);
+				fprintf(stderr,"\n");
 			}
-			*/
+		}
+		// */
 
-			for(int t1=0;t1<srfrag.Count();t1++) {
-				/*fprintf(stderr,"Consider t=%d with abund=%f and nodes:",t1,srfrag[t1]->abundance);
-				for(int j=0;j<srfrag[t1]->nodes.Count();j++) {
-					if(j) {
-						int *pos=gpos[edge(srfrag[t1]->nodes[j-1],srfrag[t1]->nodes[j],gno)];
-						if(pos && srfrag[t1]->pattern[*pos]) {
-							fprintf(stderr,"-");
-						}
-						else fprintf(stderr," ");
+		for(int t1=0;t1<srfrag.Count();t1++) {
+			// /*
+			fprintf(stderr,"Consider t=%d with abund=%f and nodes:",t1,srfrag[t1]->abundance);
+			for(int j=0;j<srfrag[t1]->nodes.Count();j++) {
+				if(j) {
+					int *pos=gpos[edge(srfrag[t1]->nodes[j-1],srfrag[t1]->nodes[j],gno)];
+					if(pos && srfrag[t1]->pattern[*pos]) {
+						fprintf(stderr,"-");
 					}
-					fprintf(stderr,"%d",srfrag[t1]->nodes[j]);
-				} fprintf(stderr,"\n");*/
-				if(!srfrag[t1]->nodes[0]) {
-					hassource[srfrag[t1]->nodes[1]]=t1;
-					//fprintf(stderr,"Node %d in t=%d with cov=%f has source\n",srfrag[t1]->nodes[1],t1,srfrag[t1]->abundance);
+					else fprintf(stderr," ");
 				}
-				else if(srfrag[t1]->nodes.Last()==gno-1) {
-					hassink[srfrag[t1]->nodes[0]]=t1;
-					//fprintf(stderr,"Node %d in t=%d with cov=%f has sink\n",srfrag[t1]->nodes[0],t1,srfrag[t1]->abundance);
+				fprintf(stderr,"%d",srfrag[t1]->nodes[j]);
+			} fprintf(stderr,"\n");
+			// */
+			if(!srfrag[t1]->nodes[0]) {
+				hassource[srfrag[t1]->nodes[1]]=t1;
+				fprintf(stderr,"Node %d in t=%d with cov=%f has source\n",srfrag[t1]->nodes[1],t1,srfrag[t1]->abundance);
+			}
+			else if(srfrag[t1]->nodes.Last()==gno-1) {
+				hassink[srfrag[t1]->nodes[0]]=t1;
+				fprintf(stderr,"Node %d in t=%d with cov=%f has sink\n",srfrag[t1]->nodes[0],t1,srfrag[t1]->abundance);
+			}
+			else {
+				if(eonly && !srfrag[t1]->guide) continue; // do not remember transfrags that are not guides
+				if(!keepsource[srfrag[t1]->nodes[0]]) {
+					if(srfrag[t1]->longstart) keepsource[srfrag[t1]->nodes[0]]=1;
+					else if(no2gnode[srfrag[t1]->nodes[0]]->hardstart) keepsource[srfrag[t1]->nodes[0]]=1;
 				}
-				else {
-					if(eonly && !srfrag[t1]->guide) continue; // do not remember transfrags that are not guides
-					if(!keepsource[srfrag[t1]->nodes[0]]) {
-						if(srfrag[t1]->longstart) keepsource[srfrag[t1]->nodes[0]]=1;
-						else if(no2gnode[srfrag[t1]->nodes[0]]->hardstart) keepsource[srfrag[t1]->nodes[0]]=1;
-					}
-					if(!keepsink[srfrag[t1]->nodes.Last()]) {
-						if(srfrag[t1]->longend) keepsink[srfrag[t1]->nodes.Last()]=1;
-						else if(no2gnode[srfrag[t1]->nodes.Last()]) keepsink[srfrag[t1]->nodes.Last()]=1;
-					}
-					bool included=false;
-					// a transfrag that starts at source and ends at sink can never be included in a kept transfrag, so I am safe to do next
-					for(int t2=0; t2<keeptrf.Count();t2++) {
-						int t[2]={t1,keeptrf[t2].t}; // t1 current, t2 the one I kept
-						int len[4]={MAX_NODE,MAX_NODE,MAX_NODE,MAX_NODE};
-						int ret=compatible_long(t,len,srfrag,no2gnode,gno,gpos);
-						//fprintf(stderr,"  ret=%d t[0]=%d t[1]=%d len[0]=%d len[1]=%d len[2]=%d len[3]=%d\n",ret,t[0],t[1],len[0],len[1],len[2],len[3]);
-						if(ret){
-							switch(ret) {
-							case 1: // t[0] includes t[1]: it extends with introns on on one or both sides -> keep unless I can eliminate a previous one
-								if(!srfrag[t[1]]->guide && srfrag[t1]->longstart && srfrag[t1]->longend && // t[1] might be included in t[0] so I might eliminate if it doesn't pass threshold
-										(!no2gnode[srfrag[t[1]]->nodes[0]]->hardstart || srfrag[t[0]]->nodes[0] == srfrag[t[1]]->nodes[0] ) &&
-										(!no2gnode[srfrag[t[1]]->nodes.Last()]->hardend || srfrag[t[0]]->nodes.Last() == srfrag[t[1]]->nodes.Last())) {
-									//if(srfrag[t[0]]->abundance>(1-ERROR_PERC/DROP)*srfrag[t[1]]->abundance) { // t[0] is within limits of t[1]
-									if(srfrag[t[0]]->abundance>DROP*srfrag[t[1]]->abundance) { // t[0] is within limits of t[1]
-										if(len[1]<ssdist && len[3]<ssdist) { // prefer t[0] instead of t[1]
-											keeptrf[t2].t=t1;
-											keeptrf[t2].cov+=srfrag[t1]->abundance;
-											keeptrf[t2].group.Add(t1);
-											included=true; // I do not want to store transcript
-											//fprintf(stderr,"trf %d includes %d\n",t[0],t[1]);
-										}
-									}
-								}
-								break;
-							case 2: // t[1] includes t[0]: extends with introns past ends of t[0] (t[1] possibly includes t[0]); t[1] is more abundant than t0
-								//if(srfrag[t[1]]->guide || srfrag[t[1]]->abundance>(1-ERROR_PERC/DROP)*srfrag[t[0]]->abundance) {
-								if(!srfrag[t[0]]->guide &&
-										(!no2gnode[srfrag[t[0]]->nodes[0]]->hardstart || srfrag[t[0]]->nodes[0] == srfrag[t[1]]->nodes[0]) &&
-										(!no2gnode[srfrag[t[0]]->nodes.Last()]->hardend || srfrag[t[0]]->nodes.Last() == srfrag[t[1]]->nodes.Last())) {
-									if(len[1]<ssdist && len[3]<ssdist) {
+				if(!keepsink[srfrag[t1]->nodes.Last()]) {
+					if(srfrag[t1]->longend) keepsink[srfrag[t1]->nodes.Last()]=1;
+					else if(no2gnode[srfrag[t1]->nodes.Last()]) keepsink[srfrag[t1]->nodes.Last()]=1;
+				}
+				bool included=false;
+				// a transfrag that starts at source and ends at sink can never be included in a kept transfrag, so I am safe to do next
+				for(int t2=0; t2<keeptrf.Count();t2++) {
+					int t[2]={t1,keeptrf[t2].t}; // t1 current, t2 the one I kept
+					int len[4]={MAX_NODE,MAX_NODE,MAX_NODE,MAX_NODE};
+					int ret=compatible_long(t,len,srfrag,no2gnode,gno,gpos);
+					fprintf(stderr,"  ret=%d t[0]=%d t[1]=%d len[0]=%d len[1]=%d len[2]=%d len[3]=%d\n",ret,t[0],t[1],len[0],len[1],len[2],len[3]);
+					if(ret){
+						switch(ret) {
+						case 1: // t[0] includes t[1]: it extends with introns on on one or both sides -> keep unless I can eliminate a previous one
+							if(!srfrag[t[1]]->guide && srfrag[t1]->longstart && srfrag[t1]->longend && // t[1] might be included in t[0] so I might eliminate if it doesn't pass threshold
+									(!no2gnode[srfrag[t[1]]->nodes[0]]->hardstart || srfrag[t[0]]->nodes[0] == srfrag[t[1]]->nodes[0] ) &&
+									(!no2gnode[srfrag[t[1]]->nodes.Last()]->hardend || srfrag[t[0]]->nodes.Last() == srfrag[t[1]]->nodes.Last())) {
+								//if(srfrag[t[0]]->abundance>(1-ERROR_PERC/DROP)*srfrag[t[1]]->abundance) { // t[0] is within limits of t[1]
+								if(srfrag[t[0]]->abundance>DROP*srfrag[t[1]]->abundance) { // t[0] is within limits of t[1]
+									if(len[1]<ssdist && len[3]<ssdist) { // prefer t[0] instead of t[1]
+										keeptrf[t2].t=t1;
 										keeptrf[t2].cov+=srfrag[t1]->abundance;
 										keeptrf[t2].group.Add(t1);
-										included=true;
-										//fprintf(stderr,"trf %d is intronic including %d\n",t[1],t[0]);
+										included=true; // I do not want to store transcript
+										fprintf(stderr,"trf %d includes %d\n",t[0],t[1]);
 									}
 								}
-								//}
-								break;
-							case 3: // t1 and t0 are compatible --> just look for the edges; t1 goes further apart
-								if(srfrag[t[0]]->nodes[0]!=srfrag[t[1]]->nodes[0] && srfrag[t[0]]->nodes.Last()!=srfrag[t[1]]->nodes.Last() &&
-										((no2gnode[srfrag[t[0]]->nodes[0]]->hardstart && !no2gnode[srfrag[t[1]]->nodes[0]]->hardstart &&
-												!no2gnode[srfrag[t[0]]->nodes.Last()]->hardend && no2gnode[srfrag[t[1]]->nodes.Last()]->hardend) ||
-												(!no2gnode[srfrag[t[0]]->nodes[0]]->hardstart && no2gnode[srfrag[t[1]]->nodes[0]]->hardstart &&
-														no2gnode[srfrag[t[0]]->nodes.Last()]->hardend && !no2gnode[srfrag[t[1]]->nodes.Last()]->hardend))) {
-									// these two transcripts both have one good start and one different --> keep them both (different option would be to add them to another srfrag that is compatible and has both hardends but then it's more complicated
-									break;
-								}
-
-								// I keep both if both are guides
-								//if((!srfrag[t[0]]->guide || !srfrag[t[1]]->guide) && abs(len[0])<edgedist && abs(len[2])<edgedist) { // close by
-								if((!srfrag[t[0]]->guide || !srfrag[t[1]]->guide) && len[0]<edgedist && len[2]<edgedist) { // close by
-									if(srfrag[t[0]]->guide || (!srfrag[t[1]]->guide && no2gnode[srfrag[t[0]]->nodes[0]]->hardstart && no2gnode[srfrag[t[0]]->nodes.Last()]->hardend))
-										keeptrf[t2].t=t1; // t[0] to replace t[1]
+							}
+							break;
+						case 2: // t[1] includes t[0]: extends with introns past ends of t[0] (t[1] possibly includes t[0]); t[1] is more abundant than t0
+							//if(srfrag[t[1]]->guide || srfrag[t[1]]->abundance>(1-ERROR_PERC/DROP)*srfrag[t[0]]->abundance) {
+							if(!srfrag[t[0]]->guide &&
+									(!no2gnode[srfrag[t[0]]->nodes[0]]->hardstart || srfrag[t[0]]->nodes[0] == srfrag[t[1]]->nodes[0]) &&
+									(!no2gnode[srfrag[t[0]]->nodes.Last()]->hardend || srfrag[t[0]]->nodes.Last() == srfrag[t[1]]->nodes.Last())) {
+								if(len[1]<ssdist && len[3]<ssdist) {
 									keeptrf[t2].cov+=srfrag[t1]->abundance;
 									keeptrf[t2].group.Add(t1);
 									included=true;
-									//fprintf(stderr,"trf %d %d equivalent start/ends\n",t[1],t[0]);
+									fprintf(stderr,"trf %d is intronic including %d\n",t[1],t[0]);
 								}
+							}
+							//}
+							break;
+						case 3: // t1 and t0 are compatible --> just look for the edges; t1 goes further apart
+							if(srfrag[t[0]]->nodes[0]!=srfrag[t[1]]->nodes[0] && srfrag[t[0]]->nodes.Last()!=srfrag[t[1]]->nodes.Last() &&
+									((no2gnode[srfrag[t[0]]->nodes[0]]->hardstart && !no2gnode[srfrag[t[1]]->nodes[0]]->hardstart &&
+											!no2gnode[srfrag[t[0]]->nodes.Last()]->hardend && no2gnode[srfrag[t[1]]->nodes.Last()]->hardend) ||
+											(!no2gnode[srfrag[t[0]]->nodes[0]]->hardstart && no2gnode[srfrag[t[1]]->nodes[0]]->hardstart &&
+													no2gnode[srfrag[t[0]]->nodes.Last()]->hardend && !no2gnode[srfrag[t[1]]->nodes.Last()]->hardend))) {
+								// these two transcripts both have one good start and one different --> keep them both (different option would be to add them to another srfrag that is compatible and has both hardends but then it's more complicated
 								break;
 							}
-							if(included) break; // break from for loop
-						}
-					}
 
-					if(!included){
-						if(srfrag[t1]->guide || ((srfrag[t1]->longstart || no2gnode[srfrag[t1]->nodes[0]]->hardstart)&&
-								(srfrag[t1]->longend || no2gnode[srfrag[t1]->nodes.Last()]->hardend))) { // if this is not included and has correct start/end
-							CLongTrf kt(t1,srfrag[t1]->abundance);
-							keeptrf.Add(kt);
-							keeptrf.Last().group.Add(t1);
-							//fprintf(stderr,"keep srfrag %d\n",t1);
+							// I keep both if both are guides
+							//if((!srfrag[t[0]]->guide || !srfrag[t[1]]->guide) && abs(len[0])<edgedist && abs(len[2])<edgedist) { // close by
+							if((!srfrag[t[0]]->guide || !srfrag[t[1]]->guide) && len[0]<edgedist && len[2]<edgedist) { // close by
+								if(srfrag[t[0]]->guide || (!srfrag[t[1]]->guide && no2gnode[srfrag[t[0]]->nodes[0]]->hardstart && no2gnode[srfrag[t[0]]->nodes.Last()]->hardend))
+									keeptrf[t2].t=t1; // t[0] to replace t[1]
+								keeptrf[t2].cov+=srfrag[t1]->abundance;
+								keeptrf[t2].group.Add(t1);
+								included=true;
+								fprintf(stderr,"trf %d %d equivalent start/ends\n",t[1],t[0]);
+							}
+							break;
 						}
-						else { // incomplete transcript, possibly wrong
-							srfrag[t1]->weak=1;
-							//fprintf(stderr,"Incomplete transcript %d\n",t1);
-						}
+						if(included) break; // break from for loop
+					}
+				}
+
+				if(!included){
+					if(srfrag[t1]->guide || ((srfrag[t1]->longstart || no2gnode[srfrag[t1]->nodes[0]]->hardstart)&&
+							(srfrag[t1]->longend || no2gnode[srfrag[t1]->nodes.Last()]->hardend))) { // if this is not included and has correct start/end
+						CLongTrf kt(t1,srfrag[t1]->abundance);
+						keeptrf.Add(kt);
+						keeptrf.Last().group.Add(t1);
+						fprintf(stderr,"keep srfrag %d\n",t1);
+					}
+					else { // incomplete transcript, possibly wrong
+						srfrag[t1]->weak=1;
+						fprintf(stderr,"Incomplete transcript %d\n",t1);
 					}
 				}
 			}
+		}
 
 
-			//GBitVec guidesource(gno);
-			//GBitVec guidesink(gno);
-			//for(int i=0;i<keeptrf.Count();i++) {
-			for(int i=keeptrf.Count()-1;i>=0;i--) { // I add the kept transcripts to trflong from least significant to most in order to make deletion easier
+		//GBitVec guidesource(gno);
+		//GBitVec guidesink(gno);
+		//for(int i=0;i<keeptrf.Count();i++) {
+		for(int i=keeptrf.Count()-1;i>=0;i--) { // I add the kept transcripts to trflong from least significant to most in order to make deletion easier
+			fprintf(stderr,"Build source/sink for srfrag %d\n",keeptrf[i].t);
+			int n1=srfrag[keeptrf[i].t]->nodes[0];
+			int n2=srfrag[keeptrf[i].t]->nodes.Last();
+			//if(hassource[n1]<0 || hassink[n2]<0) fprintf(stderr,"Build source/sink for srfrag %d\n",keeptrf[i].t);
 
-				//fprintf(stderr,"Build source/sink for srfrag %d\n",keeptrf[i].t);
-				int n1=srfrag[keeptrf[i].t]->nodes[0];
-				int n2=srfrag[keeptrf[i].t]->nodes.Last();
-				//if(hassource[n1]<0 || hassink[n2]<0) fprintf(stderr,"Build source/sink for srfrag %d\n",keeptrf[i].t);
-
-				if(!srfrag[keeptrf[i].t]->guide && ((!no2gnode[n1]->hardstart && (hassource[n1]<0 || !keepsource[n1])) ||
-						(!no2gnode[n2]->hardend && (hassink[n2]<0 || !keepsink[n2])))) {
-				//if((no2gnode[n1]->hardstart || (hassource[n1]>=0 && keepsource[n1])) && (no2gnode[n2]->hardend ||(hassink[n2]>=0 && keepsink[n2]))) {
-					srfrag[keeptrf[i].t]->usepath=-2-ntrf; // order of transfrag
-					//fprintf(stderr,"keeptrf[%d].t=%d srfrag.usepath=%d\n",i,keeptrf[i].t,t);
-					ntrf++;
-					//trflong.Add(keeptrf[i].t);
-				}
-
-				/******* previous implementation here
-
-				addsource[n1]=keeptrf[i].cov;
-				addsink[n2]=keeptrf[i].cov;
-				 *******/
-
-				/*
-				if(!addsource[n1] && hassource[n1]<0) {
-					int startpos=no2gnode[n1]->start-refstart;
-					if(startpos-CHI_THR<0 || startpos+CHI_THR>bpcov->Count()) addsource[n1]=1;
-					else {
-						addsource[n1]=(get_cov(1,startpos,startpos+CHI_THR-1,bpcov)-get_cov(2-2*s,startpos,startpos+CHI_THR-1,bpcov)-
-								get_cov(1,startpos-CHI_THR,startpos-1,bpcov)+get_cov(2-2*s,startpos-CHI_THR,startpos-1,bpcov))/(DROP*CHI_THR);
-					}
-				}
-
-				if(!addsink[n2]  && hassink[n1]<0) {
-					int endpos=no2gnode[n2]->end-refstart;
-					if(endpos-CHI_THR<0 || endpos+CHI_THR>bpcov->Count()-1) addsink[n2]=1;
-					else {
-						addsink[n2]=(get_cov(1,endpos-CHI_THR+1,endpos,bpcov)-get_cov(2-2*s,endpos-CHI_THR+1,endpos,bpcov)-
-								get_cov(1,endpos+1,endpos+CHI_THR,bpcov)+get_cov(2-2*s,endpos+1,endpos+CHI_THR,bpcov))/(DROP*CHI_THR);
-					}
-				}*/
-
-				// all
-				for(int j=0;j<keeptrf[i].group.Count();j++) {
-					if(n1==srfrag[keeptrf[i].group[j]]->nodes[0]) {
-						addsource[n1]+=srfrag[keeptrf[i].group[j]]->abundance;
-						//fprintf(stderr,"Add source t[%d]->cov=%f to node %d = %f\n",keeptrf[i].group[j],srfrag[keeptrf[i].group[j]]->abundance,n1,addsource[n1]);
-					}
-					if(n2==srfrag[keeptrf[i].group[j]]->nodes.Last()) {
-						addsink[n2]+=srfrag[keeptrf[i].group[j]]->abundance;
-						//fprintf(stderr,"Add sink t[%d]->cov=%f to node %d = %f\n",keeptrf[i].group[j],srfrag[keeptrf[i].group[j]]->abundance,n2,addsink[n2]);
-						}
-					}
-
+			if(!srfrag[keeptrf[i].t]->guide && ((!no2gnode[n1]->hardstart && (hassource[n1]<0 || !keepsource[n1])) ||
+					(!no2gnode[n2]->hardend && (hassink[n2]<0 || !keepsink[n2])))) {
+			//if((no2gnode[n1]->hardstart || (hassource[n1]>=0 && keepsource[n1])) && (no2gnode[n2]->hardend ||(hassink[n2]>=0 && keepsink[n2]))) {
+				srfrag[keeptrf[i].t]->usepath=-2-ntrf; // order of transfrag
+				// fprintf(stderr,"keeptrf[%d].t=%d srfrag.usepath=%d\n",i,keeptrf[i].t,t);
+				ntrf++;
+				//trflong.Add(keeptrf[i].t);
 			}
-			for(int i=keeptrf.Count()-1;i>=0;i--) {
-				int n1=srfrag[keeptrf[i].t]->nodes[0];
-				int n2=srfrag[keeptrf[i].t]->nodes.Last();
 
-				if(srfrag[keeptrf[i].t]->guide || ((no2gnode[n1]->hardstart || (hassource[n1]>=0 && keepsource[n1])) &&
-						(no2gnode[n2]->hardend ||(hassink[n2]>=0 && keepsink[n2])))) {
-					//trflong.Add(keeptrf[i].t);
-					srfrag[keeptrf[i].t]->usepath=-2-ntrf; // mark transfrag that it needs to be part of trflong
-					ntrf++;
-				}
-			}
+			/******* previous implementation here
+
+			addsource[n1]=keeptrf[i].cov;
+			addsink[n2]=keeptrf[i].cov;
+				*******/
 
 			/*
-			{ // DEBUG ONLY
-				fprintf(stderr,"%d keeptrf:\n",keeptrf.Count());
-				for(int i=0;i<keeptrf.Count();i++) {
-					fprintf(stderr,"(%d) %d abund=%f keepcov=%f",i,keeptrf[i].t,srfrag[keeptrf[i].t]->abundance,keeptrf[i].cov);
-					for(int j=0;j<srfrag[keeptrf[i].t]->nodes.Count();j++) {
-						fprintf(stderr," %d",srfrag[keeptrf[i].t]->nodes[j]);
-					}
-					fprintf(stderr,"\n");
-
+			if(!addsource[n1] && hassource[n1]<0) {
+				int startpos=no2gnode[n1]->start-refstart;
+				if(startpos-CHI_THR<0 || startpos+CHI_THR>bpcov->Count()) addsource[n1]=1;
+				else {
+					addsource[n1]=(get_cov(1,startpos,startpos+CHI_THR-1,bpcov)-get_cov(2-2*s,startpos,startpos+CHI_THR-1,bpcov)-
+							get_cov(1,startpos-CHI_THR,startpos-1,bpcov)+get_cov(2-2*s,startpos-CHI_THR,startpos-1,bpcov))/(DROP*CHI_THR);
 				}
-				fprintf(stderr,"%d trflong:",trflong.Count());
-				for(int i=0;i<trflong.Count();i++)
-					fprintf(stderr," %d",trflong[i]);
+			}
+
+			if(!addsink[n2]  && hassink[n1]<0) {
+				int endpos=no2gnode[n2]->end-refstart;
+				if(endpos-CHI_THR<0 || endpos+CHI_THR>bpcov->Count()-1) addsink[n2]=1;
+				else {
+					addsink[n2]=(get_cov(1,endpos-CHI_THR+1,endpos,bpcov)-get_cov(2-2*s,endpos-CHI_THR+1,endpos,bpcov)-
+							get_cov(1,endpos+1,endpos+CHI_THR,bpcov)+get_cov(2-2*s,endpos+1,endpos+CHI_THR,bpcov))/(DROP*CHI_THR);
+				}
+			}*/
+
+			// all
+			for(int j=0;j<keeptrf[i].group.Count();j++) {
+				if(n1==srfrag[keeptrf[i].group[j]]->nodes[0]) {
+					addsource[n1]+=srfrag[keeptrf[i].group[j]]->abundance;
+					fprintf(stderr,"Add source t[%d]->cov=%f to node %d = %f\n",keeptrf[i].group[j],srfrag[keeptrf[i].group[j]]->abundance,n1,addsource[n1]);
+				}
+				if(n2==srfrag[keeptrf[i].group[j]]->nodes.Last()) {
+					addsink[n2]+=srfrag[keeptrf[i].group[j]]->abundance;
+					fprintf(stderr,"Add sink t[%d]->cov=%f to node %d = %f\n",keeptrf[i].group[j],srfrag[keeptrf[i].group[j]]->abundance,n2,addsink[n2]);
+					}
+				}
+
+		}
+		for(int i=keeptrf.Count()-1;i>=0;i--) {
+			int n1=srfrag[keeptrf[i].t]->nodes[0];
+			int n2=srfrag[keeptrf[i].t]->nodes.Last();
+
+			if(srfrag[keeptrf[i].t]->guide || ((no2gnode[n1]->hardstart || (hassource[n1]>=0 && keepsource[n1])) &&
+					(no2gnode[n2]->hardend ||(hassink[n2]>=0 && keepsink[n2])))) {
+				//trflong.Add(keeptrf[i].t);
+				srfrag[keeptrf[i].t]->usepath=-2-ntrf; // mark transfrag that it needs to be part of trflong
+				ntrf++;
+			}
+		}
+
+		// /*
+		{ // DEBUG ONLY
+			fprintf(stderr,"%d keeptrf:\n",keeptrf.Count());
+			for(int i=0;i<keeptrf.Count();i++) {
+				fprintf(stderr,"(%d) %d abund=%f keepcov=%f",i,keeptrf[i].t,srfrag[keeptrf[i].t]->abundance,keeptrf[i].cov);
+				for(int j=0;j<srfrag[keeptrf[i].t]->nodes.Count();j++) {
+					fprintf(stderr," %d",srfrag[keeptrf[i].t]->nodes[j]);
+				}
 				fprintf(stderr,"\n");
+
 			}
-			*/
+			fprintf(stderr,"%d trflong:",trflong.Count());
+			for(int i=0;i<trflong.Count();i++)
+				fprintf(stderr," %d",trflong[i]);
+			fprintf(stderr,"\n");
+		}
+		// */
 
 
-			// add source/sink connections
-			for(int i=1;i<gno-1;i++) {
-				//fprintf(stderr,"i=%d hassource=%d addsource=%f hassink=%d addsink=%f hardstart=%d hardend=%d\n",i,hassource[i],addsource[i],hassink[i],addsink[i],no2gnode[i]->hardstart,no2gnode[i]->hardend);
-				if(hassource[i]<0) {
-					if(addsource[i] && no2gnode[i]->hardstart) {
-						/*float abund=trthr;
-						if(no2gnode[i]->hardstart) { // node i doesn't have source as parent but it should
-							abund=addsource[i];
-						}*/
-						// else I am not that confident this is a start
-						no2gnode[i]->parent.Insert(0,zero);
-						no2gnode[0]->child.Add(i);
-						GVec<int> nodes;
-						nodes.Add(source);
-						nodes.Add(i);
-						//CTransfrag *t=new CTransfrag(nodes,allpat,abund);
-						CTransfrag *t=new CTransfrag(nodes,allpat,addsource[i]);
-						t->pattern[source]=1;
-						t->pattern[i]=1;
-						t->longread=true; /// this is only true for longreads;
-						transfrag.Add(t);
-						//fprintf(stderr,"Add link to source: 0-%d with abundance=%f\n",i, addsource[i]);
-					}
-				}
-				else {
-					/*if(keepsource[i]) {
-						srfrag[hassource[i]]->abundance+=addsource[i];
+		// add source/sink connections
+		for(int i=1;i<gno-1;i++) {
+			fprintf(stderr,"i=%d hassource=%d addsource=%f hassink=%d addsink=%f hardstart=%d hardend=%d\n",i,hassource[i],addsource[i],hassink[i],addsink[i],no2gnode[i]->hardstart,no2gnode[i]->hardend);
+			if(hassource[i]<0) {
+				if(addsource[i] && no2gnode[i]->hardstart) {
+					/*float abund=trthr;
+					if(no2gnode[i]->hardstart) { // node i doesn't have source as parent but it should
+						abund=addsource[i];
 					}*/
-					if(!keepsource[i]) { // it was a mistake to link this to source --> remove
-						/*fprintf(stderr,"delete abundance of trf:");
-						for(int j=0;j<srfrag[hassource[i]]->nodes.Count();j++) fprintf(stderr," %d",srfrag[hassource[i]]->nodes[j]);fprintf(stderr,"\n");*/
-						srfrag[hassource[i]]->abundance=0;
-					}
-					else { // this one has source and it should be kept => update trf abundance to a more realistic value
-						//fprintf(stderr,"source %d:%d abund=%f addsource=%f\n",i,no2gnode[i]->start,srfrag[hassource[i]]->abundance,addsource[i]);
-						//if(guidesource[i] && srfrag[hassource[i]]->abundance<addsource[i])
-						srfrag[hassource[i]]->abundance=addsource[i];
-					}
-				}
-
-				if(hassink[i]<0) {
-					if(addsink[i] && no2gnode[i]->hardend) {
-						/*float abund=trthr;
-						if(no2gnode[i]->hardend) {
-							abund=addsink[i];
-						}*/
-						// else  not very confident about this end
-
-						no2gnode[i]->child.Add(sink);
-						no2gnode[sink]->parent.Add(i);
-						GVec<int> nodes;
-						nodes.Add(i);
-						nodes.Add(sink);
-						CTransfrag *t=new CTransfrag(nodes,allpat,addsink[i]);
-						t->pattern[sink]=1;
-						t->pattern[i]=1;
-						t->longread=true; //// this is only true for longreads
-						transfrag.Add(t);
-						//fprintf(stderr,"Add link to sink: %d-%d with abundance=%f\n",i,sink,addsink[i]);
-					}
-				}
-				else {
-					if(!keepsink[i]) { // it was a mistake to link this to sink --> remove
-						/*fprintf(stderr,"delete abundance of trf:");
-						for(int j=0;j<srfrag[hassink[i]]->nodes.Count();j++) fprintf(stderr," %d",srfrag[hassink[i]]->nodes[j]);fprintf(stderr,"\n");*/
-						srfrag[hassink[i]]->abundance=0;
-					}
-					else {
-						//fprintf(stderr,"sink %d:%d abund=%f addsink=%f\n",i,no2gnode[i]->end,srfrag[hassink[i]]->abundance,addsink[i]);
-						//if(guidesink[i] && srfrag[hassink[i]]->abundance<addsink[i])
-						srfrag[hassink[i]]->abundance=addsink[i];
-					}
-					/*if(keepsink[i]) {
-						//fprintf(stderr,"Add %f to longtransfrag=%d\n",addsink[i],hassink[i]);
-						srfrag[hassink[i]]->abundance+=addsink[i];
-					}*/
+					// else I am not that confident this is a start
+					no2gnode[i]->parent.Insert(0,zero);
+					no2gnode[0]->child.Add(i);
+					GVec<int> nodes;
+					nodes.Add(source);
+					nodes.Add(i);
+					//CTransfrag *t=new CTransfrag(nodes,allpat,abund);
+					CTransfrag *t=new CTransfrag(nodes,allpat,addsource[i]);
+					t->pattern[source]=1;
+					t->pattern[i]=1;
+					t->longread=true; /// this is only true for longreads;
+					transfrag.Add(t);
+					fprintf(stderr,"Add link to source: 0-%d with abundance=%f\n",i, addsource[i]);
 				}
 			}
-			//fprintf(stderr,"There should be %d trflong transcripts\n",ntrf);
-			trflong.Resize(ntrf,-1);
+			else {
+				/*if(keepsource[i]) {
+					srfrag[hassource[i]]->abundance+=addsource[i];
+				}*/
+				if(!keepsource[i]) { // it was a mistake to link this to source --> remove
+					/*fprintf(stderr,"delete abundance of trf:");
+					for(int j=0;j<srfrag[hassource[i]]->nodes.Count();j++) fprintf(stderr," %d",srfrag[hassource[i]]->nodes[j]);fprintf(stderr,"\n");*/
+					srfrag[hassource[i]]->abundance=0;
+				}
+				else { // this one has source and it should be kept => update trf abundance to a more realistic value
+					//fprintf(stderr,"source %d:%d abund=%f addsource=%f\n",i,no2gnode[i]->start,srfrag[hassource[i]]->abundance,addsource[i]);
+					//if(guidesource[i] && srfrag[hassource[i]]->abundance<addsource[i])
+					srfrag[hassource[i]]->abundance=addsource[i];
+				}
+			}
+
+			if(hassink[i]<0) {
+				if(addsink[i] && no2gnode[i]->hardend) {
+					/*float abund=trthr;
+					if(no2gnode[i]->hardend) {
+						abund=addsink[i];
+					}*/
+					// else  not very confident about this end
+
+					no2gnode[i]->child.Add(sink);
+					no2gnode[sink]->parent.Add(i);
+					GVec<int> nodes;
+					nodes.Add(i);
+					nodes.Add(sink);
+					CTransfrag *t=new CTransfrag(nodes,allpat,addsink[i]);
+					t->pattern[sink]=1;
+					t->pattern[i]=1;
+					t->longread=true; //// this is only true for longreads
+					transfrag.Add(t);
+					//fprintf(stderr,"Add link to sink: %d-%d with abundance=%f\n",i,sink,addsink[i]);
+				}
+			}
+			else {
+				if(!keepsink[i]) { // it was a mistake to link this to sink --> remove
+					/*fprintf(stderr,"delete abundance of trf:");
+					for(int j=0;j<srfrag[hassink[i]]->nodes.Count();j++) fprintf(stderr," %d",srfrag[hassink[i]]->nodes[j]);fprintf(stderr,"\n");*/
+					srfrag[hassink[i]]->abundance=0;
+				}
+				else {
+					//fprintf(stderr,"sink %d:%d abund=%f addsink=%f\n",i,no2gnode[i]->end,srfrag[hassink[i]]->abundance,addsink[i]);
+					//if(guidesink[i] && srfrag[hassink[i]]->abundance<addsink[i])
+					srfrag[hassink[i]]->abundance=addsink[i];
+				}
+				/*if(keepsink[i]) {
+					//fprintf(stderr,"Add %f to longtransfrag=%d\n",addsink[i],hassink[i]);
+					srfrag[hassink[i]]->abundance+=addsink[i];
+				}*/
+			}
+		}
+		//fprintf(stderr,"There should be %d trflong transcripts\n",ntrf);
+		trflong.Resize(ntrf,-1);
 	}
 
 	/****************************************
@@ -1856,12 +1863,12 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 	if(trsort)
 		transfrag.Sort(trCmp);
 
-	/*
+	// /*
 	{ // DEBUG ONLY
 		printTime(stderr);
 		fprintf(stderr,"There are %d transfrags that remained\n",transfrag.Count());
 	}
-	*/
+	// */
 
 	/*
 	{ // DEBUG ONLY
@@ -1978,10 +1985,14 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 
 	for(int t=0;t<incompletetrf.Count();t++)
 		transfrag[incompletetrf[t]]->real=trf_real(incompletetrf[t],no2gnode,transfrag,gpos,gno);
-
 }
 
 
+/****************************************
+ ** 1. process in and out coverages for each node
+ ** 2. process guides first
+ ** 3. Run maxflow algorithm
+ ****************************************/
 int find_transcripts_unispg(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraphnode>& no2gnode,GPVec<CTransfrag>& transfrag,int geneno,int strand,
 		GVec<CGuide>& guidetrf,GPVec<GffObj>& guides,GVec<int>& guidepred,BundleData* bdata,GVec<int>& trflong) {
 
@@ -1995,7 +2006,10 @@ int find_transcripts_unispg(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraph
 		return(geneno);
 	}
 
-	// process in and out coverages for each node
+	/****************************************
+	 ** Step 1:
+	 ** process in and out coverages for each node
+	 ****************************************/
 	int maxi=0; // node with maximum coverage
 	GVec<float> nodecov; // node coverages
 
@@ -2035,7 +2049,6 @@ int find_transcripts_unispg(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraph
 			fprintf(stderr," maxi=%d maxcov=%f\n",maxi,nodecov[maxi]);
 		}
 		*/
-
 	} // end for i
 
 	GBitVec istranscript(transfrag.Count());
@@ -2049,20 +2062,27 @@ int find_transcripts_unispg(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraph
 #endif
 */
 
-	// process guides first
+	/****************************************
+	 ** Step 2:
+	 ** process guides first
+	 ****************************************/
 	//fprintf(stderr,"guidetrf.count=%d\n",guidetrf.Count());
 	//if(guidetrf.Count()) maxi=guides_flow(gno,no2gnode,transfrag,guidetrf,geneno,strand,pred,nodecov,istranscript,pathpat);
-
 	bool first=true;
 
 	//fprintf(stderr,"guide count=%d\n",guidetrf.Count());
-	if (eonly)
+
+	/****************************************
+	 ** Step 3:
+	 ** Run maxflow algorithm
+	 ****************************************/
+	if (eonly) {
 		guides_pushmaxflow_unispg(gno,edgeno,gpos,no2gnode,transfrag,guidetrf,geneno,strand,pred,nodecov,istranscript,pathpat,first,guides,guidepred,bdata);
-	else { //if(!eonly) {
+	} else { //if(!eonly) {
 		if(mixedMode && trflong.Count()) get_trf_long_mix_unispg(gno,edgeno, gpos,no2gnode,transfrag,geneno,strand,pred,trflong,nodecov,istranscript,pathpat,bdata,first);
 
 		if(!mixedMode && guidetrf.Count()) maxi=guides_pushmaxflow_unispg(gno,edgeno,gpos,no2gnode,transfrag,guidetrf,geneno,strand,pred,nodecov,istranscript,pathpat,first,guides,guidepred,bdata);
-		/*
+		// /*
 		{ // DEBUG ONLY
 			if(mixedMode) {
 				fprintf(stderr,"After get_trf_long_unispg:\n");
@@ -2085,7 +2105,7 @@ int find_transcripts_unispg(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraph
 				}
 			}
 		}
-		*/
+		// */
 		if(nodecov[maxi]>=1) { // sensitive mode only; otherwise >=readthr
 			// 1:
 			// parse_trf_weight_max_flow(gno,no2gnode,transfrag,geneno,strand,pred,nodecov,pathpat);
@@ -3688,11 +3708,14 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
             for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> thoses shouldn't have junctions
                 int s=sno/2; // adjusted strand due to ignoring neutral strand				
 				unispg_gp->AddGraph(fidx, s, no2gnode[s], bundle[sno].Count());
+				unispg_gp->construct_transfrag_unispg(fidx, s);
 
-// create_graph_unispg
+				// unispg_gp->construct_treepat_unispg(graphno[s][b],gpos[s][b],transfrag[s][b]);
+    			// unispg_gp->get_fragment_pattern(readlist,n,-1,single_count,readgroup,merge,group2bundle,bundle2graph,graphno,edgeno,gpos,no2gnode,transfrag,tr2no,group);
+
+				// create_graph_unispg
 				// 1. construct_treepat_unispg
 				// 2. get_fragment_pattern
-
             }
         }
 
@@ -3805,12 +3828,12 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
     				//}
     				for(int g=0;g<guidetrf.Count();g++) delete guidetrf[g].trf;
 
-    				/*
+    				// /*
     				{ //DEBUG ONLY
     					printTime(stderr);
     					fprintf(stderr,"Processed transcripts for s=%d b=%d\n",s,b);
     				}
-    				*/
+    				// */
 
 /*
 #ifdef GMEMTRACE

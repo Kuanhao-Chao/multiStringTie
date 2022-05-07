@@ -252,6 +252,14 @@ struct CGraphnodeUnispg:public GSeg {
 struct UnispgGp {
     public:
         GPVec<CGraphnodeUnispg>* no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode_unispg[s][g][i] gives the node i
+    	GPVec<CTransfrag> *transfrag_unispg[2]; // for each transfrag t on a strand s, in a graph g, transfrag[s][g][t] gives it's abundance and it's pattern
+    	CTreePat **tr2no_unispg[2]; // for each graph g, on a strand s, tr2no[s][g] keeps the tree pattern structure for quick retrieval of the index t of a tansfrag
+    	GIntHash<int> *gpos_unispg[2]; // for each graph g, on a strand s, gpos[s][g] keeps the hash between edges and positions in the bitvec associated to a pattern
+    	GVec<int> lastgpos_unispg[2];
+    	int graphno_unispg[2] = {0};  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
+    	int edgeno_unispg[2] = {0};  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+
+
         GVec<int> current_gidx; // graph id
         GVec<int> last_nidx; // node id
 		GVec<uint> prev_bdy;
@@ -270,7 +278,7 @@ struct UnispgGp {
 
 		std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> lclg_nidx_2_new_nidx_ls_neg;
     	std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> unispg_nidx_2_new_nidx_ls_neg;
-		
+
         UnispgGp() { 
             for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
                 int s=sno/2; // adjusted strand due to ignoring neutral strand
@@ -312,6 +320,7 @@ struct UnispgGp {
 
 		void AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode_base, int lclg_limit);
 
+		void construct_transfrag_unispg(int fidx, int s);
 
 		void WriteNonOVP(int fidx, int s, int unispg_start_idx, int unispg_end_idx);
 

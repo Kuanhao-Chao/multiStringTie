@@ -361,6 +361,7 @@ void UnispgGp::WriteUNISPG(int fidx, int s, int unispg_start_idx, int unispg_end
             	GStr node_parent_nd(nd);
                 
             	for(int c=0;c<no2gnode_unispg[s][g][nd]->child.Count();c++) {
+                    edgeno_unispg[s]++;
             		GStr node_child_nd(no2gnode_unispg[s][g][nd]->child[c]);
             		fprintf(stderr,"%d->",nd);			
             		fprintf(stderr,"%d;",no2gnode_unispg[s][g][nd]->child[c]);
@@ -1327,6 +1328,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
             if (prev_bdy[s] < unispg_node->end) {
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, false, 0, 0, 0);
                 new_no2gnode_unispg[s]->Add(node);
+                graphno_unispg[s]++;
                 int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                 new_unispg_nodeid[s] += 1;
                 prev_bdy[s] = unispg_node->end;
@@ -1338,6 +1340,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
             if (prev_bdy[s] < unispg_node->end) {
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, false, 0, 0, 0);
                 new_no2gnode_unispg[s]->Add(node);
+                graphno_unispg[s]++;
                 int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                 new_unispg_nodeid[s] += 1;
                 prev_bdy[s] = unispg_node->end;
@@ -1348,6 +1351,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
             if (prev_bdy[s] < lclg_node->start) {
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, lclg_node->start, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, false, 0, 0, 0);
                 new_no2gnode_unispg[s]->Add(node);
+                graphno_unispg[s]++;
                 int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                 new_unispg_nodeid[s] += 1;
                 AddThirdAlgParentEdge(s, node, lclg_i, lclg_node, unispg_i, unispg_node, -1, pre_parent_unispg);
@@ -1357,6 +1361,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 if (prev_bdy[s] < unispg_node->end) {
                     node = new CGraphnodeUnispg(sample_num, lclg_node->start, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                     new_no2gnode_unispg[s]->Add(node);
+                    graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                     new_unispg_nodeid[s] += 1;
@@ -1369,6 +1374,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 if (prev_bdy[s] < unispg_node->end) {
                     node = new CGraphnodeUnispg(sample_num, lclg_node->start, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                     new_no2gnode_unispg[s]->Add(node);
+                    graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                     new_unispg_nodeid[s] += 1;
@@ -1382,6 +1388,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 if (prev_bdy[s] < lclg_node->end) {
                     node = new CGraphnodeUnispg(sample_num, lclg_node->start, lclg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                     new_no2gnode_unispg[s]->Add(node);
+                    graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                     new_unispg_nodeid[s] += 1;
@@ -1405,6 +1412,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
             if (prev_bdy[s] < unispg_node->end) {
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                 new_no2gnode_unispg[s]->Add(node);
+                graphno_unispg[s]++;
                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                 int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                 new_unispg_nodeid[s] += 1;
@@ -1417,6 +1425,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
             if (prev_bdy[s] < unispg_node->end) {
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                 new_no2gnode_unispg[s]->Add(node);
+                graphno_unispg[s]++;
                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                 int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                 new_unispg_nodeid[s] += 1;
@@ -1430,6 +1439,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
             if (prev_bdy[s] < lclg_node->end) {
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, lclg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                 new_no2gnode_unispg[s]->Add(node);
+                graphno_unispg[s]++;
                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                 int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                 new_unispg_nodeid[s] += 1;
@@ -1454,6 +1464,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, unispg_node->start, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                 new_no2gnode_unispg[s]->Add(node);
+                graphno_unispg[s]++;
                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                 new_unispg_nodeid[s] += 1;
                 AddThirdAlgParentEdge(s, node, lclg_i, lclg_node, unispg_i, unispg_node, pre_parent_lclg, -1);
@@ -1463,6 +1474,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 if (prev_bdy[s] < unispg_node->end) {
                     node = new CGraphnodeUnispg(sample_num, unispg_node->start, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                     new_no2gnode_unispg[s]->Add(node);
+                    graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                     new_unispg_nodeid[s] += 1;
@@ -1475,6 +1487,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 if (prev_bdy[s] < unispg_node->end) {
                     node = new CGraphnodeUnispg(sample_num, unispg_node->start, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                     new_no2gnode_unispg[s]->Add(node);
+                    graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                     new_unispg_nodeid[s] += 1;
@@ -1488,6 +1501,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 if (prev_bdy[s] < lclg_node->end) {
                     node = new CGraphnodeUnispg(sample_num, unispg_node->start, lclg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                     new_no2gnode_unispg[s]->Add(node);
+                    graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                     new_unispg_nodeid[s] += 1;
@@ -1521,6 +1535,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                     GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                     node = new CGraphnodeUnispg(sample_num, node_start_pos, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                     new_no2gnode_unispg[s]->Add(node);
+                    graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     new_unispg_nodeid[s] += 1;
                     AddThirdAlgParentEdge(s, node, lclg_i, lclg_node, unispg_i, unispg_node, pre_parent_lclg, -1);
@@ -1553,6 +1568,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                     GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                     node = new CGraphnodeUnispg(sample_num, node_start_pos, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                     new_no2gnode_unispg[s]->Add(node);
+                    graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     new_unispg_nodeid[s] += 1;
                     AddThirdAlgParentEdge(s, node, lclg_i, lclg_node, unispg_i, unispg_node, pre_parent_lclg, -1);
@@ -1599,6 +1615,7 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
                     GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                     node = new CGraphnodeUnispg(sample_num, unispg_node->end, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                     new_no2gnode_unispg[s]->Add(node);
+                    graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     new_unispg_nodeid[s] += 1;
                     prev_bdy[s] = lclg_node->end;
@@ -1787,6 +1804,7 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
                                 GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                                 node = new CGraphnodeUnispg(sample_num, lclg_node->start, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                                 new_no2gnode_unispg[s]->Add(node);
+                                graphno_unispg[s]++;
                                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                                 new_unispg_nodeid[s] += 1;
                                 prev_bdy[s] = lclg_node->end;
@@ -1808,6 +1826,7 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
                                 GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                                 node = new CGraphnodeUnispg(sample_num, unispg_node->end, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                                 new_no2gnode_unispg[s]->Add(node);
+                                graphno_unispg[s]++;
                                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                                 new_unispg_nodeid[s] += 1;
                                 prev_bdy[s] = lclg_node->end;
@@ -1831,6 +1850,7 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
                                     // Add new node
                                     node = new CGraphnodeUnispg(sample_num, unispg_node->end, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                                     new_no2gnode_unispg[s]->Add(node);
+                                    graphno_unispg[s]++;
                                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                                     new_unispg_nodeid[s] += 1;
                                     prev_bdy[s] = lclg_node->end;
@@ -1869,6 +1889,7 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
                                 GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                                 node = new CGraphnodeUnispg(sample_num, unispg_node->end, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                                 new_no2gnode_unispg[s]->Add(node);
+                                graphno_unispg[s]++;
                                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                                 new_unispg_nodeid[s] += 1;
                                 prev_bdy[s] = lclg_node->end;
@@ -1905,6 +1926,7 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
                                     GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                                     node = new CGraphnodeUnispg(sample_num, unispg_node->end, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
                                     new_no2gnode_unispg[s]->Add(node);
+                                    graphno_unispg[s]++;
                                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                                     new_unispg_nodeid[s] += 1;
                                     prev_bdy[s] = lclg_node->end;
@@ -2296,6 +2318,7 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                         }
                         node = new CGraphnodeUnispg(sample_num, node_start, node_end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, false, 0, 0, 0);
                         new_no2gnode_unispg[s]->Add(node);
+                        graphno_unispg[s]++;
                         int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                         new_unispg_nodeid[s] += 1;
                         prev_bdy[s] = node_end;
@@ -2495,6 +2518,21 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
             }
         } 
     }
+}
+
+void UnispgGp::construct_transfrag_unispg(int fidx, int s) {
+    // GPVec<CGraphnodeUnispg>* no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode_unispg[s][g][i] gives the node i
+    // GPVec<CTransfrag> *transfrag_unispg[2]; // for each transfrag t on a strand s, in a graph g, transfrag[s][g][t] gives it's abundance and it's pattern
+    // CTreePat **tr2no_unispg[2]; // for each graph g, on a strand s, tr2no[s][g] keeps the tree pattern structure for quick retrieval of the index t of a tansfrag
+    // GIntHash<int> *gpos_unispg[2]; // for each graph g, on a strand s, gpos[s][g] keeps the hash between edges and positions in the bitvec associated to a pattern
+    // GVec<int> lastgpos_unispg[2];
+    // GVec<int> graphno_unispg[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
+    // GVec<int> edgeno_unispg[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+    fprintf(stderr, "fidx: %d  s: %d\n", fidx, s);
+
+    fprintf(stderr, "new_no2gnode_unispg size: %d \n", new_no2gnode_unispg[s]->Count());
+    fprintf(stderr, "graphno_unispg size: %d \n", graphno_unispg[s]);
+    fprintf(stderr, "edgeno_unispg size: %d \n", edgeno_unispg[s]);
 }
 
 
