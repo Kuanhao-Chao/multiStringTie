@@ -479,6 +479,10 @@ void UnispgGp::WriteUNISPG(int fidx, int s, int unispg_start_idx, int unispg_end
             		GStr junction_name = "Junc_" + node_parent_nd + "->" + node_child_nd;
             		fprintf(stderr, "\tjunction_name: %s\n", junction_name.chars());
 
+
+                    edgeno_unispg[s]++;
+
+
             		int junc_start = 0;
             		int junc_end = 0;
 
@@ -520,7 +524,7 @@ void UnispgGp::MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int
     // /*
     { // DEBUG ONLY
         fprintf(stderr, "\n*****************************\n");
-        fprintf(stderr, "*********** AddGraph ********\n");
+        fprintf(stderr, "*********** MergeLCLG ********\n");
         fprintf(stderr, "*****************************\n");
     }
     // */
@@ -2336,6 +2340,9 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                         lclg_bundle_num[s] = 1;
                         new_unispg_nodeid[s] = 1;
                         new_no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[2000];
+
+                        graphno_unispg[s] = 0;
+                        edgeno_unispg[s] = 0;
                         GVec<bool>* is_passed_s_source = new GVec<bool>(sample_num-1, false);
                         GVec<float>* cov_s_source = new GVec<float>(sample_num-1, 0.0f);
                         GVec<float>* capacity_s_source = new GVec<float>(sample_num-1, 0.0f);
@@ -2434,6 +2441,8 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                             fprintf(stderr,"\n");
                         }
                         WriteUNISPG(fidx, s, 0, 0);
+                        construct_transfrag_unispg(fidx, s);
+
 
                         // cout << "\tPrint lclg_nonoverlap parents: " << endl;
                         // for (int i=0; i<lclg_nonoverlap[s]->Count(); i++) {
@@ -2529,7 +2538,6 @@ void UnispgGp::construct_transfrag_unispg(int fidx, int s) {
     // GVec<int> graphno_unispg[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
     // GVec<int> edgeno_unispg[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
     fprintf(stderr, "fidx: %d  s: %d\n", fidx, s);
-
     fprintf(stderr, "new_no2gnode_unispg size: %d \n", new_no2gnode_unispg[s]->Count());
     fprintf(stderr, "graphno_unispg size: %d \n", graphno_unispg[s]);
     fprintf(stderr, "edgeno_unispg size: %d \n", edgeno_unispg[s]);

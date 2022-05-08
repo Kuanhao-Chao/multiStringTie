@@ -268,7 +268,7 @@ struct UnispgGp {
 		GVec<bool> has_unispg_tail;
 		GVec<int> new_unispg_nodeid;
 		GPVec<CGraphnodeUnispg>* lclg_nonoverlap[2];
-		GPVec<CGraphnodeUnispg>* new_no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[g][i] gives the node i
+		GPVec<CGraphnodeUnispg>* new_no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
 
 		CGraphnodeUnispg* source_gp[2];
 		CGraphnodeUnispg* sink_gp[2];
@@ -292,6 +292,8 @@ struct UnispgGp {
         }
         ~UnispgGp() {
             for(int i=0;i<2;i++) {
+				// graphno_unispg[s] = 0;
+				// edgeno_unispg[s] = 0;
             	delete [] no2gnode_unispg[i];
             	delete [] lclg_nonoverlap[i];
             	delete [] new_no2gnode_unispg[i];

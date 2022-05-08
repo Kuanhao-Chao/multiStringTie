@@ -3708,7 +3708,7 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
             for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> thoses shouldn't have junctions
                 int s=sno/2; // adjusted strand due to ignoring neutral strand				
 				unispg_gp->AddGraph(fidx, s, no2gnode[s], bundle[sno].Count());
-				unispg_gp->construct_transfrag_unispg(fidx, s);
+				// unispg_gp->construct_transfrag_unispg(fidx, s);
 
 				// unispg_gp->construct_treepat_unispg(graphno[s][b],gpos[s][b],transfrag[s][b]);
     			// unispg_gp->get_fragment_pattern(readlist,n,-1,single_count,readgroup,merge,group2bundle,bundle2graph,graphno,edgeno,gpos,no2gnode,transfrag,tr2no,group);
