@@ -6,15 +6,20 @@
     "configurations": [
         {
             "name": "(lldb) Launch",
-            "type": "cppdbg",
+            "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/./multistringtie",
-            "args": ["-o", "/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/multi.gtf", "--rf", "--multi", "/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/data/Brain/chr22/SRR1352129_chr22.bam"],
-            "stopAtEntry": false,
-            "cwd": "${fileDirname}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb"
+            "program": "${workspaceFolder}/multistringtie",
+            "args": ["-o", "/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/multi.gtf", "--rf", "--multi", "/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/data/Brain/chr22/SUB_SRR1352706_chr22.bam", "/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/data/Brain/chr22/SUB_SRR1352706_chr22.bam"]
+            // "logging": {
+            //     "moduleLoad": true,
+            //     "programOutput": true,
+            //     "trace": false
+            // },
+            // "stopAtEntry": false,
+            // "cwd": "${fileDirname}",
+            // "environment": [],
+            // "externalConsole": false,
+            // "MIMode": "lldb"
         }
     ]
 }
