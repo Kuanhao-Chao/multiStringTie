@@ -310,7 +310,7 @@ void UnispgGp::WriteUNISPG(int fidx, int s, int unispg_start_idx, int unispg_end
             fprintf(stderr,"Traversing the universal splice graph!!!\n");
 
             for(int nd=0;nd<no2gnode_unispg[s][g].Count();nd++) {
-                fprintf(stderr,"%d[start=%d end=%d];",nd,no2gnode_unispg[s][g][nd]->start,no2gnode_unispg[s][g][nd]->end);
+                fprintf(stderr,"%d[start=%d end=%d] (nodeid: %d);",nd,no2gnode_unispg[s][g][nd]->start,no2gnode_unispg[s][g][nd]->end, no2gnode_unispg[s][g][nd]->nodeid);
                 int node_start = 0;
                 int node_end = 0;
                 GStr node_nd(nd);
@@ -585,13 +585,18 @@ void UnispgGp::MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int
             GVec<float>* cov_source = new GVec<float>(sample_num-1, 0.0f);
             GVec<float>* capacity_source = new GVec<float>(sample_num-1, 0.0f);
             CGraphnodeUnispg* source = new CGraphnodeUnispg(sample_num, 0, 0, new_unispg_nodeid, is_passed_source, cov_source, capacity_source, true, 0, 0, 0, true, 0, 0);
+            fprintf(stderr, "====> source node id: %d\n", source->nodeid);
             new_unispg_nodeid += 1;
 
             if (first_sample) {
                 CGraphnodeUnispg* source_for_first = new CGraphnodeUnispg(sample_num, 0, 0, new_unispg_nodeid, is_passed_source, cov_source, capacity_source, true, 0, 0, 0, true, 0, 0);
+               no2gnode_unispg[s][current_gidx[s]+new_nonolp_lclg_idx] = GPVec<CGraphnodeUnispg>(2);
                no2gnode_unispg[s][current_gidx[s]+new_nonolp_lclg_idx].Add(source_for_first);
             }
             //  else {
+            GPVec<CGraphnodeUnispg>(2); //also the default constructor
+
+            lclg_nonoverlap[s][new_nonolp_lclg_idx] = GPVec<CGraphnodeUnispg>(2);
             lclg_nonoverlap[s][new_nonolp_lclg_idx].Add(source);
             // }
         }
@@ -2425,13 +2430,13 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, GPVec<CTra
                         GVec<bool>* is_passed_s_source = new GVec<bool>(sample_num-1, false);
                         GVec<float>* cov_s_source = new GVec<float>(sample_num-1, 0.0f);
                         GVec<float>* capacity_s_source = new GVec<float>(sample_num-1, 0.0f);
-                        delete source_gp[s];
+                        // delete source_gp[s];
                         source_gp[s] = new CGraphnodeUnispg(sample_num, 0, 0, 0, is_passed_s_source, cov_s_source, capacity_s_source, true, 0, 0, 0);
 
                         GVec<bool>* is_passed_s_sink = new GVec<bool>(sample_num-1, false);
                         GVec<float>* cov_s_sink = new GVec<float>(sample_num-1, 0.0f);
                         GVec<float>* capacity_s_sink = new GVec<float>(sample_num-1, 0.0f);
-                        delete sink_gp[s];
+                        // delete sink_gp[s];
                         sink_gp[s] = new CGraphnodeUnispg(sample_num, 0, 0, -1, is_passed_s_sink, cov_s_sink, capacity_s_sink, true, 0, 0, 0);
 
                         new_no2gnode_unispg[s][new_gidx[s]].Add(source_gp[s]);
@@ -2605,8 +2610,9 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, GPVec<CTra
                     lclg_idx_end = lclg_idx;
                 }
             }
-        } 
-    
+        }
+        // Copy new_no2gnode_unispg to no2gnode_unispg
+        // Copy_new_no2gnode_unispg_2_no2gnode_unispg();
     }
 }
 

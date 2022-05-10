@@ -360,6 +360,85 @@ struct UnispgGp {
 			};
 		}
 
+		void Clear_no2gnode_unispg() {
+		// fprintf(stderr, "**** Start Clearing !!!! \n ");
+			for(int i=0;i<2;i++) {
+				delete [] no2gnode_unispg[i];
+				no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
+			};
+		}
+
+		void Clear_new_no2gnode_unispg() {
+		// fprintf(stderr, "**** Start Clearing !!!! \n ");
+			for(int i=0;i<2;i++) {
+				delete [] new_no2gnode_unispg[i];
+				new_no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
+			};
+		}
+
+		void Copy_new_no2gnode_unispg_2_no2gnode_unispg() {
+		// fprintf(stderr, "**** Start Clearing !!!! \n ");
+
+			fprintf(stderr, "**** Pre 'Copy_new_no2gnode_unispg_2_no2gnode_unispg' check !!!!\n");
+
+			for(int s=0;s<2;s++) {
+				
+				fprintf(stderr, ">> new_gidx[%d]: %d\n", s, new_gidx[s]);
+
+				for (int j=0; j<new_gidx[s]; j++) {
+					fprintf(stderr, ">> 'Copy_new_no2gnode_unispg_2_no2gnode_unispg: 'no2gnode_unispg[%d][%d]: %d\n", s, j, new_no2gnode_unispg[s][j].Count());
+					for (int n=0; n<new_no2gnode_unispg[s][j].Count(); n++) {
+						fprintf(stderr, "\t>> new_no2gnode_unispg[%d][%d][%d]: %d\n", s, j, n, new_no2gnode_unispg[s][j].Get(n)->nodeid);
+					}
+				}
+				// no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
+			};
+
+
+			for(int s=0;s<2;s++) {
+				
+				fprintf(stderr, ">> new_gidx[%d]: %d\n", s, new_gidx[s]);
+
+				for (int j=0; j<new_gidx[s]; j++) {
+					fprintf(stderr, ">> 'Copy_new_no2gnode_unispg_2_no2gnode_unispg: 'new_no2gnode_unispg[%d][%d]: %d\n", s, j, new_no2gnode_unispg[s][j].Count());
+
+// GPVec(const GPVec<OBJ>& list); //copy constructor
+// GPVec(GPVec<OBJ>&& list); //move construstor
+// GPVec(GPVec<OBJ>* list); //similar to a copy constructor
+// GPVec<OBJ>& operator=(const GPVec<OBJ>& list);
+// GPVec<OBJ>& operator=(GPVec<OBJ>&& list);//move assignment operator
+// inline OBJ* Get(int i) {
+// 	TEST_INDEX(i);
+// 	return fList[i];
+// }
+// 	//OBJ* operator[](int i) { return this->Get(i); }
+// inline OBJ*& operator[](int i) {
+// 		TEST_INDEX(i); return fList[i];
+// }
+
+					// GPVec<CGraphnodeUnispg> tmp = new GPVec(new_no2gnode_unispg[s][j]);
+					no2gnode_unispg[s][j] = new GPVec<CGraphnodeUnispg>(new_no2gnode_unispg[s][j]);
+				}
+				// no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
+			};
+			
+			
+			fprintf(stderr, "**** Post 'Copy_new_no2gnode_unispg_2_no2gnode_unispg' check !!!!\n");
+
+			for(int s=0;s<2;s++) {
+				
+				fprintf(stderr, ">> new_gidx[%d]: %d\n", s, new_gidx[s]);
+
+				for (int j=0; j<new_gidx[s]; j++) {
+					fprintf(stderr, ">> 'Copy_new_no2gnode_unispg_2_no2gnode_unispg: 'no2gnode_unispg[%d][%d]: %d\n", s, j, no2gnode_unispg[s][j].Count());
+					for (int n=0; n<no2gnode_unispg[s][j].Count(); n++) {
+						fprintf(stderr, "\t>> no2gnode_unispg[%d][%d][%d]: %d\n", s, j, n, no2gnode_unispg[s][j].Get(n)->nodeid);
+					}
+				}
+				// no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
+			};
+		}
+
 		void PrintGraphGp();
 		GPVec<CGraphnodeUnispg>** get_no2gnodeGp ();
 };

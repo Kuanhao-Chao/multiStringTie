@@ -1060,6 +1060,13 @@ int main(int argc, char* argv[]) {
 			
 			delete brec;
 			bamreader.stop_fidx(file_idx);
+
+			if (file_idx != 0) {
+				unispg_gp -> Clear_no2gnode_unispg();
+				// Copy new_no2gnode_unispg to no2gnode_unispg
+        		unispg_gp -> Copy_new_no2gnode_unispg_2_no2gnode_unispg();
+				// unispg_gp -> Clear_new_no2gnode_unispg();
+			}
 		}
 	} else {
 		// normalMode
