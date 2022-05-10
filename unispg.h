@@ -271,6 +271,7 @@ struct UnispgGp {
 		GPVec<CGraphnodeUnispg>* lclg_nonoverlap[2]; // for each graph g, on a strand s, lclg_nonoverlap[s][g][i] gives the node i
 
 		GPVec<CGraphnodeUnispg>* new_no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+		GVec<int> new_gidx; // graph id
 
 		CGraphnodeUnispg* source_gp[2];
 		CGraphnodeUnispg* sink_gp[2];
