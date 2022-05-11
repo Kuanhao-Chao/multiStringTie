@@ -14,6 +14,12 @@ extern UnispgGp* unispg_gp;
 extern GVec<int> current_gidx;
 extern FILE* uinigraph_out;
 
+void printBitVecTest(GBitVec& bv) {
+   for (uint i=0;i<bv.size();i++) {
+       fprintf(stderr, "%c", bv.test(i)?'1':'0');
+   }
+}
+
 void UnispgGp::ProcessSample(GStr sample_name) {
     samples.Add(sample_name);
     for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
@@ -2295,7 +2301,57 @@ void UnispgGp::ThirdUnispgAlgo(int fidx, int s, int sample_num, bool& lclg_reach
 
 
 void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, GPVec<CTransfrag> *transfrag, CTreePat **tr2no, GIntHash<int> *gpos, int lclg_limit) {
+    fprintf(stderr, "*******************************************\n");   
+    fprintf(stderr, "*********** Inside 'AddGraph'********\n");
+    fprintf(stderr, "*******************************************\n"); 
     int sample_num = unispg_gp->samples.Count();
+
+    fprintf(stderr, "&& transfrag[%d].Count(): %d\n", s,lclg_limit);
+    // for (int i=0; i<transfrag->Count(); i++) {
+    for (int i=0; i<lclg_limit; i++) {
+        fprintf(stderr, "\t&& transfrag[%d][%d].Count(): %d\n", s, i, transfrag[i].Count());
+        for (int j=0; j<transfrag[i].Count(); j++) {
+            
+            fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] nodes: ", s, i, j);
+            for (int n=0; n<transfrag[i][j]->nodes.Count(); n++) {
+                fprintf(stderr, "%d, ",transfrag[i][j]->nodes[n]);
+            }
+            fprintf(stderr, "\n");		
+            // printBitVec(pathpat);
+
+            fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] abundance: \n", s, i, j);
+            printBitVecTest(transfrag[i][j]->pattern);
+
+
+            fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] abundance: %f\n", s, i, j, transfrag[i][j]->abundance);
+            fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] srabund: %f\n", s, i, j, transfrag[i][j]->srabund);
+
+            fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] usepath: %f\n", s, i, j, transfrag[i][j]->usepath);
+            fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] weak: %d\n", s, i, j, transfrag[i][j]->weak);
+            fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] real: %d\n", s, i, j, transfrag[i][j]->real);
+            fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] longread: %d\n", s, i, j, transfrag[i][j]->longread);
+            fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] shortread: %d\n", s, i, j, transfrag[i][j]->shortread);
+            fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] guide: %d\n", s, i, j, transfrag[i][j]->guide);
+            fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] longstart: %u\n", s, i, j, transfrag[i][j]->longstart);
+            fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] longend: %u\n", s, i, j, transfrag[i][j]->longend);
+        }
+
+    //     GVec<int> nodes;
+	// GBitVec pattern;
+	// float abundance;
+	// float srabund; // keeps abundance associated to srfrag
+	// GVec<CPath> path; // stores all the possible paths that leave from a node to reach next node in a transfrag, and distributes the abundance of the transfrag between all possible continuations
+	// float usepath;
+	// int weak; // number of weak links
+	// bool real:1;
+	// bool longread:1; // there is at least a longread supporting transfrag
+	// bool shortread:1; // there is at least one short read supporting transfrag
+	// int guide;
+	// uint longstart; // for long reads: min start of all longreads sharing transfrag
+	// uint longend; // for long reads: max end of all longreads sharing transfrag
+    }
+
+
     if (fidx == 0) {
         int new_nonolp_lclg_idx = 0;
         FirstUnispgAlgo(fidx, s, sample_num, no2gnode, transfrag, tr2no, gpos, lclg_limit, new_nonolp_lclg_idx, true);
