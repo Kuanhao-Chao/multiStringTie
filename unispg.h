@@ -252,13 +252,21 @@ struct CGraphnodeUnispg:public GSeg {
 struct UnispgGp {
 	public:
 		GPVec<CGraphnodeUnispg>* no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode_unispg[s][g][i] gives the node i
-		GPVec<CTransfrag> *transfrag_unispg[2]; // for each transfrag t on a strand s, in a graph g, transfrag[s][g][t] gives it's abundance and it's pattern
-		CTreePat **tr2no_unispg[2]; // for each graph g, on a strand s, tr2no[s][g] keeps the tree pattern structure for quick retrieval of the index t of a tansfrag
-		GIntHash<int> *gpos_unispg[2]; // for each graph g, on a strand s, gpos[s][g] keeps the hash between edges and positions in the bitvec associated to a pattern
+		
+		
+		// GPVec<CTransfrag> *transfrag_unispg[2]; // for each transfrag t on a strand s, in a graph g, transfrag[s][g][t] gives it's abundance and it's pattern
+		// CTreePat **tr2no_unispg[2]; // for each graph g, on a strand s, tr2no[s][g] keeps the tree pattern structure for quick retrieval of the index t of a tansfrag
+		// GIntHash<int> *gpos_unispg[2]; // for each graph g, on a strand s, gpos[s][g] keeps the hash between edges and positions in the bitvec associated to a pattern
 		GVec<int> lastgpos_unispg[2];
 		int graphno_unispg[2] = {0};  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
 		int edgeno_unispg[2] = {0};  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+		
+		GPVec<CGraphnodeUnispg>* lclg_nonoverlap[2]; // for each graph g, on a strand s, lclg_nonoverlap[s][g][i] gives the node i
+		GPVec<CTransfrag>* lclg_nonoverlap_transfrag[2]; // for each transfrag t on a strand s, in a graph g, lclg_nonoverlap_transfrag[s][g][t] gives it's abundance and it's pattern
+		
 
+		GPVec<CGraphnodeUnispg>* new_no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
+		GVec<int> new_gidx; // graph id
 
 		GVec<int> current_gidx; // graph id
 		GVec<int> last_nidx; // node id
@@ -267,11 +275,6 @@ struct UnispgGp {
 		GVec<int> lclg_bundle_num;
 		GVec<bool> has_unispg_tail;
 		GVec<int> new_unispg_nodeid;
-		
-		GPVec<CGraphnodeUnispg>* lclg_nonoverlap[2]; // for each graph g, on a strand s, lclg_nonoverlap[s][g][i] gives the node i
-
-		GPVec<CGraphnodeUnispg>* new_no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
-		GVec<int> new_gidx; // graph id
 
 		CGraphnodeUnispg* source_gp[2];
 		CGraphnodeUnispg* sink_gp[2];
@@ -288,8 +291,9 @@ struct UnispgGp {
 				no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[20000];
 				new_no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[20000];
 				lclg_nonoverlap[s] = new GPVec<CGraphnodeUnispg>[20000];
+				lclg_nonoverlap_transfrag[s] = new GPVec<CTransfrag>[20000];
 
-				transfrag_unispg[s] = new GPVec<CTransfrag>[20000];
+				// transfrag_unispg[s] = new GPVec<CTransfrag>[20000];
 
 				// source_gp[s] = new CGraphnodeUnispg[1];
 				// sink_gp[s] = new CGraphnodeUnispg[1];
@@ -301,18 +305,19 @@ struct UnispgGp {
 				// edgeno_unispg[s] = 0;
 				delete [] no2gnode_unispg[i];
 				delete [] lclg_nonoverlap[i];
+				delete [] lclg_nonoverlap_transfrag[i];
 				delete [] new_no2gnode_unispg[i];
 				delete [] source_gp[i];
 				delete [] sink_gp[i];
 
-				delete [] transfrag_unispg[i];
+				// delete [] transfrag_unispg[i];
 			};
 		}
 		void ProcessSample(GStr sample_name);
 		void WriteLCLG(int fidx, int s, GPVec<CGraphnode>* no2gnode, int g);
 		void WriteUNISPG(int fidx, int s, int unispg_start_idx, int unispg_end_idx);
 		void MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int lclg_limit, int boudleGP_start_idx, int boudleGP_end_idx, int& new_nonolp_lclg_idx, bool write_unispg);
-		void FirstUnispgAlgo(int fidx, int s, int sample_num, GPVec<CGraphnode>* no2gnode, GPVec<CTransfrag> *transfrag, CTreePat **tr2no, GIntHash<int> *gpos, int lclg_limit, int& new_nonolp_lclg_idx, bool write_unispg);
+		void FirstUnispgAlgo(int fidx, int s, int sample_num, GPVec<CGraphnode>* no2gnode, int lclg_limit, int& new_nonolp_lclg_idx, bool write_unispg);
 
 		bool RecruitMRGGP(int s, int& lclg_idx, int& new_nonolp_lclg_idx, LCLG_ITR_STATUS& lclg_itr_status, bool& more_lclg, bool& try_more_unispg, int& process_ovp_graphs, int& lclg_idx_start, int& lclg_idx_end, int& unispg_idx_start, int& unispg_idx_end, int& unispg_node_idx);
 
@@ -328,9 +333,9 @@ struct UnispgGp {
 
 		void ThirdUnispgAlgo(int fidx, int s, int sample_num, bool& lclg_reached_end, CGraphnodeUnispg*& node, int& lclg_i, int& lclg_idx_start, int& lclg_idx_end, CGraphnodeUnispg*& lclg_node, int& lclg_node_idx, bool& lclg_is_lastnode, uint& lclg_start_pcs, uint& lclg_end_pcs, bool& lclg_next, int& unispg_i, int& unispg_idx_start, int& unispg_idx_end, CGraphnodeUnispg*& unispg_node, int& unispg_node_idx, bool& unispg_is_lastnode, uint& unispg_start_pcs, uint& unispg_end_pcs, bool& unispg_next);
 
-		void AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, GPVec<CTransfrag> *transfrag, CTreePat **tr2no, GIntHash<int> *gpos, int lclg_limit);
+		void AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_limit);
 
-		void construct_transfrag_unispg(int fidx, int s);
+		// void construct_transfrag_unispg(int fidx, int s);
 
 		void WriteNonOVP(int fidx, int s, int unispg_start_idx, int unispg_end_idx);
 
@@ -347,6 +352,9 @@ struct UnispgGp {
 				delete [] lclg_nonoverlap[i];
 				lclg_nonoverlap[i] = new GPVec<CGraphnodeUnispg>[20000];
 
+				delete [] lclg_nonoverlap_transfrag[i];
+				lclg_nonoverlap_transfrag[i] = new GPVec<CTransfrag>[20000];
+
 				delete [] new_no2gnode_unispg[i];
 				new_no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
 			};
@@ -357,6 +365,14 @@ struct UnispgGp {
 			for(int i=0;i<2;i++) {
 				delete [] lclg_nonoverlap[i];
 				lclg_nonoverlap[i] = new GPVec<CGraphnodeUnispg>[20000];
+			};
+		}
+
+		void Clear_lclg_nonoverlap_transfrag() {
+		// fprintf(stderr, "**** Start Clearing !!!! \n ");
+			for(int i=0;i<2;i++) {
+				delete [] lclg_nonoverlap_transfrag[i];
+				lclg_nonoverlap_transfrag[i] = new GPVec<CTransfrag>[20000];
 			};
 		}
 
@@ -383,42 +399,12 @@ struct UnispgGp {
 
 			for(int s=0;s<2;s++) {
 				
-				fprintf(stderr, ">> new_gidx[%d]: %d\n", s, new_gidx[s]);
-
-				for (int j=0; j<new_gidx[s]; j++) {
-					fprintf(stderr, ">> 'Copy_new_no2gnode_unispg_2_no2gnode_unispg: 'no2gnode_unispg[%d][%d]: %d\n", s, j, new_no2gnode_unispg[s][j].Count());
-					for (int n=0; n<new_no2gnode_unispg[s][j].Count(); n++) {
-						fprintf(stderr, "\t>> new_no2gnode_unispg[%d][%d][%d]: %d\n", s, j, n, new_no2gnode_unispg[s][j].Get(n)->nodeid);
-					}
-				}
-				// no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
-			};
-
-
-			for(int s=0;s<2;s++) {
-				
-				fprintf(stderr, ">> new_gidx[%d]: %d\n", s, new_gidx[s]);
-
-				for (int j=0; j<new_gidx[s]; j++) {
-					fprintf(stderr, ">> 'Copy_new_no2gnode_unispg_2_no2gnode_unispg: 'new_no2gnode_unispg[%d][%d]: %d\n", s, j, new_no2gnode_unispg[s][j].Count());
-
-// GPVec(const GPVec<OBJ>& list); //copy constructor
-// GPVec(GPVec<OBJ>&& list); //move construstor
-// GPVec(GPVec<OBJ>* list); //similar to a copy constructor
-// GPVec<OBJ>& operator=(const GPVec<OBJ>& list);
-// GPVec<OBJ>& operator=(GPVec<OBJ>&& list);//move assignment operator
-// inline OBJ* Get(int i) {
-// 	TEST_INDEX(i);
-// 	return fList[i];
-// }
-// 	//OBJ* operator[](int i) { return this->Get(i); }
-// inline OBJ*& operator[](int i) {
-// 		TEST_INDEX(i); return fList[i];
-// }
-
-					// GPVec<CGraphnodeUnispg> tmp = new GPVec(new_no2gnode_unispg[s][j]);
-					no2gnode_unispg[s][j] = new GPVec<CGraphnodeUnispg>(new_no2gnode_unispg[s][j]);
-				}
+				// fprintf(stderr, ">> new_gidx[%d]: %d\n", s, new_gidx[s]);
+				// for (int j=0; j<new_gidx[s]; j++) {
+				fprintf(stderr, ">> 'Copy_new_no2gnode_unispg_2_no2gnode_unispg: 'new_no2gnode_unispg[%d][%d]: %d\n", s, 0, new_no2gnode_unispg[s]->Count());
+				// GPVec<CGraphnodeUnispg> tmp = new GPVec(new_no2gnode_unispg[s][j]);
+				no2gnode_unispg[s][current_gidx[s]] = new GPVec<CGraphnodeUnispg>(new_no2gnode_unispg[s][0]);
+				// }
 				// no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
 			};
 			
@@ -427,14 +413,14 @@ struct UnispgGp {
 
 			for(int s=0;s<2;s++) {
 				
-				fprintf(stderr, ">> new_gidx[%d]: %d\n", s, new_gidx[s]);
+				//fprintf(stderr, ">> new_gidx[%d]: %d\n", s, new_gidx[s]);
 
-				for (int j=0; j<new_gidx[s]; j++) {
-					fprintf(stderr, ">> 'Copy_new_no2gnode_unispg_2_no2gnode_unispg: 'no2gnode_unispg[%d][%d]: %d\n", s, j, no2gnode_unispg[s][j].Count());
-					for (int n=0; n<no2gnode_unispg[s][j].Count(); n++) {
-						fprintf(stderr, "\t>> no2gnode_unispg[%d][%d][%d]: %d\n", s, j, n, no2gnode_unispg[s][j].Get(n)->nodeid);
-					}
+				// for (int j=0; j<new_gidx[s]; j++) {
+				fprintf(stderr, ">> 'Copy_new_no2gnode_unispg_2_no2gnode_unispg: 'no2gnode_unispg[%d][%d]: %d\n", s, current_gidx[s], no2gnode_unispg[s][current_gidx[s]].Count());
+				for (int n=0; n<no2gnode_unispg[s][current_gidx[s]].Count(); n++) {
+					fprintf(stderr, "\t>> no2gnode_unispg[%d][%d][%d]: %d\n", s, current_gidx[s], n, no2gnode_unispg[s][current_gidx[s]].Get(n)->nodeid);
 				}
+				// }
 				// no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
 			};
 		}

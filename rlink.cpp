@@ -4363,7 +4363,6 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 					rprop[0]/=ngroup;
 					rprop[1]=1-rprop[0];
 				}
-
 			}
 			else {
 				if(readlist[n]->strand==-1) rprop[0]=1;

@@ -3707,7 +3707,7 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
         if (multiMode) {
             for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> thoses shouldn't have junctions
                 int s=sno/2; // adjusted strand due to ignoring neutral strand				
-				unispg_gp->AddGraph(fidx, s, no2gnode[s], transfrag[s], tr2no[s], gpos[s], bundle[sno].Count());
+				unispg_gp->AddGraph(fidx, s, no2gnode[s], bundle[sno].Count());
 
 				// unispg_gp->construct_transfrag_unispg(fidx, s);
 
