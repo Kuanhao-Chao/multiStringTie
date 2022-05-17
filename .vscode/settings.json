@@ -77,7 +77,18 @@
         "typeinfo": "cpp",
         "utility": "cpp",
         "thread": "cpp",
-        "__functional_base_03": "cpp"
+        "__functional_base_03": "cpp",
+        "codecvt": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "condition_variable": "cpp",
+        "numbers": "cpp",
+        "queue": "cpp",
+        "semaphore": "cpp",
+        "variant": "cpp",
+        "*.tcc": "cpp",
+        "stop_token": "cpp",
+        "cinttypes": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

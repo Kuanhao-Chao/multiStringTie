@@ -39,16 +39,26 @@ void UnispgGp::WriteLCLG(int fidx, int s, GPVec<CGraphnode>* no2gnode, int g) {
     /****************
      **  Writing out the visualization graph for the local graph.
     ****************/
+    // /*
+    { // DEBUG ONLY
+        fprintf(stderr, "\n*****************************\n");
+        fprintf(stderr, "*********** WriteLCLG ********\n");
+        fprintf(stderr, "*****************************\n");
+    }
+    // */
     if(no2gnode[g].Count() == 0) {
         fprintf(stderr, "First. graph node num is 0. Pass.\n");
         return;
     }
     GStr node_g(g);
     GStr strand_symbol;
+    GStr strand_symbol_se;
     if (s == 0) {
         strand_symbol = "-";
+        strand_symbol_se = "+";
     } else if (s == 1) {
         strand_symbol = "+";
+        strand_symbol_se = "-";
     }
     GStr bundle_start("");
     GStr bundle_end("");
@@ -89,28 +99,16 @@ void UnispgGp::WriteLCLG(int fidx, int s, GPVec<CGraphnode>* no2gnode, int g) {
         }
 
 
-        if (nd == 0) {
-            if(s == 0) {
-                fprintf(node_cov_neg_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t+\n", node_start, node_end, node_name.chars(), 0);
-            } else if (s == 1) {
-                fprintf(node_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t-\n", node_start, node_end, node_name.chars(), 0);
-            }
-        } else if (nd == no2gnode[g].Count()-1){
-            if(s == 0) {
-                // fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", no2gnode[g][no2gnode[g].Count()-2]->end, no2gnode[g][no2gnode[g].Count()-2]->end+200, 0);
-                fprintf(node_cov_neg_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t+\n", node_start, node_end, node_name.chars(), 0);
-            } else if (s == 1) {
-                // fprintf(node_cov_pos_bed, "chr22\t%d\t%d\tNODE\t%f\t-\n", no2gnode[g][no2gnode[g].Count()-2]->end, no2gnode[g][no2gnode[g].Count()-2]->end+200, 0);
-
-                fprintf(node_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t-\n", node_start, node_end, node_name.chars(), 0);
-            }
+        if ((nd == 0 )|| (nd == no2gnode[g].Count()-1)) {
+            fprintf(node_lclg_bed_vec[s]->Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, node_name.chars(), 0, strand_symbol_se.chars());
         } else {
-            if(s == 0) {
-                // fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", no2gnode[g][nd]->start, no2gnode[g][nd]->end, no2gnode[g][nd]->cov, strand_symbol.chars());
-                fprintf(node_cov_neg_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, node_name.chars(), no2gnode[g][nd]->cov, strand_symbol.chars());
-            } else if (s == 1) {
-                fprintf(node_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, node_name.chars(), no2gnode[g][nd]->cov, strand_symbol.chars());
-            }
+            fprintf(node_lclg_bed_vec[s]->Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, node_name.chars(), no2gnode[g][nd]->cov, strand_symbol.chars());
+            // if(s == 0) {
+            //     // fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", no2gnode[g][nd]->start, no2gnode[g][nd]->end, no2gnode[g][nd]->cov, strand_symbol.chars());
+            //     fprintf(node_lclg_bed_vec[s]->Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, node_name.chars(), no2gnode[g][nd]->cov, strand_symbol.chars());
+            // } else if (s == 1) {
+            //     fprintf(node_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%f\t%s\n", node_start, node_end, node_name.chars(), no2gnode[g][nd]->cov, strand_symbol.chars());
+            // }
         }
     }
     for(int nd=0;nd<no2gnode[g].Count()-1;nd++) {
@@ -139,19 +137,25 @@ void UnispgGp::WriteLCLG(int fidx, int s, GPVec<CGraphnode>* no2gnode, int g) {
             }
 
 
-            if(s == 0) {
-                if (nd == 0 || no2gnode[g][ no2gnode[g][nd]->child[c] ] -> start == 0) {
-                    fprintf(edge_cov_neg_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "+");
-                } else {
-                    fprintf(edge_cov_neg_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
-                }
-            } else if (s == 1) {
-                if (nd == 0 || no2gnode[g][ no2gnode[g][nd]->child[c] ] -> start == 0) {
-                    fprintf(edge_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "-");
-                } else {
-                    fprintf(edge_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
-                }
+            if ((nd == 0) || (no2gnode[g][ no2gnode[g][nd]->child[c] ] -> start == 0)) {
+                fprintf(edge_lclg_bed_vec[s]->Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol_se.chars());
+            } else {
+                fprintf(edge_lclg_bed_vec[s]->Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
             }
+
+            // if(s == 0) {                
+            //     if ((nd == 0) || (no2gnode[g][ no2gnode[g][nd]->child[c] ] -> start == 0)) {
+            //         fprintf(edge_cov_neg_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "+");
+            //     } else {
+            //         fprintf(edge_cov_neg_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+            //     }
+            // } else if (s == 1) {
+            //     if (nd == 0 || no2gnode[g][ no2gnode[g][nd]->child[c] ] -> start == 0) {
+            //         fprintf(edge_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "-");
+            //     } else {
+            //         fprintf(edge_cov_pos_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+            //     }
+            // }
         }
     }
     fprintf(stderr,"}\n");
@@ -162,6 +166,13 @@ void UnispgGp::WriteNonOVP(int fidx, int s, int unispg_start_idx, int unispg_end
     /****************
      **  Writing out the visualization graph for the global graph.
      ****************/
+    // /*
+    { // DEBUG ONLY
+        fprintf(stderr, "\n*****************************\n");
+        fprintf(stderr, "*********** WriteNonOVP ********\n");
+        fprintf(stderr, "*****************************\n");
+    }
+    // */
     for (int g=unispg_start_idx; g<unispg_end_idx; g++) {
         for (int check_node=0; check_node<lclg_nonoverlap[s][g].Count(); check_node++) {
             fprintf(stderr, "%d, ", lclg_nonoverlap[s][g][check_node]->nodeid);
@@ -173,10 +184,13 @@ void UnispgGp::WriteNonOVP(int fidx, int s, int unispg_start_idx, int unispg_end
 
         GStr node_g(g);
         GStr strand_symbol;
+        GStr strand_symbol_se;
         if (s == 0) {
             strand_symbol = "-";
+            strand_symbol_se = "+";
         } else if (s == 1) {
             strand_symbol = "+";
+            strand_symbol_se = "-";
         }
 
         for(int nd=0;nd<lclg_nonoverlap[s][g].Count();nd++) {
@@ -206,31 +220,39 @@ void UnispgGp::WriteNonOVP(int fidx, int s, int unispg_start_idx, int unispg_end
             }
 
 
-            if (nd == 0) {
-                if(s == 0) {
-                    fprintf(node_cov_neg_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
-                } else if (s == 1) {
-                    fprintf(node_cov_pos_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
-                }
-            } else if (nd == lclg_nonoverlap[s][g].Count()-1){
-                if(s == 0) {
-                    fprintf(node_cov_neg_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
-                } else if (s == 1) {
-                    fprintf(node_cov_pos_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
-                }
+            if ((nd == 0 )|| (nd == lclg_nonoverlap[s][g].Count()-1)) {
+                fprintf(node_novp_bed_vec[s]->Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol_se.chars());
             } else {
-                if(s == 0) {
-                    fprintf(node_cov_neg_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
-                } else if (s == 1) {
-                    fprintf(node_cov_pos_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
-                }
+                fprintf(node_novp_bed_vec[s]->Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
             }
+
+
+            // if (nd == 0) {
+            //     if(s == 0) {
+            //         fprintf(node_cov_neg_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
+            //     } else if (s == 1) {
+            //         fprintf(node_cov_pos_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
+            //     }
+            // } else if (nd == lclg_nonoverlap[s][g].Count()-1){
+            //     if(s == 0) {
+            //         fprintf(node_cov_neg_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
+            //     } else if (s == 1) {
+            //         fprintf(node_cov_pos_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
+            //     }
+            // } else {
+            //     if(s == 0) {
+            //         fprintf(node_cov_neg_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
+            //     } else if (s == 1) {
+            //         fprintf(node_cov_pos_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
+            //     }
+            // }
         }
 
         for(int nd=0;nd<lclg_nonoverlap[s][g].Count()-1;nd++) {
             // fprintf(stderr,"Node %d with parents:",i);
             GStr node_parent_nd(nd);
             for(int c=0;c<lclg_nonoverlap[s][g][nd]->child.Count();c++) {
+                fprintf(stderr, "Iterate junctions children\n");
                 GStr node_child_nd(lclg_nonoverlap[s][g][nd]->child[c]);
                 fprintf(stderr,"%d->",nd);			
                 fprintf(stderr,"%d;",lclg_nonoverlap[s][g][nd]->child[c]);
@@ -253,19 +275,26 @@ void UnispgGp::WriteNonOVP(int fidx, int s, int unispg_start_idx, int unispg_end
                 }
 
 
-                if(s == 0) {
-                    if (nd == 0 || lclg_nonoverlap[s][g][ lclg_nonoverlap[s][g][nd]->child[c] ] -> start == 0) {
-                        fprintf(edge_cov_neg_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "+");
-                    } else {
-                        fprintf(edge_cov_neg_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
-                    }
-                } else if (s == 1) {
-                    if (nd == 0 || lclg_nonoverlap[s][g][ lclg_nonoverlap[s][g][nd]->child[c] ] -> start == 0) {
-                        fprintf(edge_cov_pos_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "-");
-                    } else {
-                        fprintf(edge_cov_pos_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
-                    }
+                if ((nd == 0) || (lclg_nonoverlap[s][g][ lclg_nonoverlap[s][g][nd]->child[c] ] -> start == 0)) {
+                    fprintf(edge_novp_bed_vec[s]->Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol_se.chars());
+                } else {
+                    fprintf(edge_novp_bed_vec[s]->Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
                 }
+
+
+                // if(s == 0) {
+                //     if (nd == 0 || lclg_nonoverlap[s][g][ lclg_nonoverlap[s][g][nd]->child[c] ] -> start == 0) {
+                //         fprintf(edge_cov_neg_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "+");
+                //     } else {
+                //         fprintf(edge_cov_neg_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+                //     }
+                // } else if (s == 1) {
+                //     if (nd == 0 || lclg_nonoverlap[s][g][ lclg_nonoverlap[s][g][nd]->child[c] ] -> start == 0) {
+                //         fprintf(edge_cov_pos_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "-");
+                //     } else {
+                //         fprintf(edge_cov_pos_novp_bed_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+                //     }
+                // }
             }
         }
         fprintf(stderr,"}\n");
@@ -284,11 +313,16 @@ void UnispgGp::WriteUNISPG(int fidx, int s, int unispg_start_idx, int unispg_end
     }
     // */
     GStr strand_symbol;
+    GStr strand_symbol_se;
     if (s == 0) {
         strand_symbol = "-";
+        strand_symbol_se = "+";
     } else if (s == 1) {
         strand_symbol = "+";
+        strand_symbol_se = "-";
     }
+    GStr bundle_start("");
+    GStr bundle_end("");
 
     if (fidx == 0) {
         for (int g=unispg_start_idx; g<unispg_end_idx; g++) {
@@ -296,25 +330,7 @@ void UnispgGp::WriteUNISPG(int fidx, int s, int unispg_start_idx, int unispg_end
             for (int check_node=0; check_node<no2gnode_unispg[s][g].Count(); check_node++) {
                 fprintf(stderr, "%d, ", no2gnode_unispg[s][g][check_node]->nodeid);
             }
-            // fprintf(stderr, "\n");
-            // for (int check_node=0; check_node<no2gnode_unispg[s][g].Count(); check_node++) {
-            //     no2gnode_unispg[s][g][check_node]->nodeid = check_node;
-            // }
-            // for (int check_node=0; check_node<no2gnode_unispg[s][g].Count(); check_node++) {
-            //     fprintf(stderr, "%d, ", no2gnode_unispg[s][g][check_node]->nodeid);
-            // }
-            // fprintf(stderr, "\n\n");
-
-            // fprintf(stderr, "&& unispg_gp->current_gidx: %d\n", unispg_gp->current_gidx[s]-1);
-            // GPVec<CGraphnode>** unispg_gp->no2gnode_unispg = unispg_gp->get_no2gnodeGp();
-            // fprintf(stderr, "no2gnode_unispg[s][g].Count(): %d \n", no2gnode_unispg[s][g].Count());
-            // int refstart_unispg = unispg_gp->no2gnode_unispg[s][g][1]->start;
-            // int refend_unispg = unispg_gp->no2gnode_unispg[s][g][unispg_gp->no2gnode_unispg[s][g].Count()-2]->end;
-            // GVec<int>* graphno_unispg = unispg_gp->get_graphnoGp();
-            // GVec<int>* edgeno_unispg = unispg_gp->get_edgenoGp();
-
             fprintf(stderr,"Traversing the universal splice graph!!!\n");
-
             for(int nd=0;nd<no2gnode_unispg[s][g].Count();nd++) {
                 fprintf(stderr,"%d[start=%d end=%d] (nodeid: %d);",nd,no2gnode_unispg[s][g][nd]->start,no2gnode_unispg[s][g][nd]->end, no2gnode_unispg[s][g][nd]->nodeid);
                 int node_start = 0;
@@ -341,31 +357,25 @@ void UnispgGp::WriteUNISPG(int fidx, int s, int unispg_start_idx, int unispg_end
                     node_end = no2gnode_unispg[s][g][nd]->end;		
                 }
 
-
-                if (nd == 0) {
-                    if(s == 0) {
-                        fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
-                    } else if (s == 1) {
-                        fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
-                    }
-                } else if (nd == no2gnode_unispg[s][g].Count()-1){
-                    if(s == 0) {
-                    // fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
-
-                        fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
-                    } else if (s == 1) {
-                        // fprintf(node_cov_pos_bed, "chr22\t%d\t%d\tNODE\t%f\t-\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
-
-                        fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
-                    }
+                fprintf(stderr,">>> Before writing !!!\n");
+                if ((nd == 0) || (nd == no2gnode_unispg[s][g].Count()-1)) {
+                    fprintf(node_unispg_bed_vec[s]->Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol_se.chars());
+                    // if(s == 0) {
+                    //     fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
+                    // } else if (s == 1) {
+                    //     fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
+                    // }
                 } else {
-                    if(s == 0) {
-                        // fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", no2gnode[s][g][nd]->start, no2gnode[s][g][nd]->end, no2gnode[s][g][nd]->cov, strand_symbol.chars());
-                        fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
-                    } else if (s == 1) {
-                        fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
-                    }
+                    fprintf(node_unispg_bed_vec[s]->Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
+
+                    // if(s == 0) {
+                    //     // fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", no2gnode[s][g][nd]->start, no2gnode[s][g][nd]->end, no2gnode[s][g][nd]->cov, strand_symbol.chars());
+                    //     fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
+                    // } else if (s == 1) {
+                    //     fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
+                    // }
                 }
+                fprintf(stderr,">>> After writing !!!\n");
             }
 
             for(int nd=0;nd<no2gnode_unispg[s][g].Count()-1;nd++) {
@@ -396,154 +406,160 @@ void UnispgGp::WriteUNISPG(int fidx, int s, int unispg_start_idx, int unispg_end
             		} else {
             			junc_end = no2gnode_unispg[s][g][ no2gnode_unispg[s][g][nd]->child[c] ] -> start;
             		}
-            		if(s == 0) {
-                        if (nd == 0 || no2gnode_unispg[s][g][ no2gnode_unispg[s][g][nd]->child[c] ] -> start == 0) {
-            			    fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "+");
-                        } else {
-            			    fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
-                        }
-            		} else if (s == 1) {
-                        if (nd == 0 || no2gnode_unispg[s][g][ no2gnode_unispg[s][g][nd]->child[c] ] -> start == 0) {
-            			    fprintf(edge_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "-");
-                        } else {
-            			    fprintf(edge_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
-                        }
-            		}
+
+                    if (nd == 0 || no2gnode_unispg[s][g][ no2gnode_unispg[s][g][nd]->child[c] ] -> start == 0) {
+                        fprintf(edge_unispg_bed_vec[s]->Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol_se.chars());
+                    } else {
+                        fprintf(edge_unispg_bed_vec[s]->Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+                    }
+                    
+
+
+                    // if(s == 0) {
+                    //     if (nd == 0 || no2gnode_unispg[s][g][ no2gnode_unispg[s][g][nd]->child[c] ] -> start == 0) {
+            		// 	    fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "+");
+                    //     } else {
+            		// 	    fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+                    //     }
+            		// } else if (s == 1) {
+                    //     if (nd == 0 || no2gnode_unispg[s][g][ no2gnode_unispg[s][g][nd]->child[c] ] -> start == 0) {
+            		// 	    fprintf(edge_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "-");
+                    //     } else {
+            		// 	    fprintf(edge_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+                    //     }
+            		// }
             	}
             }
             fprintf(stderr,"}\n");
-            // unispg_gp->current_gidx[s] += 1;=
-            // sink->parent.Add(node->nodeid); // add node to sink's parents
         }
-
-
     } else {
         /****************
          **  Writing out the visualization graph for the glpplobal graph.
         ****************/
-        if (new_no2gnode_unispg[s]->Count() > 1) {
+        if (new_no2gnode_unispg[s][new_gidx[s]].Count() > 1) {
             fprintf(stderr,"Traversing the universal splice graph!!!\n");
             // fprintf(stderr,"Unispg %d_%d_%d_%d {", bdata->start, bdata->end, s, g);
             // graphno[s][b]: number of nodes in graph.
-            fprintf(stderr,"new_no2gnode_unispg[s]->Count(): %d !!!\n", new_no2gnode_unispg[s]->Count());
-            for(int nd=0;nd<new_no2gnode_unispg[s]->Count();nd++) {
-                fprintf(stderr,"%d[start=%d end=%d];",nd,new_no2gnode_unispg[s]->Get(nd)->start,new_no2gnode_unispg[s]->Get(nd)->end);
-                // exon_tmp.clear();
-                // exon_tmp.push_back(no2gnode[s][g][nd]->start);
-                // exon_tmp.push_back(no2gnode[s][g][nd]->end);
-                // // exon_tmp.push_back(nd*3);
-                // // exon_tmp.push_back(nd*3+1);
-                // exonIntervals.push_back(exon_tmp);
-                // for (int i = no2gnode[s][g][nd]->start; i < no2gnode[s][g][nd]->end; i++) {
-                // 	fprintf(node_cov_bed, "chr22\t%d\t%d\tNODE\t%f\t%s\n", i, i+1, no2gnode[s][g][nd]->cov, strand_symbol.chars());
-                // }
-                int node_start = 0;
-                int node_end = 0;
-                GStr node_nd(nd);
-                // GStr node_name = "Node_" + bundle_start + "_" + bundle_end + "_" + node_g + "_" + node_nd;
-                // GStr node_name = "Node_" + node_nd;
+            fprintf(stderr,"new_no2gnode_unispg[s][new_gidx[s]].Count(): %d !!!\n", new_no2gnode_unispg[s][new_gidx[s]].Count());
+            // for(int nd=0;nd<new_no2gnode_unispg[s][new_gidx[s]].Count();nd++) {
+            //     fprintf(stderr,"%d[start=%d end=%d];",nd,new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->start,new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->end);
+            //     // exon_tmp.clear();
+            //     // exon_tmp.push_back(no2gnode[s][g][nd]->start);
+            //     // exon_tmp.push_back(no2gnode[s][g][nd]->end);
+            //     // // exon_tmp.push_back(nd*3);
+            //     // // exon_tmp.push_back(nd*3+1);
+            //     // exonIntervals.push_back(exon_tmp);
+            //     // for (int i = no2gnode[s][g][nd]->start; i < no2gnode[s][g][nd]->end; i++) {
+            //     // 	fprintf(node_cov_bed, "chr22\t%d\t%d\tNODE\t%f\t%s\n", i, i+1, no2gnode[s][g][nd]->cov, strand_symbol.chars());
+            //     // }
+            //     int node_start = 0;
+            //     int node_end = 0;
+            //     GStr node_nd(nd);
+            //     // GStr node_name = "Node_" + bundle_start + "_" + bundle_end + "_" + node_g + "_" + node_nd;
+            //     // GStr node_name = "Node_" + node_nd;
 
-                GStr unispg_start("");
-                GStr unispg_end("");
-                GStr node_g(new_gidx[s]);
+            //     GStr unispg_start("");
+            //     GStr unispg_end("");
+            //     GStr node_g(new_gidx[s]);
 
-                unispg_start = int(new_no2gnode_unispg[s]->Get(1)->start);
-                unispg_end = int(new_no2gnode_unispg[s]->Get(new_no2gnode_unispg[s]->Count()-2)->end);
+            //     unispg_start = int(new_no2gnode_unispg[s][new_gidx[s]].Get(1)->start);
+            //     unispg_end = int(new_no2gnode_unispg[s][new_gidx[s]].Get(new_no2gnode_unispg[s][new_gidx[s]].Count()-2)->end);
 
-                GStr node_name = "Node_" + unispg_start + "_" + unispg_end + "_" + node_g + "_" + node_nd;
+            //     GStr node_name = "Node_" + unispg_start + "_" + unispg_end + "_" + node_g + "_" + node_nd;
 
-                fprintf(stderr, "node_name: %s\n", node_name.chars());
+            //     fprintf(stderr, "node_name: %s\n", node_name.chars());
 
-                if (nd == 0) {
-                    node_start = new_no2gnode_unispg[s]->Get(1)->start-20;
-                    node_end = new_no2gnode_unispg[s]->Get(1)->start;
-                } else if (nd == new_no2gnode_unispg[s]->Count()-1){
-                    node_start = new_no2gnode_unispg[s]->Get(new_no2gnode_unispg[s]->Count()-2)->end-1;
-                    node_end = 	new_no2gnode_unispg[s]->Get(new_no2gnode_unispg[s]->Count()-2)->end+20;
-                } else {
-                    node_start = new_no2gnode_unispg[s]->Get(nd)->start-1;
-                    node_end = new_no2gnode_unispg[s]->Get(nd)->end;		
-                }
+            //     if (nd == 0) {
+            //         node_start = new_no2gnode_unispg[s][new_gidx[s]].Get(1)->start-20;
+            //         node_end = new_no2gnode_unispg[s][new_gidx[s]].Get(1)->start;
+            //     } else if (nd == new_no2gnode_unispg[s][new_gidx[s]].Count()-1){
+            //         node_start = new_no2gnode_unispg[s][new_gidx[s]].Get(new_no2gnode_unispg[s][new_gidx[s]].Count()-2)->end-1;
+            //         node_end = 	new_no2gnode_unispg[s][new_gidx[s]].Get(new_no2gnode_unispg[s][new_gidx[s]].Count()-2)->end+20;
+            //     } else {
+            //         node_start = new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->start-1;
+            //         node_end = new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->end;		
+            //     }
 
 
-                if (nd == 0) {
-                    if(s == 0) {
-                        fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
-                    } else if (s == 1) {
-                        fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
-                    }
-                } else if (nd == new_no2gnode_unispg[s]->Count()-1){
-                    if(s == 0) {
-                    // fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", lclg_nonoverlap[s][s][g][lclg_nonoverlap[s][s][g].Count()-2]->end, lclg_nonoverlap[s][s][g][lclg_nonoverlap[s][s][g].Count()-2]->end+200, 0);
+            //     if (nd == 0) {
+            //         if(s == 0) {
+            //             fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
+            //         } else if (s == 1) {
+            //             fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
+            //         }
+            //     } else if (nd == new_no2gnode_unispg[s][new_gidx[s]].Count()-1){
+            //         if(s == 0) {
+            //         // fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", lclg_nonoverlap[s][s][g][lclg_nonoverlap[s][s][g].Count()-2]->end, lclg_nonoverlap[s][s][g][lclg_nonoverlap[s][s][g].Count()-2]->end+200, 0);
 
-                        fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
-                    } else if (s == 1) {
-                        // fprintf(node_cov_pos_bed, "chr22\t%d\t%d\tNODE\t%f\t-\n", lclg_nonoverlap[s][s][g][lclg_nonoverlap[s][s][g].Count()-2]->end, lclg_nonoverlap[s][s][g][lclg_nonoverlap[s][s][g].Count()-2]->end+200, 0);
+            //             fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
+            //         } else if (s == 1) {
+            //             // fprintf(node_cov_pos_bed, "chr22\t%d\t%d\tNODE\t%f\t-\n", lclg_nonoverlap[s][s][g][lclg_nonoverlap[s][s][g].Count()-2]->end, lclg_nonoverlap[s][s][g][lclg_nonoverlap[s][s][g].Count()-2]->end+200, 0);
 
-                        fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
-                    }
-                } else {
-                    if(s == 0) {
-                        // fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", lclg_nonoverlap[s][s][g][nd]->start, lclg_nonoverlap[s][s][g][nd]->end, lclg_nonoverlap[s][s][g][nd]->cov, strand_symbol.chars());
-                        fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
-                    } else if (s == 1) {
-                        fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
-                    }
-                }
-            }
+            //             fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
+            //         }
+            //     } else {
+            //         if(s == 0) {
+            //             // fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", lclg_nonoverlap[s][s][g][nd]->start, lclg_nonoverlap[s][s][g][nd]->end, lclg_nonoverlap[s][s][g][nd]->cov, strand_symbol.chars());
+            //             fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
+            //         } else if (s == 1) {
+            //             fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
+            //         }
+            //     }
+            // }
 
-            for(int nd=0;nd<new_no2gnode_unispg[s]->Count()-1;nd++) {
-            	// fprintf(stderr,"Node %d with parents:",i);
-            	GStr node_parent_nd(nd);
+            // for(int nd=0;nd<new_no2gnode_unispg[s][new_gidx[s]].Count()-1;nd++) {
+            // 	// fprintf(stderr,"Node %d with parents:",i);
+            // 	GStr node_parent_nd(nd);
                 
-            	for(int c=0;c<new_no2gnode_unispg[s]->Get(nd)->child.Count();c++) {
-            		GStr node_child_nd(new_no2gnode_unispg[s]->Get(nd)->child[c]);
-            		fprintf(stderr,"\t%d->",nd);			
-            		fprintf(stderr,"%d;",new_no2gnode_unispg[s]->Get(nd)->child[c]);
-            		GStr junction_name = "Junc_" + node_parent_nd + "->" + node_child_nd;
-            		fprintf(stderr, "\tjunction_name: %s\n", junction_name.chars());
+            // 	for(int c=0;c<new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->child.Count();c++) {
+            // 		GStr node_child_nd(new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->child[c]);
+            // 		fprintf(stderr,"\t%d->",nd);			
+            // 		fprintf(stderr,"%d;",new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->child[c]);
+            // 		GStr junction_name = "Junc_" + node_parent_nd + "->" + node_child_nd;
+            // 		fprintf(stderr, "\tjunction_name: %s\n", junction_name.chars());
 
 
-                    edgeno_unispg[s]++;
+            //         edgeno_unispg[s]++;
 
 
-            		int junc_start = 0;
-            		int junc_end = 0;
+            // 		int junc_start = 0;
+            // 		int junc_end = 0;
 
-            		if (nd == 0) {
-            			// It's the source node.
-            			junc_start = new_no2gnode_unispg[s]->Get(1)->start-20;
-            		} else {
-            			junc_start = new_no2gnode_unispg[s]->Get(nd)->end;
-            		}
+            // 		if (nd == 0) {
+            // 			// It's the source node.
+            // 			junc_start = new_no2gnode_unispg[s][new_gidx[s]].Get(1)->start-20;
+            // 		} else {
+            // 			junc_start = new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->end;
+            // 		}
 
-            		if (new_no2gnode_unispg[s]->Get( new_no2gnode_unispg[s]->Get(nd)->child[c] ) -> start == 0) {
-            			// The node goes to the sink.
-                        fprintf(stderr, "This node links to sink!!!!\n");
-            			junc_end = new_no2gnode_unispg[s]->Get( new_no2gnode_unispg[s]->Count()-2)->end+20;
-            		} else {
-            			junc_end = new_no2gnode_unispg[s]->Get( new_no2gnode_unispg[s]->Get(nd)->child[c] ) -> start;
-            		}
-            		if(s == 0) {
-                        if (nd == 0 || new_no2gnode_unispg[s]->Get( new_no2gnode_unispg[s]->Get(nd)->child[c] ) -> start == 0) {
-            			    fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "+");
-                        } else {
-            			    fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
-                        }
-            		} else if (s == 1) {
-                        if (nd == 0 || new_no2gnode_unispg[s]->Get( new_no2gnode_unispg[s]->Get(nd)->child[c] ) -> start == 0) {
-            			    fprintf(edge_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "-");
-                        } else {
-            			    fprintf(edge_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
-                        }
-            		}
-            	}
-            }
-            fprintf(stderr,"}\n");
+            // 		if (new_no2gnode_unispg[s][new_gidx[s]].Get( new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->child[c] ) -> start == 0) {
+            // 			// The node goes to the sink.
+            //             fprintf(stderr, "This node links to sink!!!!\n");
+            // 			junc_end = new_no2gnode_unispg[s][new_gidx[s]].Get( new_no2gnode_unispg[s][new_gidx[s]].Count()-2)->end+20;
+            // 		} else {
+            // 			junc_end = new_no2gnode_unispg[s][new_gidx[s]].Get( new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->child[c] ) -> start;
+            // 		}
+            // 		if(s == 0) {
+            //             if (nd == 0 || new_no2gnode_unispg[s][new_gidx[s]].Get( new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->child[c] ) -> start == 0) {
+            // 			    fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "+");
+            //             } else {
+            // 			    fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+            //             }
+            // 		} else if (s == 1) {
+            //             if (nd == 0 || new_no2gnode_unispg[s][new_gidx[s]].Get( new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->child[c] ) -> start == 0) {
+            // 			    fprintf(edge_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "-");
+            //             } else {
+            // 			    fprintf(edge_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+            //             }
+            // 		}
+            // 	}
+            // }
+            // fprintf(stderr,"}\n");
         }
     }
 }
 
+// 'new_nonolp_lclg_idx': it is the offset compared to the no2gnode graph index.
 void UnispgGp::MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int lclg_limit, int boudleGP_start_idx, int boudleGP_end_idx, int& new_nonolp_lclg_idx, bool first_sample) {
     // /*
     { // DEBUG ONLY
@@ -599,12 +615,9 @@ void UnispgGp::MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int
                no2gnode_unispg[s][current_gidx[s]+new_nonolp_lclg_idx] = GPVec<CGraphnodeUnispg>(2);
                no2gnode_unispg[s][current_gidx[s]+new_nonolp_lclg_idx].Add(source_for_first);
             }
-            //  else {
             GPVec<CGraphnodeUnispg>(2); //also the default constructor
-
             lclg_nonoverlap[s][new_nonolp_lclg_idx] = GPVec<CGraphnodeUnispg>(2);
             lclg_nonoverlap[s][new_nonolp_lclg_idx].Add(source);
-            // }
         }
         // fprintf(stderr, "(%d) processed no2gnode[i].Count(): %d\n", g_gp, no2gnode[g_gp].Count());
 
@@ -650,8 +663,6 @@ void UnispgGp::MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int
                     }
                 }
             }
-
-            // else {
             if (lclg_nonoverlap[s][new_nonolp_lclg_idx].Count() == 1) {
                 lclg_nonoverlap[s][new_nonolp_lclg_idx].Add(node_unispg);
             } else {
@@ -669,7 +680,6 @@ void UnispgGp::MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int
                     }
                 }
             }
-            // }
         }
         
         
@@ -721,15 +731,12 @@ void UnispgGp::MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int
             }
             fprintf(stderr, "***** sink nodeid: %d\n", no2gnode_unispg[s][current_gidx[s]+new_nonolp_lclg_idx][node_num-1]->nodeid);
             no2gnode_unispg[s][current_gidx[s]+new_nonolp_lclg_idx][node_num-1]->nodeid = node_num-1;
-
-
             std::cout << ">> Print after sorting!!!" << endl;
             for (const auto &entry:new2_nodehash) {
                 auto key_pair = entry.first;
                 std::cout << "{" << key_pair.first << ", " << key_pair.second << "}, " << entry.second << std::endl;
             }
         }
-        // else {
         CGraphnodeUnispg* sink = new CGraphnodeUnispg(sample_num, 0, 0, new_unispg_nodeid, is_passed_sink, cov_sink, capacity_sink, true, 0, 0, 0, true, 0, 0);
         lclg_nonoverlap[s][new_nonolp_lclg_idx].Add(sink);
         // fprintf(stderr, "current_gidx[s]+new_nonolp_lclg_idx: %d.\n", lclg_nonoverlap[s][new_nonolp_lclg_idx].Count());
@@ -745,7 +752,6 @@ void UnispgGp::MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int
         }
         fprintf(stderr, "***** sink nodeid: %d\n", lclg_nonoverlap[s][new_nonolp_lclg_idx][node_num-1]->nodeid);
         lclg_nonoverlap[s][new_nonolp_lclg_idx][node_num-1]->nodeid = node_num-1;
-        // }
 
 
         /**********************
@@ -761,64 +767,19 @@ void UnispgGp::MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int
             cout << "no2gnode[g_idx].Count(): " << no2gnode[g_idx].Count() << endl;
             for (int n_idx=0; n_idx<no2gnode[g_idx].Count(); n_idx++) {
 
-
-//                 GBitVec trpat(graphno_unispg[s]+edgeno_unispg[s]);
-//                 GVec<int> nodes;
-//                 float abund = 0.0;
-//                 // // Create nodes / build trpat / create futuretr.
-//                 CTransfrag *tr=new CTransfrag(nodes, trpat, abund);
-//                 transfrag_unispg[s][g_idx]->Add(tr);
-//                 // transfrag[g_idx]
-// // fprintf(stderr, "\t&& transfrag[%d][%d].Count(): %d\n", s, g_idx, transfrag[g_idx].Count());
-// // for (int j=0; j<transfrag[g_idx].Count(); j++) {
-    
-// //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] nodes: ", s, g_idx, j);
-// //     for (int n=0; n<transfrag[g_idx][j]->nodes.Count(); n++) {
-// //         fprintf(stderr, "%d, ",transfrag[g_idx][j]->nodes[n]);
-// //     }
-// //     fprintf(stderr, "\n");		
-// //     // printBitVec(pathpat);
-
-// //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] abundance: \n", s, g_idx, j);
-// //     printBitVecTest(transfrag[g_idx][j]->pattern);
-
-
-// //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] abundance: %f\n", s, g_idx, j, transfrag[g_idx][j]->abundance);
-// //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] srabund: %f\n", s, g_idx, j, transfrag[g_idx][j]->srabund);
-
-// //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] usepath: %f\n", s, g_idx, j, transfrag[g_idx][j]->usepath);
-// //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] weak: %d\n", s, g_idx, j, transfrag[g_idx][j]->weak);
-// //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] real: %d\n", s, g_idx, j, transfrag[g_idx][j]->real);
-// //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] longread: %d\n", s, g_idx, j, transfrag[g_idx][j]->longread);
-// //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] shortread: %d\n", s, g_idx, j, transfrag[g_idx][j]->shortread);
-// //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] guide: %d\n", s, g_idx, j, transfrag[g_idx][j]->guide);
-// //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] longstart: %u\n", s, g_idx, j, transfrag[g_idx][j]->longstart);
-// //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] longend: %u\n", s, g_idx, j, transfrag[g_idx][j]->longend);
-// // }
-
-
-
-
-
-
                 CGraphnode* old_node = no2gnode[g_idx][n_idx];
                 // Query mapping from old {g_idx, n_idx} to unispg_node_idx.
                 int unispg_node_idx = new2_nodehash[{g_idx, n_idx}];
+                int unispg_node_idx_fs = new2_nodehash[{g_idx, n_idx}];
                 if (unispg_node_idx == -1) {
-                    if (first_sample) {
-                        unispg_node_idx = no2gnode_unispg[s][current_gidx[s]+new_nonolp_lclg_idx].Count()-1;
-                    } 
-                    else {
-                        unispg_node_idx = lclg_nonoverlap[s][new_nonolp_lclg_idx].Count()-1;
-                    }
+                    unispg_node_idx = lclg_nonoverlap[s][new_nonolp_lclg_idx].Count()-1;
                 }
                 CGraphnodeUnispg* new_node;
+                CGraphnodeUnispg* new_node_fs;
                 if (first_sample) {
-                    new_node = no2gnode_unispg[s][current_gidx[s]+new_nonolp_lclg_idx][unispg_node_idx];
-                } 
-                else {
-                    new_node = lclg_nonoverlap[s][new_nonolp_lclg_idx][unispg_node_idx];
+                    new_node_fs = no2gnode_unispg[s][current_gidx[s]+new_nonolp_lclg_idx][unispg_node_idx];
                 }
+                new_node = lclg_nonoverlap[s][new_nonolp_lclg_idx][unispg_node_idx];
 
                 std::cout << "From {" << g_idx << ", " << n_idx << "} -> " << new_node->nodeid << std::endl;
 
@@ -828,12 +789,10 @@ void UnispgGp::MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int
                     // Query mapping from old {g_idx, n_idx} to unispg_node_idx.
                     int unispg_p_node_idx = new2_nodehash[{g_idx, old_node->parent[p]}];
                     if (unispg_p_node_idx == -1) {
-                        if (first_sample) {
-                            unispg_p_node_idx = no2gnode_unispg[s][current_gidx[s]+new_nonolp_lclg_idx].Count()-1;
-                        } 
-                        else {
-                            unispg_p_node_idx = lclg_nonoverlap[s][new_nonolp_lclg_idx].Count()-1;
-                        }
+                        unispg_p_node_idx = lclg_nonoverlap[s][new_nonolp_lclg_idx].Count()-1;
+                    }
+                    if (first_sample) {
+                        new_node_fs->parent.Add(unispg_p_node_idx);
                     }
                     new_node->parent.Add(unispg_p_node_idx);
                     edgeno_unispg[s] += 1;
@@ -844,12 +803,10 @@ void UnispgGp::MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int
                     // Query mapping from old {g_idx, n_idx} to unispg_node_idx.
                     int unispg_c_node_idx = new2_nodehash[{g_idx, old_node->child[c]}];
                     if (unispg_c_node_idx == -1) {
-                        if (first_sample) {
-                            unispg_c_node_idx = no2gnode_unispg[s][current_gidx[s]+new_nonolp_lclg_idx].Count()-1;
-                        }
-                        else {
-                            unispg_c_node_idx = lclg_nonoverlap[s][new_nonolp_lclg_idx].Count()-1;
-                        }
+                        unispg_c_node_idx = lclg_nonoverlap[s][new_nonolp_lclg_idx].Count()-1;
+                    }
+                    if (first_sample) {
+                        new_node_fs->child.Add(unispg_c_node_idx);
                     }
                     new_node->child.Add(unispg_c_node_idx);
                     fprintf(stderr, "%d(%d), ", old_node->child[c], unispg_c_node_idx);
@@ -859,12 +816,10 @@ void UnispgGp::MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gnode, int
         }
         new_nonolp_lclg_idx += 1;
     }
-
     // new_nonolp_lclg_idx = new_nonolp_lclg_idx - current_gidx[s];
 }
 
 void UnispgGp::FirstUnispgAlgo(int fidx, int s, int sample_num, GPVec<CGraphnode>* no2gnode, int lclg_limit, int& new_nonolp_lclg_idx, bool first_sample) {
-
     Clear_lclg_nonoverlap();
     graphno_unispg[s] = 0;
     edgeno_unispg[s] = 0;
@@ -873,6 +828,7 @@ void UnispgGp::FirstUnispgAlgo(int fidx, int s, int sample_num, GPVec<CGraphnode
         fprintf(stderr, "\n*****************************\n");
         fprintf(stderr, "*********** FirstUnispgAlgo ********\n");
         fprintf(stderr, "*****************************\n");
+        fprintf(stderr, "** current_gidx[s]: %d, s: %d\n", current_gidx[s], s);
     }
     uint unispg_start = 0;
     uint unispg_end = 0;
@@ -950,7 +906,6 @@ void UnispgGp::FirstUnispgAlgo(int fidx, int s, int sample_num, GPVec<CGraphnode
                 fprintf(stderr, "Update boudleGP_start_idx: %d.\n", boudleGP_start_idx);
             }
         }
-    
     }
 }
 
@@ -1005,6 +960,8 @@ bool UnispgGp::RecruitMRGGP(int s, int& lclg_idx, int& new_nonolp_lclg_idx, LCLG
         uint lclg_end = lclg_nonoverlap[s][lclg_idx][ lclg_nonoverlap[s][lclg_idx].Count()-2 ]->end;
         uint unispg_start = no2gnode_unispg[s][current_gidx[s]][1]->start;
         uint unispg_end = no2gnode_unispg[s][current_gidx[s]][ no2gnode_unispg[s][current_gidx[s]].Count()-2 ]->end;
+        // uint unispg_start = no2gnode_unispg[s]->Get(1)->start;
+        // uint unispg_end = no2gnode_unispg[s]->Get(no2gnode_unispg[s][current_gidx[s]].Count()-2)->end;
 
         /**********************
         ** Printing boundaries
@@ -1014,6 +971,8 @@ bool UnispgGp::RecruitMRGGP(int s, int& lclg_idx, int& new_nonolp_lclg_idx, LCLG
         fprintf(stderr, "boundary start: %d \n", lclg_start);
         fprintf(stderr, "boundary end: %d \n", lclg_end);
         fprintf(stderr, "$$$ lclg_start: %u,  lclg_end: %u,  unispg_start: %u,  unispg_end: %u\n", lclg_start, lclg_end, no2gnode_unispg[s][current_gidx[s]][1]->start, no2gnode_unispg[s][current_gidx[s]][ no2gnode_unispg[s][current_gidx[s]].Count()-2 ]->end);
+        // fprintf(stderr, "$$$ lclg_start: %u,  lclg_end: %u,  unispg_start: %u,  unispg_end: %u\n", lclg_start, lclg_end, no2gnode_unispg[s]->Get(1)->start, no2gnode_unispg[s]->Get(no2gnode_unispg[s][current_gidx[s]].Count()-2)->end);
+
         
         // unispg: -------
         // lclg: ........
@@ -1416,9 +1375,11 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
     ** Get the current node of unispg & whether it's the last node of unispg
     *******************************/
     if (unispg_i < unispg_idx_end) {
-        // fprintf(stderr, "\t\tunispg Node size: %d\n", no2gnode_unispg[s][unispg_i].Count()-2);
+        fprintf(stderr, "\t\tunispg Node size: %d\n", no2gnode_unispg[s][unispg_i].Count()-2);
         unispg_node = no2gnode_unispg[s][unispg_i][unispg_node_idx];
         unispg_is_lastnode = (unispg_node_idx == no2gnode_unispg[s][unispg_i].Count()-2);
+        // unispg_node = no2gnode_unispg[s]->Get(unispg_node_idx);
+        // unispg_is_lastnode = (unispg_node_idx == no2gnode_unispg[s]->Count()-2);
     } else {
         /******************************
         ** Here, 'unispg_i == unispg_idx_end'. It's a fake unispg node.
@@ -1434,6 +1395,9 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
         unispg_start_pcs = no2gnode_unispg[s][tmp_unispg_idx][1]->start;
         unispg_end_pcs = no2gnode_unispg[s][tmp_unispg_idx][ no2gnode_unispg[s][tmp_unispg_idx].Count()-2 ]->end;
         unispg_node = no2gnode_unispg[s][tmp_unispg_idx][ no2gnode_unispg[s][tmp_unispg_idx].Count()-2 ];
+        // unispg_start_pcs = no2gnode_unispg[s]->Get(1)->start;
+        // unispg_end_pcs = no2gnode_unispg[s]->Get(no2gnode_unispg[s][tmp_unispg_idx].Count()-2)->end;
+        // unispg_node = no2gnode_unispg[s]->Get(no2gnode_unispg[s][tmp_unispg_idx].Count()-2);
     }
 
     /*
@@ -1466,7 +1430,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
             fprintf(stderr,"\t\t  ####  Graph node: ----------  |(s).................(e)|\n");
             if (prev_bdy[s] < unispg_node->end) {
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, false, 0, 0, 0);
-                new_no2gnode_unispg[s]->Add(node);
+                new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                 graphno_unispg[s]++;
                 int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                 new_unispg_nodeid[s] += 1;
@@ -1478,7 +1442,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
             fprintf(stderr,"\t\t  ####  Graph node: ----------|(s).................(e)|\n");
             if (prev_bdy[s] < unispg_node->end) {
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, false, 0, 0, 0);
-                new_no2gnode_unispg[s]->Add(node);
+                new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                 graphno_unispg[s]++;
                 int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                 new_unispg_nodeid[s] += 1;
@@ -1489,7 +1453,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
         } else if (lclg_node->start < unispg_node->end) {
             if (prev_bdy[s] < lclg_node->start) {
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, lclg_node->start, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, false, 0, 0, 0);
-                new_no2gnode_unispg[s]->Add(node);
+                new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                 graphno_unispg[s]++;
                 int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                 new_unispg_nodeid[s] += 1;
@@ -1499,7 +1463,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 fprintf(stderr,"\t\t  ####  Graph node: ------|(s)----.............(e)|\n");
                 if (prev_bdy[s] < unispg_node->end) {
                     node = new CGraphnodeUnispg(sample_num, lclg_node->start, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                    new_no2gnode_unispg[s]->Add(node);
+                    new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                     graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
@@ -1512,7 +1476,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 fprintf(stderr,"\t\t  ####  Graph node: ------|(s)----------(e)|\n");
                 if (prev_bdy[s] < unispg_node->end) {
                     node = new CGraphnodeUnispg(sample_num, lclg_node->start, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                    new_no2gnode_unispg[s]->Add(node);
+                    new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                     graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
@@ -1526,7 +1490,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 fprintf(stderr,"\t\t  ####  Graph node: -----|(s)----------(e)|-----\n");
                 if (prev_bdy[s] < lclg_node->end) {
                     node = new CGraphnodeUnispg(sample_num, lclg_node->start, lclg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                    new_no2gnode_unispg[s]->Add(node);
+                    new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                     graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
@@ -1550,7 +1514,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
             fprintf(stderr,"\t\t  ####  Graph node: |(s)----------.......(e)|\n");
             if (prev_bdy[s] < unispg_node->end) {
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                new_no2gnode_unispg[s]->Add(node);
+                new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                 graphno_unispg[s]++;
                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                 int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
@@ -1563,7 +1527,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
             fprintf(stderr,"\t\t  ####  Graph node: |(s)------------(e)|\n");
             if (prev_bdy[s] < unispg_node->end) {
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                new_no2gnode_unispg[s]->Add(node);
+                new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                 graphno_unispg[s]++;
                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                 int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
@@ -1577,7 +1541,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
             fprintf(stderr,"\t\t  ####  Graph node: |(s)---------(e)|---\n");
             if (prev_bdy[s] < lclg_node->end) {
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, lclg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                new_no2gnode_unispg[s]->Add(node);
+                new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                 graphno_unispg[s]++;
                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                 int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
@@ -1602,7 +1566,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 GVec<float>* cov_s = new GVec<float>(sample_num-1, 0.0f);
                 GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                 node = new CGraphnodeUnispg(sample_num, node_start_pos, unispg_node->start, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                new_no2gnode_unispg[s]->Add(node);
+                new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                 graphno_unispg[s]++;
                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                 new_unispg_nodeid[s] += 1;
@@ -1612,7 +1576,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 fprintf(stderr,"\t\t  ####  Graph node: |(s)....----------....(e)|\n");
                 if (prev_bdy[s] < unispg_node->end) {
                     node = new CGraphnodeUnispg(sample_num, unispg_node->start, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                    new_no2gnode_unispg[s]->Add(node);
+                    new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                     graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
@@ -1625,7 +1589,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 fprintf(stderr,"\t\t  ####  Graph node: |(s)....----------(e)|\n");
                 if (prev_bdy[s] < unispg_node->end) {
                     node = new CGraphnodeUnispg(sample_num, unispg_node->start, unispg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                    new_no2gnode_unispg[s]->Add(node);
+                    new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                     graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
@@ -1639,7 +1603,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                 fprintf(stderr,"\t\t  ####  Graph node: |(s)....----------(e)|---\n");
                 if (prev_bdy[s] < lclg_node->end) {
                     node = new CGraphnodeUnispg(sample_num, unispg_node->start, lclg_node->end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                    new_no2gnode_unispg[s]->Add(node);
+                    new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                     graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
@@ -1673,7 +1637,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                     GVec<float>* cov_s = new GVec<float>(sample_num-1, 0.0f);
                     GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                     node = new CGraphnodeUnispg(sample_num, node_start_pos, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                    new_no2gnode_unispg[s]->Add(node);
+                    new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                     graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     new_unispg_nodeid[s] += 1;
@@ -1706,7 +1670,7 @@ void UnispgGp::CmpLclgNodeUnispgNode(int fidx, int s, int sample_num, CGraphnode
                     GVec<float>* cov_s = new GVec<float>(sample_num-1, 0.0f);
                     GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                     node = new CGraphnodeUnispg(sample_num, node_start_pos, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                    new_no2gnode_unispg[s]->Add(node);
+                    new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                     graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     new_unispg_nodeid[s] += 1;
@@ -1753,7 +1717,7 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
                     GVec<float>* cov_s = new GVec<float>(sample_num-1, 0.0f);
                     GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                     node = new CGraphnodeUnispg(sample_num, unispg_node->end, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                    new_no2gnode_unispg[s]->Add(node);
+                    new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                     graphno_unispg[s]++;
                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                     new_unispg_nodeid[s] += 1;
@@ -1942,7 +1906,7 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
                                 GVec<float>* cov_s = new GVec<float>(sample_num-1, 0.0f);
                                 GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                                 node = new CGraphnodeUnispg(sample_num, lclg_node->start, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                                new_no2gnode_unispg[s]->Add(node);
+                                new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                                 graphno_unispg[s]++;
                                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                                 new_unispg_nodeid[s] += 1;
@@ -1964,7 +1928,7 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
                                 GVec<float>* cov_s = new GVec<float>(sample_num-1, 0.0f);
                                 GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                                 node = new CGraphnodeUnispg(sample_num, unispg_node->end, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                                new_no2gnode_unispg[s]->Add(node);
+                                new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                                 graphno_unispg[s]++;
                                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                                 new_unispg_nodeid[s] += 1;
@@ -1988,7 +1952,7 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
                                     GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                                     // Add new node
                                     node = new CGraphnodeUnispg(sample_num, unispg_node->end, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                                    new_no2gnode_unispg[s]->Add(node);
+                                    new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                                     graphno_unispg[s]++;
                                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                                     new_unispg_nodeid[s] += 1;
@@ -2027,7 +1991,7 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
                                 GVec<float>* cov_s = new GVec<float>(sample_num-1, 0.0f);
                                 GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                                 node = new CGraphnodeUnispg(sample_num, unispg_node->end, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                                new_no2gnode_unispg[s]->Add(node);
+                                new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                                 graphno_unispg[s]++;
                                 int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                                 new_unispg_nodeid[s] += 1;
@@ -2064,7 +2028,7 @@ void UnispgGp::SecondUnispgAlgo(int fidx, int s, int sample_num, CGraphnodeUnisp
                                     GVec<float>* cov_s = new GVec<float>(sample_num-1, 0.0f);
                                     GVec<float>* capacity_s = new GVec<float>(sample_num-1, 0.0f);
                                     node = new CGraphnodeUnispg(sample_num, unispg_node->end, lclg_node->end, new_unispg_nodeid[s], is_passed_s, cov_s, capacity_s, true, lclg_node->cov_s->Last(), lclg_node->capacity_s->Last(), 0);
-                                    new_no2gnode_unispg[s]->Add(node);
+                                    new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                                     graphno_unispg[s]++;
                                     int pre_parent_lclg = CreateThirdAlgHashEnt(s, true, lclg_i, lclg_node_idx, new_unispg_nodeid[s]);
                                     new_unispg_nodeid[s] += 1;
@@ -2167,6 +2131,8 @@ bool UnispgGp::PairLclgUnispgInMRGGP(int fidx, int s, int sample_num, int& lclg_
         fprintf(stderr, "Adding source & sink (unispg)!!!!!! 2\n");
         int pre_parent_unispg_source = CreateThirdAlgHashEnt(s, false, unispg_i, 0, 0);
         int pre_parent_unispg_sink = CreateThirdAlgHashEnt(s, false, unispg_i, no2gnode_unispg[s][unispg_i].Count()-1, -1);
+
+        // int pre_parent_unispg_sink = CreateThirdAlgHashEnt(s, false, unispg_i, no2gnode_unispg[s]->Count()-1, -1);
     }
 
     // /*
@@ -2216,6 +2182,10 @@ bool UnispgGp::PairLclgUnispgInMRGGP(int fidx, int s, int sample_num, int& lclg_
         unispg_start_pcs = no2gnode_unispg[s][unispg_i][1]->start;
         unispg_end_pcs = no2gnode_unispg[s][unispg_i][ no2gnode_unispg[s][unispg_i].Count()-2 ]->end;
         unispg_node = no2gnode_unispg[s][unispg_i][unispg_node_idx];
+
+        // unispg_start_pcs = no2gnode_unispg[s]->Get(1)->start;
+        // unispg_end_pcs = no2gnode_unispg[s]->Get(no2gnode_unispg[s][unispg_i].Count()-2)->end;
+        // unispg_node = no2gnode_unispg[s]->Get(unispg_node_idx);
         /******************************************
          * Decide to move lclg or unispg by the graph boundaries.
          *****************************************/
@@ -2253,6 +2223,10 @@ bool UnispgGp::PairLclgUnispgInMRGGP(int fidx, int s, int sample_num, int& lclg_
         unispg_start_pcs = no2gnode_unispg[s][tmp_unispg_idx][1]->start;
         unispg_end_pcs = no2gnode_unispg[s][tmp_unispg_idx][ no2gnode_unispg[s][tmp_unispg_idx].Count()-2 ]->end;
         unispg_node = no2gnode_unispg[s][tmp_unispg_idx][ no2gnode_unispg[s][tmp_unispg_idx].Count()-2 ];
+
+        // unispg_start_pcs = no2gnode_unispg[s]->Get(1)->start;
+        // unispg_end_pcs = no2gnode_unispg[s]->Get(no2gnode_unispg[s][tmp_unispg_idx].Count()-2)->end;
+        // unispg_node = no2gnode_unispg[s]->Get(no2gnode_unispg[s][tmp_unispg_idx].Count()-2);
     } else if (!(lclg_i < lclg_idx_end) && unispg_i < unispg_idx_end) {
         /*{ // DEBUG ONLY
             fprintf(stderr, "\t   >>> Insie '!(lclg_i < lclg_idx_end) && unispg_i < unispg_idx_end'\n");
@@ -2270,6 +2244,10 @@ bool UnispgGp::PairLclgUnispgInMRGGP(int fidx, int s, int sample_num, int& lclg_
         unispg_start_pcs = no2gnode_unispg[s][unispg_i][1]->start;
         unispg_end_pcs = no2gnode_unispg[s][unispg_i][ no2gnode_unispg[s][unispg_i].Count()-2 ]->end;
         unispg_node = no2gnode_unispg[s][unispg_i][unispg_node_idx];
+
+        // unispg_start_pcs = no2gnode_unispg[s]->Get(1)->start;
+        // unispg_end_pcs = no2gnode_unispg[s]->Get(no2gnode_unispg[s][unispg_i].Count()-2)->end;
+        // unispg_node = no2gnode_unispg[s]->Get(unispg_node_idx);
     } else if (!(lclg_i < lclg_idx_end) && !(unispg_i < unispg_idx_end)) {
         /*{ // DEBUG ONLY
             fprintf(stderr, "\t   >>> Insie '!(lclg_i < lclg_idx_end) && !(unispg_i < unispg_idx_end)'\n");
@@ -2349,11 +2327,11 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
     fprintf(stderr, "*******************************************\n");   
     fprintf(stderr, "*********** Inside 'AddGraph'********\n");
     fprintf(stderr, "*******************************************\n"); 
-    int sample_num = unispg_gp->samples.Count();
+    int sample_num = samples.Count();
 
     fprintf(stderr, "&& transfrag[%d].Count(): %d\n", s,lclg_limit);
     // for (int i=0; i<transfrag->Count(); i++) {
-    for (int i=0; i<lclg_limit; i++) {
+    // for (int i=0; i<lclg_limit; i++) {
         // fprintf(stderr, "\t&& transfrag[%d][%d].Count(): %d\n", s, i, transfrag[i].Count());
         // for (int j=0; j<transfrag[i].Count(); j++) {
             
@@ -2394,7 +2372,7 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
 	// int guide;
 	// uint longstart; // for long reads: min start of all longreads sharing transfrag
 	// uint longend; // for long reads: max end of all longreads sharing transfrag
-    }
+    // }
 
 
     if (fidx == 0) {
@@ -2402,8 +2380,14 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
         FirstUnispgAlgo(fidx, s, sample_num, no2gnode, lclg_limit, new_nonolp_lclg_idx, true);
         // WriteNonOVP(fidx, s, 0, new_nonolp_lc  lg_idx, no2gnode_unispg[s]);
         WriteUNISPG(fidx, s, current_gidx[s], current_gidx[s]+new_nonolp_lclg_idx);
+        WriteUNISPG_DOT(fidx, s, current_gidx[s], current_gidx[s]+new_nonolp_lclg_idx);
         WriteNonOVP(fidx, s, 0, new_nonolp_lclg_idx);
-        current_gidx[s] += new_nonolp_lclg_idx;
+        // current_gidx[s] += new_nonolp_lclg_idx;
+        current_gidx[s] = 0;
+        Clear_no2gnode_unispg();
+		// Copy new_no2gnode_unispg to no2gnode_unispg
+        // unispg_gp -> Copy_new_no2gnode_unispg_2_no2gnode_unispg();
+		// unispg_gp -> Clear_new_no2gnode_unispg();
     } else {
         int new_nonolp_lclg_idx = 0;
         fprintf(stderr, "*******************************************\n");   
@@ -2493,6 +2477,8 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                         lclg_bundle_num[s] += 1;
                         lclg_node = lclg_nonoverlap[s][lclg_i][lclg_node_idx];
                         unispg_node = no2gnode_unispg[s][unispg_i][unispg_node_idx];
+                        // unispg_node = no2gnode_unispg[s]->Get(unispg_node_idx);
+
                         uint node_start = 0;
                         uint node_end = 0;
                         if (prev_bdy[s] < unispg_node->start) {
@@ -2506,7 +2492,7 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                             node_end = lclg_node->start;
                         }
                         node = new CGraphnodeUnispg(sample_num, node_start, node_end, new_unispg_nodeid[s], unispg_node->is_passed_s, unispg_node->cov_s, unispg_node->capacity_s, false, 0, 0, 0);
-                        new_no2gnode_unispg[s]->Add(node);
+                        new_no2gnode_unispg[s][new_gidx[s]].Add(node);
                         graphno_unispg[s]++;
                         int pre_parent_unispg = CreateThirdAlgHashEnt(s, false, unispg_i, unispg_node_idx, new_unispg_nodeid[s]);
                         new_unispg_nodeid[s] += 1;
@@ -2540,7 +2526,7 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                         // delete sink_gp[s];
                         sink_gp[s] = new CGraphnodeUnispg(sample_num, 0, 0, -1, is_passed_s_sink, cov_s_sink, capacity_s_sink, true, 0, 0, 0);
 
-                        new_no2gnode_unispg[s]->Add(source_gp[s]);
+                        new_no2gnode_unispg[s][new_gidx[s]].Add(source_gp[s]);
 
                         /****************
                          **  Adding hash entry for third unispg merging algorithm
@@ -2570,6 +2556,8 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                     for (int g_idx=unispg_idx_start; g_idx<unispg_idx_end; g_idx++) {
                         int pre_parent_unispg_source = CreateThirdAlgHashEnt(s, false, g_idx, 0, 0);
                         int pre_parent_unispg_sink = CreateThirdAlgHashEnt(s, false, g_idx, no2gnode_unispg[s][g_idx].Count()-1, -1);
+
+                        // int pre_parent_unispg_sink = CreateThirdAlgHashEnt(s, false, g_idx, no2gnode_unispg[s]->Count()-1, -1);
                     }
                     /****************
                      **  While loop. Here, I need to find out whether lclg in MRG_GP reaches the end.
@@ -2602,6 +2590,8 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                     for (int g_idx=unispg_idx_start; g_idx<unispg_idx_end; g_idx++) {
                         // fprintf(stderr, "AddThirdAlgParentEdge for sink (unispg)!!!!!! \n");
                         AddThirdAlgParentEdge(s, sink_gp[s], NULL, NULL, g_idx, no2gnode_unispg[s][g_idx][no2gnode_unispg[s][g_idx].Count()-1], INT_MIN, INT_MIN);
+
+                        // AddThirdAlgParentEdge(s, sink_gp[s], NULL, NULL, g_idx, no2gnode_unispg[s]->Get(no2gnode_unispg[s][g_idx].Count()-1), INT_MIN, INT_MIN);
                     }
 
                     /****************
@@ -2610,43 +2600,43 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
                      ****************/
                     if (!has_unispg_tail[s]) {
                         sink_gp[s]->set_nodeid(new_unispg_nodeid[s]);
-                        new_no2gnode_unispg[s]->Add(sink_gp[s]);
+                        new_no2gnode_unispg[s][new_gidx[s]].Add(sink_gp[s]);
 
                         // Mapping to childs from parents
-                        for(int nd=1;nd<new_no2gnode_unispg[s]->Count();nd++) {
+                        for(int nd=1;nd<new_no2gnode_unispg[s][new_gidx[s]].Count();nd++) {
                             fprintf(stderr,"Node %d with parents:", nd);
-                            for(int p=0;p<new_no2gnode_unispg[s]->Get(nd)->parent.Count();p++) {
-                                int parent_node_idx = new_no2gnode_unispg[s]->Get(nd)->parent[p];
+                            for(int p=0;p<new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->parent.Count();p++) {
+                                int parent_node_idx = new_no2gnode_unispg[s][new_gidx[s]].Get(nd)->parent[p];
                                 fprintf(stderr,"%d, ", parent_node_idx);
                                 if (parent_node_idx >= nd) {
                                     fprintf(stderr,"!!!!!!!!!!! Error !!!!!!!!!!!!!!!!");
                                 }
-                                new_no2gnode_unispg[s]->Get(parent_node_idx)->child.Add(nd);
+                                new_no2gnode_unispg[s][new_gidx[s]].Get(parent_node_idx)->child.Add(nd);
                             }
                             fprintf(stderr,"\n");
                         }
                         WriteUNISPG(fidx, s, NULL, NULL);
 
-                        Clear_no2gnode_unispg();
-                        Copy_new_no2gnode_unispg_2_no2gnode_unispg();
-                        Clear_new_no2gnode_unispg();
+                        // Clear_no2gnode_unispg();
+                        // Copy_new_no2gnode_unispg_2_no2gnode_unispg();
+                        // Clear_new_no2gnode_unispg();
                         
-                        new_gidx[s]=0;
+                        new_gidx[s]++;
 
 
                         // cout << "\tPrint lclg_nonoverlap parents: " << endl;
                         // for (int i=0; i<lclg_nonoverlap[s]->Count(); i++) {
                         //     cout << "\tCurrent node " << i << "'s parents: " << endl << "\t";
-                        //     for (int p=0; p<new_no2gnode_unispg[s]->Get(i)->parent.Count(); p++) {
+                        //     for (int p=0; p<new_no2gnode_unispg[s][new_gidx[s]].Get(i)->parent.Count(); p++) {
                         //         cout << p << ", ";
                         //     }
                         //     cout << endl;
                         // }
 
                         // cout << "\tPrint new_no2gnode_unispg parents: " << endl;
-                        // for (int i=0; i<new_no2gnode_unispg[s]->Count(); i++) {
+                        // for (int i=0; i<new_no2gnode_unispg[s][new_gidx[s]].Count(); i++) {
                         //     cout << "\tCurrent node " << i << "'s parents: " << endl << "\t";
-                        //     for (int p=0; p<new_no2gnode_unispg[s]->Get(i)->parent.Count(); p++) {
+                        //     for (int p=0; p<new_no2gnode_unispg[s][new_gidx[s]].Get(i)->parent.Count(); p++) {
                         //         cout << p << ", ";
                         //     }
                         //     cout << endl;
@@ -2730,11 +2720,11 @@ void UnispgGp::AddGraph(int fidx, int s, GPVec<CGraphnode>* no2gnode, int lclg_l
 //     // GVec<int> graphno_unispg[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
 //     // GVec<int> edgeno_unispg[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
 //     fprintf(stderr, "fidx: %d  s: %d\n", fidx, s);
-//     fprintf(stderr, "new_no2gnode_unispg size: %d \n", new_no2gnode_unispg[s]->Count());
+//     fprintf(stderr, "new_no2gnode_unispg size: %d \n", new_no2gnode_unispg[s][new_gidx[s]].Count());
 //     fprintf(stderr, "graphno_unispg size: %d \n", graphno_unispg[s]);
 //     fprintf(stderr, "edgeno_unispg size: %d \n", edgeno_unispg[s]);
 
-//     // gpos_unispg[s]=new GIntHash<int>[new_no2gnode_unispg[s]->Count()];
+//     // gpos_unispg[s]=new GIntHash<int>[new_no2gnode_unispg[s][new_gidx[s]].Count()];
 //     // GBitVec trpat(graphno_unispg[s]+edgeno_unispg[s]);
 //     // GVec<int> nodes;
 //     // float abund = 0.0;
@@ -2792,12 +2782,200 @@ void UnispgGp::PrintGraphGp() {
 }
 
 
-void UnispgGp::WriteGraphGp(int fidx, int s, int unispg_start_idx, int unispg_end_idx) {
+void UnispgGp::WriteUNISPG_DOT(int fidx, int s, int unispg_start_idx, int unispg_end_idx) {
     fprintf(stderr, "*********************************\n");
-    fprintf(stderr, "*********** WriteGraphGp ********\n");
+    fprintf(stderr, "*********** WriteUNISPG_DOT ********\n");
     fprintf(stderr, "*********************************\n");
 
-    // if (fidx == 0) {
+    
+    if (fidx == 0) {
+        for (int g=unispg_start_idx; g<unispg_end_idx; g++) {
+            for (int check_node=0; check_node<no2gnode_unispg[s][g].Count(); check_node++) {
+                fprintf(stderr, "%d, ", no2gnode_unispg[s][g][check_node]->nodeid);
+            }
+            fprintf(stderr,"Traversing the universal splice graph!!!\n");
+            // for(int nd=0;nd<no2gnode_unispg[s][g].Count();nd++) {
+            fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
+            fprintf(stderr,"after traverse:\n");
+            // uinigraph_out
+            // fprintf(stderr,"strict digraph %d_%d_%d_%d {", no2gnode_unispg[s][g].Get(1)->start, no2gnode_unispg[s][g].Get(no2gnode_unispg[s][g].Count()-2)->end, s, g);
+            GStr node_g(g);
+            GStr strand_s(s);
+            int node_start = 0;
+            int node_end = 0;
+            GStr unispg_start("");
+            GStr unispg_end("");
+            unispg_start = int(no2gnode_unispg[s][g][1]->start);
+            unispg_end = int(no2gnode_unispg[s][g][ no2gnode_unispg[s][g].Count()-2 ]->end);
+
+            GStr dot_first_line = "strict digraph " + unispg_start + "_" + unispg_end + "_" + strand_s + "_" + node_g + " {";
+
+            fprintf(stderr, dot_first_line.chars());
+            fprintf(dot_vec[s]->Get(fidx), dot_first_line.chars());
+
+            // graphno[s][b]: number of nodes in graph.
+
+            for(int nd=1;nd<no2gnode_unispg[s][g].Count()-1;nd++) {
+                // fprintf(stderr,"%d[start=%d end=%d cov=%f];",nd,no2gnode_unispg[s][g][nd]->start,no2gnode_unispg[s][g][nd]->end,no2gnode_unispg[s][g][nd]->cov_s->Get(0));
+
+        GStr unispg_nd_start("");
+        GStr unispg_nd_end("");
+        GStr nd_GStr(nd);
+        GStr unispg_nd_cov(no2gnode_unispg[s][g][nd]->cov_s->Get(0));
+
+        unispg_nd_start = int(no2gnode_unispg[s][g][nd]->start);
+        unispg_nd_end = int(no2gnode_unispg[s][g][nd]->end);
+
+                GStr node_info = nd_GStr+"[start=" + unispg_nd_start + " end=" + unispg_nd_end + " cov=" + unispg_nd_cov + "];";
+                fprintf(stderr, node_info.chars());
+                fprintf(dot_vec[s]->Get(fidx), node_info.chars());
+            }
+
+            for(int nd=0;nd<no2gnode_unispg[s][g].Count();nd++) {
+    GStr nd_GStr(nd);
+                // fprintf(stderr,"Node %d with parents:",i);
+                for(int c=0;c<no2gnode_unispg[s][g][nd]->child.Count();c++) {
+    GStr nd_child_GStr(no2gnode_unispg[s][g][nd]->child[c]);
+                    // fprintf(stderr,"%d->",nd);			
+                    // fprintf(stderr,"%d;",no2gnode_unispg[s][g][nd]->child[c]);
+    GStr edge_info = nd_GStr+"->" + nd_child_GStr + ";";
+
+                    // fprintf(stderr,"%d->",nd);			
+                    // fprintf(stderr,"%d;",no2gnode_unispg[s][g][nd]->child[c]);
+                    fprintf(stderr, edge_info.chars());			
+                    fprintf(dot_vec[s]->Get(fidx), edge_info.chars());
+                }
+            }
+
+            fprintf(stderr,"}\n");
+            fprintf(dot_vec[s]->Get(fidx), "}\n");
+
+
+
+
+
+
+
+
+
+
+            //     fprintf(stderr,"%d[start=%d end=%d] (nodeid: %d);",nd,no2gnode_unispg[s][g][nd]->start,no2gnode_unispg[s][g][nd]->end, no2gnode_unispg[s][g][nd]->nodeid);
+            //     int node_start = 0;
+            //     int node_end = 0;
+            //     GStr node_nd(nd);
+            //     GStr unispg_start("");
+            //     GStr unispg_end("");
+
+            //     unispg_start = int(no2gnode_unispg[s][g][1]->start);
+            //     unispg_end = int(no2gnode_unispg[s][g][ no2gnode_unispg[s][g].Count()-2 ]->end);
+
+            //     GStr node_name = "Node_" + unispg_start + "_" + unispg_end + "_" + node_g + "_" + node_nd;
+            //     fprintf(stderr, "node_name: %s\n", node_name.chars());
+
+            //     if (nd == 0) {
+            //         node_start = no2gnode_unispg[s][g][1]->start-20;
+            //         node_end = no2gnode_unispg[s][g][1]->start;
+            //     } else if (nd == no2gnode_unispg[s][g].Count()-1){
+            //         node_start = no2gnode_unispg[s][g][no2gnode_unispg[s][g].Count()-2]->end-1;
+            //         node_end = 	no2gnode_unispg[s][g][no2gnode_unispg[s][g].Count()-2]->end+20;
+            //     } else {
+            //         node_start = no2gnode_unispg[s][g][nd]->start-1;
+            //         node_end = no2gnode_unispg[s][g][nd]->end;		
+            //     }
+
+
+            //     if (nd == 0) {
+            //         if(s == 0) {
+            //             fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
+            //         } else if (s == 1) {
+            //             fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
+            //         }
+            //     } else if (nd == no2gnode_unispg[s][g].Count()-1){
+            //         if(s == 0) {
+            //         // fprintf(node_cov_neg_bed, "chr22\t%d\t%d\tNODE\t%f\t+\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
+
+            //             fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t+\n", node_start, node_end, node_name.chars());
+            //         } else if (s == 1) {
+            //             // fprintf(node_cov_pos_bed, "chr22\t%d\t%d\tNODE\t%f\t-\n", no2gnode[s][g][no2gnode[s][g].Count()-2]->end, no2gnode[s][g][no2gnode[s][g].Count()-2]->end+200, 0);
+
+            //             fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t-\n", node_start, node_end, node_name.chars());
+            //         }
+            //     } else {
+            //         if(s == 0) {
+            //             // fprintf(node_cov_neg_bed, "chr22\t%d\t%d\t%f\t%s\n", no2gnode[s][g][nd]->start, no2gnode[s][g][nd]->end, no2gnode[s][g][nd]->cov, strand_symbol.chars());
+            //             fprintf(node_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
+            //         } else if (s == 1) {
+            //             fprintf(node_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t0\t%s\n", node_start, node_end, node_name.chars(), strand_symbol.chars());
+            //         }
+            //     }
+            // }
+
+            // for(int nd=0;nd<no2gnode_unispg[s][g].Count()-1;nd++) {
+            // 	// fprintf(stderr,"Node %d with parents:",i);
+            // 	GStr node_parent_nd(nd);
+                
+            // 	for(int c=0;c<no2gnode_unispg[s][g][nd]->child.Count();c++) {
+            //         edgeno_unispg[s]++;
+            // 		GStr node_child_nd(no2gnode_unispg[s][g][nd]->child[c]);
+            // 		fprintf(stderr,"%d->",nd);			
+            // 		fprintf(stderr,"%d;",no2gnode_unispg[s][g][nd]->child[c]);
+            // 		GStr junction_name = "Junc_" + node_g + "_" + node_parent_nd + "->" + node_child_nd;
+            // 		fprintf(stderr, "junction_name: %s\n", junction_name.chars());
+
+            // 		int junc_start = 0;
+            // 		int junc_end = 0;
+
+            // 		if (nd == 0) {
+            // 			// It's the source node.
+            // 			junc_start = no2gnode_unispg[s][g][1]->start-20;
+            // 		} else {
+            // 			junc_start = no2gnode_unispg[s][g][nd]->end;
+            // 		}
+
+            // 		if (no2gnode_unispg[s][g][ no2gnode_unispg[s][g][nd]->child[c] ] -> start == 0) {
+            // 			// The node goes to the sink.
+            // 			junc_end = no2gnode_unispg[s][g][no2gnode_unispg[s][g].Count()-2]->end+20;
+            // 		} else {
+            // 			junc_end = no2gnode_unispg[s][g][ no2gnode_unispg[s][g][nd]->child[c] ] -> start;
+            // 		}
+            // 		if(s == 0) {
+            //             if (nd == 0 || no2gnode_unispg[s][g][ no2gnode_unispg[s][g][nd]->child[c] ] -> start == 0) {
+            // 			    fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "+");
+            //             } else {
+            // 			    fprintf(edge_cov_neg_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+            //             }
+            // 		} else if (s == 1) {
+            //             if (nd == 0 || no2gnode_unispg[s][g][ no2gnode_unispg[s][g][nd]->child[c] ] -> start == 0) {
+            // 			    fprintf(edge_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, "-");
+            //             } else {
+            // 			    fprintf(edge_cov_pos_bed_unispg_vec.Get(fidx), "chr22\t%d\t%d\t%s\t%d\t%s\n", junc_start, junc_end, junction_name.chars(), 10, strand_symbol.chars());
+            //             }
+            // 		}
+            // 	}
+            // }
+            // fprintf(stderr,"}\n");
+            // // unispg_gp->current_gidx[s] += 1;=
+            // // sink->parent.Add(node->nodeid); // add node to sink's parents
+        }
+
+
+
+
+
+    } else if (fidx == 1) {
+
+    }
+
+
+
+
+
+
+    //  DOT file outut here 
+    //  not capacity and rate 
+    //  only edge weight
+    // for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+    //     int s=sno/2; // adjusted strand due to ignoring neutral strand
     //     fprintf(stderr, "no2gnode_unispg[s]->Count(): %d\n", no2gnode_unispg[s]->Count());
     //     for(int g=0;g<no2gnode_unispg[s]->Count();g++) {
     //         fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
@@ -2819,38 +2997,7 @@ void UnispgGp::WriteGraphGp(int fidx, int s, int unispg_start_idx, int unispg_en
 
     //         fprintf(stderr,"}\n");
     //     }
-
-    // } else if (fidx == 1) {
-
     // }
-
-    //  DOT file outut here 
-    //  not capacity and rate 
-    //  only edge weight
-    for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-        int s=sno/2; // adjusted strand due to ignoring neutral strand
-        fprintf(stderr, "no2gnode_unispg[s]->Count(): %d\n", no2gnode_unispg[s]->Count());
-        for(int g=0;g<no2gnode_unispg[s]->Count();g++) {
-            fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
-            fprintf(stderr,"after traverse:\n");
-            // uinigraph_out
-            fprintf(stderr,"strict digraph %d_%d_%d_%d {", no2gnode_unispg[s][g].Get(1)->start, no2gnode_unispg[s][g].Get(no2gnode_unispg[s][g].Count()-2)->end, s, g);
-            // graphno[s][b]: number of nodes in graph.
-
-            for(int nd=1;nd<no2gnode_unispg[s][g].Count()-1;nd++)
-                fprintf(stderr,"%d[start=%d end=%d cov=%f];",nd,no2gnode_unispg[s][g][nd]->start,no2gnode_unispg[s][g][nd]->end,no2gnode_unispg[s][g][nd]->cov_s->Get(0));
-
-            for(int nd=0;nd<no2gnode_unispg[s][g].Count();nd++) {
-                // fprintf(stderr,"Node %d with parents:",i);
-                for(int c=0;c<no2gnode_unispg[s][g][nd]->child.Count();c++) {
-                    fprintf(stderr,"%d->",nd);			
-                    fprintf(stderr,"%d;",no2gnode_unispg[s][g][nd]->child[c]);
-                }
-            }
-
-            fprintf(stderr,"}\n");
-        }
-    }
 }
 
 

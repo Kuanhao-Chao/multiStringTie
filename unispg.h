@@ -18,20 +18,45 @@
 #include <vector>
 using namespace std;
 
-extern GVec<FILE*> node_cov_pos_bed_vec;
-extern GVec<FILE*> node_cov_neg_bed_vec;
-extern GVec<FILE*> edge_cov_pos_bed_vec;
-extern GVec<FILE*> edge_cov_neg_bed_vec;
+extern GVec<FILE*> pos_dot_vec;
+extern GVec<GStr> pos_dotfname_vec; 
+extern GVec<FILE*> neg_dot_vec;
+extern GVec<GStr> neg_dotfname_vec; 
 
-extern GVec<FILE*> node_cov_pos_bed_unispg_vec;
-extern GVec<FILE*> node_cov_neg_bed_unispg_vec;
-extern GVec<FILE*> edge_cov_pos_bed_unispg_vec;
-extern GVec<FILE*> edge_cov_neg_bed_unispg_vec;
+extern GVec<FILE*>* dot_vec[2];
+extern GVec<GStr>* dotfname_vec[2];
 
-extern GVec<FILE*> node_cov_pos_novp_bed_vec;
-extern GVec<FILE*> node_cov_neg_novp_bed_vec;
-extern GVec<FILE*> edge_cov_pos_novp_bed_vec;
-extern GVec<FILE*> edge_cov_neg_novp_bed_vec;
+
+extern GVec<FILE*>* node_lclg_bed_vec[2];
+extern GVec<GStr>* nodelclgfname_vec[2]; 
+extern GVec<FILE*>* edge_lclg_bed_vec[2];
+extern GVec<GStr>* edgelclgfname_vec[2]; 
+
+extern GVec<FILE*>* node_novp_bed_vec[2];
+extern GVec<GStr>* nodenovpfname_vec[2]; 
+extern GVec<FILE*>* edge_novp_bed_vec[2];
+extern GVec<GStr>* edgenovpfname_vec[2]; 
+
+extern GVec<FILE*>* node_unispg_bed_vec[2];
+extern GVec<GStr>* nodeunispgfname_vec[2]; 
+extern GVec<FILE*>* edge_unispg_bed_vec[2];
+extern GVec<GStr>* edgeunispgfname_vec[2]; 
+
+
+// extern GVec<FILE*> node_cov_pos_bed_vec;
+// extern GVec<FILE*> node_cov_neg_bed_vec;
+// extern GVec<FILE*> edge_cov_pos_bed_vec;
+// extern GVec<FILE*> edge_cov_neg_bed_vec;
+
+// extern GVec<FILE*> node_cov_pos_bed_unispg_vec;
+// extern GVec<FILE*> node_cov_neg_bed_unispg_vec;
+// extern GVec<FILE*> edge_cov_pos_bed_unispg_vec;
+// extern GVec<FILE*> edge_cov_neg_bed_unispg_vec;
+
+// extern GVec<FILE*> node_cov_pos_novp_bed_vec;
+// extern GVec<FILE*> node_cov_neg_novp_bed_vec;
+// extern GVec<FILE*> edge_cov_pos_novp_bed_vec;
+// extern GVec<FILE*> edge_cov_neg_novp_bed_vec;
 
 typedef std::tuple<int, int, int> b_g_n_tuple;
 
@@ -341,7 +366,7 @@ struct UnispgGp {
 
 		void MoveUnispgNode(bool& unispg_is_end, bool& unispg_move);
 		void MoveLclgNode(bool& lclg_is_end, bool& lclg_move);
-		void WriteGraphGp();
+		void WriteUNISPG_DOT(int fidx, int s, int unispg_start_idx, int unispg_end_idx);
 
 		void Clear() {
 		// fprintf(stderr, "**** Start Clearing !!!! \n ");
@@ -377,7 +402,7 @@ struct UnispgGp {
 		}
 
 		void Clear_no2gnode_unispg() {
-		// fprintf(stderr, "**** Start Clearing !!!! \n ");
+		fprintf(stderr, "**** Start Clear_no2gnode_unispg !!!! \n ");
 			for(int i=0;i<2;i++) {
 				delete [] no2gnode_unispg[i];
 				no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];

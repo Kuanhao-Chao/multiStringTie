@@ -160,6 +160,43 @@ FILE* node_cov_neg_bed = NULL;
 GStr nodecovnegfname; 
 FILE* edge_cov_neg_bed = NULL;
 GStr edgecovnegfname; 
+
+GVec<FILE*> pos_dot_vec = NULL;
+GVec<GStr> pos_dotfname_vec; 
+GVec<FILE*> neg_dot_vec = NULL;
+GVec<GStr> neg_dotfname_vec; 
+
+
+
+FILE* dot = NULL;
+GStr dotfname; 
+GVec<FILE*>* dot_vec[2];
+GVec<GStr>* dotfname_vec[2]; 
+
+
+
+GVec<FILE*>* node_lclg_bed_vec[2];
+GVec<GStr>* nodelclgfname_vec[2]; 
+GVec<FILE*>* edge_lclg_bed_vec[2];
+GVec<GStr>* edgelclgfname_vec[2]; 
+
+GVec<FILE*>* node_novp_bed_vec[2];
+GVec<GStr>* nodenovpfname_vec[2]; 
+GVec<FILE*>* edge_novp_bed_vec[2];
+GVec<GStr>* edgenovpfname_vec[2]; 
+
+GVec<FILE*>* node_unispg_bed_vec[2];
+GVec<GStr>* nodeunispgfname_vec[2]; 
+GVec<FILE*>* edge_unispg_bed_vec[2];
+GVec<GStr>* edgeunispgfname_vec[2]; 
+
+FILE* node_cov_bed = NULL;
+GStr nodecovfname; 
+FILE* edge_cov_bed = NULL;
+GStr edgecovfname; 
+
+
+
 GVec<FILE*> node_cov_pos_bed_vec = NULL;
 GVec<GStr> nodecovposfname_vec; 
 GVec<FILE*> edge_cov_pos_bed_vec = NULL;
@@ -384,6 +421,27 @@ int main(int argc, char* argv[]) {
 
 	int bamcount=bamreader.start(); //setup and open input files
 	fprintf(stderr, "&& bamcount number: %d\n", bamcount);
+
+	for(int s=0;s<2;s++) { // skip neutral bundles -> those shouldn't have junctions
+		dot_vec[s] = new GVec<FILE*>[bamcount];
+		dotfname_vec[s] = new GVec<GStr>[bamcount];
+
+		node_lclg_bed_vec[s] = new GVec<FILE*>[bamcount];
+		nodelclgfname_vec[s] = new GVec<GStr>[bamcount];
+		edge_lclg_bed_vec[s] = new GVec<FILE*>[bamcount];
+		edgelclgfname_vec[s] = new GVec<GStr>[bamcount];
+
+		node_novp_bed_vec[s] = new GVec<FILE*>[bamcount];
+		nodenovpfname_vec[s] = new GVec<GStr>[bamcount];
+		edge_novp_bed_vec[s] = new GVec<FILE*>[bamcount];
+		edgenovpfname_vec[s] = new GVec<GStr>[bamcount];
+
+		node_unispg_bed_vec[s] = new GVec<FILE*>[bamcount];
+		nodeunispgfname_vec[s] = new GVec<GStr>[bamcount];
+		edge_unispg_bed_vec[s] = new GVec<FILE*>[bamcount];
+		edgeunispgfname_vec[s] = new GVec<GStr>[bamcount];
+	}
+
 
 #ifndef GFF_DEBUG
 	if (bamcount<1) {
@@ -648,75 +706,197 @@ int main(int argc, char* argv[]) {
 			unispg_gp->ProcessSample(bamreader.files.Get(file_idx));
 			unispg_gp->PrintGraphGp();
 
-			nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+".bed";
-			edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+".bed";	
-			node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
-			edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
-			fprintf(node_cov_pos_bed, "track name=Sample_"+GStr(file_idx)+"_node_pos_cov color=255,0,0 altColor=0,0,255\n");
-			fprintf(edge_cov_pos_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_pos_cov color=255,0,0 altColor=0,0,255\n");
-			nodecovposfname_vec.Add(nodecovposfname);
-			edgecovposfname_vec.Add(edgecovposfname);
-			node_cov_pos_bed_vec.Add(node_cov_pos_bed);
-			edge_cov_pos_bed_vec.Add(edge_cov_pos_bed);
+			// nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+".bed";
+			// edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+".bed";	
+			// node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
+			// edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
+			// fprintf(node_cov_pos_bed, "track name=Sample_"+GStr(file_idx)+"_node_pos_cov color=255,0,0 altColor=0,0,255\n");
+			// fprintf(edge_cov_pos_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_pos_cov color=255,0,0 altColor=0,0,255\n");
+			// nodecovposfname_vec.Add(nodecovposfname);
+			// edgecovposfname_vec.Add(edgecovposfname);
+			// node_cov_pos_bed_vec.Add(node_cov_pos_bed);
+			// edge_cov_pos_bed_vec.Add(edge_cov_pos_bed);
 
 
-			nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+"_nonovp.bed";
-			edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+"_nonovp.bed";
-			node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
-			edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
-			fprintf(node_cov_pos_bed, "track name=Sample_"+GStr(file_idx)+"_node_pos_cov_nonovp color=255,0,0 altColor=0,0,255\n");
-			fprintf(edge_cov_pos_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_pos_cov_nonovp color=255,0,0 altColor=0,0,255\n");
-			nodecovposnovp_fname_vec.Add(nodecovposfname);
-			edgecovposnovp_fname_vec.Add(edgecovposfname);
-			node_cov_pos_novp_bed_vec.Add(node_cov_pos_bed);
-			edge_cov_pos_novp_bed_vec.Add(edge_cov_pos_bed);
+			// nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+"_nonovp.bed";
+			// edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+"_nonovp.bed";
+			// node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
+			// edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
+			// fprintf(node_cov_pos_bed, "track name=Sample_"+GStr(file_idx)+"_node_pos_cov_nonovp color=255,0,0 altColor=0,0,255\n");
+			// fprintf(edge_cov_pos_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_pos_cov_nonovp color=255,0,0 altColor=0,0,255\n");
+			// nodecovposnovp_fname_vec.Add(nodecovposfname);
+			// edgecovposnovp_fname_vec.Add(edgecovposfname);
+			// node_cov_pos_novp_bed_vec.Add(node_cov_pos_bed);
+			// edge_cov_pos_novp_bed_vec.Add(edge_cov_pos_bed);
 
-			nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+"_unispg.bed";
-			edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+"_unispg.bed";	
-			node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
-			edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
-			fprintf(node_cov_pos_bed, "track name=Sample_"+GStr(file_idx)+"_node_pos_cov_unispg color=255,0,0 altColor=0,0,255\n");
-			fprintf(edge_cov_pos_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_pos_cov_unispg color=255,0,0 altColor=0,0,255\n");
-			nodecovposfname_unispg_vec.Add(nodecovposfname);
-			edgecovposfname_unispg_vec.Add(edgecovposfname);
-			node_cov_pos_bed_unispg_vec.Add(node_cov_pos_bed);
-			edge_cov_pos_bed_unispg_vec.Add(edge_cov_pos_bed);
-
-			nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+".bed";
-			edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+".bed";	
-			node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
-			edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
-			fprintf(node_cov_neg_bed, "track name=Sample_"+GStr(file_idx)+"_node_neg_cov color=255,0,0 altColor=0,0,255\n");
-			fprintf(edge_cov_neg_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_neg_cov color=255,0,0 altColor=0,0,255\n");
-			nodecovnegfname_vec.Add(nodecovnegfname);
-			edgecovnegfname_vec.Add(edgecovnegfname);
-			node_cov_neg_bed_vec.Add(node_cov_neg_bed);
-			edge_cov_neg_bed_vec.Add(edge_cov_neg_bed);
+			// nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+"_unispg.bed";
+			// edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+"_unispg.bed";	
+			// node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
+			// edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
+			// fprintf(node_cov_pos_bed, "track name=Sample_"+GStr(file_idx)+"_node_pos_cov_unispg color=255,0,0 altColor=0,0,255\n");
+			// fprintf(edge_cov_pos_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_pos_cov_unispg color=255,0,0 altColor=0,0,255\n");
+			// nodecovposfname_unispg_vec.Add(nodecovposfname);
+			// edgecovposfname_unispg_vec.Add(edgecovposfname);
+			// node_cov_pos_bed_unispg_vec.Add(node_cov_pos_bed);
+			// edge_cov_pos_bed_unispg_vec.Add(edge_cov_pos_bed);
 
 
-			nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+"_nonovp.bed";
-			edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+"_nonovp.bed";
-			node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
-			edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
-			fprintf(node_cov_neg_bed, "track name=Sample_"+GStr(file_idx)+"_node_neg_cov_nonovp color=255,0,0 altColor=0,0,255\n");
-			fprintf(edge_cov_neg_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_neg_cov_nonovp color=255,0,0 altColor=0,0,255\n");
-			nodecovnegnovp_fname_vec.Add(nodecovnegfname);
-			edgecovnegnovp_fname_vec.Add(edgecovnegfname);
-			node_cov_neg_novp_bed_vec.Add(node_cov_neg_bed);
-			edge_cov_neg_novp_bed_vec.Add(edge_cov_neg_bed);
+
+			// nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+".bed";
+			// edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+".bed";	
+			// node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
+			// edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
+			// fprintf(node_cov_neg_bed, "track name=Sample_"+GStr(file_idx)+"_node_neg_cov color=255,0,0 altColor=0,0,255\n");
+			// fprintf(edge_cov_neg_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_neg_cov color=255,0,0 altColor=0,0,255\n");
+			// nodecovnegfname_vec.Add(nodecovnegfname);
+			// edgecovnegfname_vec.Add(edgecovnegfname);
+			// node_cov_neg_bed_vec.Add(node_cov_neg_bed);
+			// edge_cov_neg_bed_vec.Add(edge_cov_neg_bed);
+
+
+			// nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+"_nonovp.bed";
+			// edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+"_nonovp.bed";
+			// node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
+			// edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
+			// fprintf(node_cov_neg_bed, "track name=Sample_"+GStr(file_idx)+"_node_neg_cov_nonovp color=255,0,0 altColor=0,0,255\n");
+			// fprintf(edge_cov_neg_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_neg_cov_nonovp color=255,0,0 altColor=0,0,255\n");
+			// nodecovnegnovp_fname_vec.Add(nodecovnegfname);
+			// edgecovnegnovp_fname_vec.Add(edgecovnegfname);
+			// node_cov_neg_novp_bed_vec.Add(node_cov_neg_bed);
+			// edge_cov_neg_novp_bed_vec.Add(edge_cov_neg_bed);
 			
 
-			nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+"_unispg.bed";
-			edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+"_unispg.bed";	
-			node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
-			edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
-			fprintf(node_cov_neg_bed, "track name=Sample_"+GStr(file_idx)+"_node_neg_cov_unispg color=255,0,0 altColor=0,0,255\n");
-			fprintf(edge_cov_neg_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_neg_cov_unispg color=255,0,0 altColor=0,0,255\n");
-			nodecovnegfname_unispg_vec.Add(nodecovnegfname);
-			edgecovnegfname_unispg_vec.Add(edgecovnegfname);
-			node_cov_neg_bed_unispg_vec.Add(node_cov_neg_bed);
-			edge_cov_neg_bed_unispg_vec.Add(edge_cov_neg_bed);
-			// chr1    10071   85823   JUNC00000002    1       -
+			// nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+"_unispg.bed";
+			// edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+"_unispg.bed";	
+			// node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
+			// edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
+			// fprintf(node_cov_neg_bed, "track name=Sample_"+GStr(file_idx)+"_node_neg_cov_unispg color=255,0,0 altColor=0,0,255\n");
+			// fprintf(edge_cov_neg_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_neg_cov_unispg color=255,0,0 altColor=0,0,255\n");
+			// nodecovnegfname_unispg_vec.Add(nodecovnegfname);
+			// edgecovnegfname_unispg_vec.Add(edgecovnegfname);
+			// node_cov_neg_bed_unispg_vec.Add(node_cov_neg_bed);
+			// edge_cov_neg_bed_unispg_vec.Add(edge_cov_neg_bed);
+			// // chr1    10071   85823   JUNC00000002    1       -
+
+			GStr direction("");
+			for (int s=0; s<2; s++) {
+				if (s == 0) {
+					direction = "neg";
+				} else if (s == 1) {
+					direction = "pos";
+				}
+				dotfname = outfname_prefix + "_node_"+direction.chars()+"_"+GStr(file_idx)+"_unispg.dot";
+				dot = fopen(dotfname.chars(), "w");
+
+				dotfname_vec[s]->Add(dotfname);
+				dot_vec[s]->Add(dot);
+
+				nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_lclg_"+GStr(file_idx)+".bed";
+				edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_lclg_"+GStr(file_idx)+".bed";				
+				node_cov_bed = fopen(nodecovfname.chars(), "w");				
+				edge_cov_bed = fopen(edgecovfname.chars(), "w");
+				fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+				fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+				fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+				fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+				nodelclgfname_vec[s]->Add(nodecovfname);
+				edgelclgfname_vec[s]->Add(edgecovfname);
+				node_lclg_bed_vec[s]->Add(node_cov_bed);
+				edge_lclg_bed_vec[s]->Add(edge_cov_bed);
+
+
+				nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_nonovp_"+GStr(file_idx)+".bed";
+				edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_nonovp_"+GStr(file_idx)+".bed";				
+				node_cov_bed = fopen(nodecovfname.chars(), "w");				
+				edge_cov_bed = fopen(edgecovfname.chars(), "w");
+				fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+				fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+				fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+				fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+				nodenovpfname_vec[s]->Add(nodecovfname);
+				edgenovpfname_vec[s]->Add(edgecovfname);
+				node_novp_bed_vec[s]->Add(node_cov_bed);
+				edge_novp_bed_vec[s]->Add(edge_cov_bed);
+
+
+
+				nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_unispg_"+GStr(file_idx)+".bed";
+				edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_unispg_"+GStr(file_idx)+".bed";				
+				node_cov_bed = fopen(nodecovfname.chars(), "w");				
+				edge_cov_bed = fopen(edgecovfname.chars(), "w");
+				fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+				fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+				fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+				fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+				nodeunispgfname_vec[s]->Add(nodecovfname);
+				edgeunispgfname_vec[s]->Add(edgecovfname);
+				node_unispg_bed_vec[s]->Add(node_cov_bed);
+				edge_unispg_bed_vec[s]->Add(edge_cov_bed);
+			}
+
+
+			// GStr direction("");
+			// for (int s=0; s<2; s++) {
+			// 	int s = 1;
+			// 	if (s == 0) {
+			// 		direction = "neg";
+			// 	} else if (s == 1) {
+			// 		direction = "pos";
+			// 	}
+			// 	FILE* node_cov_bed = NULL;
+			// 	GStr nodecovfname; 
+			// 	FILE* edge_cov_bed = NULL;
+			// 	GStr edgecovfname; 
+
+			// 	nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_cov"+GStr(file_idx)+".bed";
+			// 	edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_cov"+GStr(file_idx)+".bed";
+
+			// 	node_cov_bed = fopen(nodecovfname.chars(), "w");				
+			// 	edge_cov_bed = fopen(edgecovfname.chars(), "w");
+			// 	fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+			// 	fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+
+			// 	fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+			// 	fprintf(edge_cov_bed, "TEST!!!!\n");
+
+			// 	fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+
+			// 	nodecovfname_vec[s]->Add(&nodecovfname);
+			// 	edgecovfname_vec[s]->Add(&edgecovfname);
+			// 	node_cov_bed_vec[s]->Add(&node_cov_bed);
+			// 	edge_cov_bed_vec[s]->Add(&edge_cov_bed);
+
+
+			// 	// nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_cov"+GStr(file_idx)+"_nonovp.bed";
+			// 	// edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_cov"+GStr(file_idx)+"_nonovp.bed";
+			// 	// node_cov_bed = fopen(nodecovfname.chars(), "w");
+			// 	// edge_cov_bed = fopen(edgecovfname.chars(), "w");
+			// 	// fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov_nonovp color=255,0,0 altColor=0,0,255\n");
+			// 	// fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov_nonovp color=255,0,0 altColor=0,0,255\n");
+			// 	// nodecovnovp_fname_vec[s].Add(nodecovfname);
+			// 	// edgecovnovp_fname_vec[s].Add(edgecovfname);
+			// 	// node_cov_novp_bed_vec[s].Add(node_cov_bed);
+			// 	// edge_cov_novp_bed_vec[s].Add(edge_cov_bed);
+
+			// 	// nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_cov"+GStr(file_idx)+"_unispg.bed";
+			// 	// edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_cov"+GStr(file_idx)+"_unispg.bed";	
+			// 	// node_cov_bed = fopen(nodecovfname.chars(), "w");
+			// 	// edge_cov_bed = fopen(edgecovfname.chars(), "w");
+			// 	// fprintf(node_cov_pos_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov_unispg color=255,0,0 altColor=0,0,255\n");
+			// 	// fprintf(edge_cov_pos_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov_unispg color=255,0,0 altColor=0,0,255\n");
+			// 	// nodecovfname_unispg_vec[s].Add(nodecovfname);
+			// 	// edgecovfname_unispg_vec[s].Add(edgecovfname);
+			// 	// node_cov_bed_unispg_vec[s].Add(node_cov_bed);
+			// 	// edge_cov_bed_unispg_vec[s].Add(edge_cov_bed);
+			// }
+
+
+
+
+
+
+
+
 
 			bundle->Clear();
 			brec=NULL;	
@@ -1064,8 +1244,8 @@ int main(int argc, char* argv[]) {
 			if (file_idx != 0) {
 				unispg_gp -> Clear_no2gnode_unispg();
 			// 	// Copy new_no2gnode_unispg to no2gnode_unispg
-        	// 	unispg_gp -> Copy_new_no2gnode_unispg_2_no2gnode_unispg();
-				// unispg_gp -> Clear_new_no2gnode_unispg();
+        		unispg_gp -> Copy_new_no2gnode_unispg_2_no2gnode_unispg();
+				unispg_gp -> Clear_new_no2gnode_unispg();
 			}
 		}
 	} else {
