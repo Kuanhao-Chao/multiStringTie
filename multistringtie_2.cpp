@@ -133,6 +133,8 @@ the following options are available:\n\
 */
 //---- globals
 
+// unispg dot file is generated for later on applying to a single BAM file.
+
 FILE* f_out=NULL;
 FILE* c_out=NULL;
 //#define B_DEBUG 1
