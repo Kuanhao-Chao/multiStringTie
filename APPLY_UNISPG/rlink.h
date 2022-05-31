@@ -8,7 +8,7 @@
 #include "time.h"
 #include "tablemaker.h"
 #include "GHashMap.hh"
-//#include "cds.h"
+// #include "multist.h"
 
 #define MAX_NODE 1000000
 #define KMER 31
@@ -54,6 +54,10 @@ extern float fpkm_thr;
 extern bool isunitig;
 extern bool nomulti;
 extern uint junctionsupport;
+extern uint sserror;
+extern int junctionthr;
+extern float mcov;
+extern int mintranscriptlen;
 
 //collect all refguide transcripts for a single genomic sequence
 struct GRefData {

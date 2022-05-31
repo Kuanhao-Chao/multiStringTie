@@ -1238,6 +1238,7 @@ int main(int argc, char* argv[]) {
 				}
 			} //for each read alignment
 			
+			
 			delete brec;
 			bamreader.stop_fidx(file_idx);
 
@@ -1373,62 +1374,68 @@ int main(int argc, char* argv[]) {
 			if (new_bundle || chr_changed) {
 				hashread.Clear();
 				if (bundle->readlist.Count()>0) { // process reads in previous bundle
-				// (readthr, junctionthr, mintranscriptlen are globals)
-				if (refptfs) { //point-features defined for this reference
-					while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<currentstart)
-						ptf_idx++;
-					//TODO: what if a PtFeature is nearby, just outside the bundle?
-					while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<=currentend) {
-						bundle->ptfs.Add(refptfs->Get(ptf_idx)); //keep this PtFeature
-						ptf_idx++;
+					// (readthr, junctionthr, mintranscriptlen are globals)
+					/*****************************
+					 * point-features defined for this reference
+					 *****************************/
+					if (refptfs) { //point-features defined for this reference
+						while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<currentstart)
+							ptf_idx++;
+						//TODO: what if a PtFeature is nearby, just outside the bundle?
+						while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<=currentend) {
+							bundle->ptfs.Add(refptfs->Get(ptf_idx)); //keep this PtFeature
+							ptf_idx++;
+						}
 					}
-				}
-				bundle->getReady(currentstart, currentend);
-				if (gfasta!=NULL) { //genomic sequence data requested
-					GFaSeqGet* faseq=gfasta->fetch(bundle->refseq.chars());
-					if (faseq==NULL) {
-						GError("Error: could not retrieve sequence data for %s!\n", bundle->refseq.chars());
+					bundle->getReady(currentstart, currentend);
+					/*****************************
+					 * genomic sequence data requested
+					 *****************************/
+					if (gfasta!=NULL) { //genomic sequence data requested
+						GFaSeqGet* faseq=gfasta->fetch(bundle->refseq.chars());
+						if (faseq==NULL) {
+							GError("Error: could not retrieve sequence data for %s!\n", bundle->refseq.chars());
+						}
+						bundle->gseq=faseq->copyRange(bundle->start, bundle->end, false, true);
 					}
-					bundle->gseq=faseq->copyRange(bundle->start, bundle->end, false, true);
-				}
-	#ifndef NOTHREADS
-				//push this in the bundle queue where it'll be picked up by the threads
-				DBGPRINT2("##> Locking queueMutex to push loaded bundle into the queue (bundle.start=%d)\n", bundle->start);
-				int qCount=0;
-				queueMutex.lock();
-				bundleQueue.Push(bundle);
-				bundleWork |= 0x02; //set bit 1
-				qCount=bundleQueue.Count();
-				queueMutex.unlock();
-				DBGPRINT2("##> bundleQueue.Count()=%d)\n", qCount);
-				//wait for a thread to pop this bundle from the queue
-				waitMutex.lock();
-				DBGPRINT("##> waiting for a thread to become available..\n");
-				while (threadsWaiting==0) {
-					haveThreads.wait(waitMutex);
-				}
-				waitMutex.unlock();
-				haveBundles.notify_one();
-				DBGPRINT("##> waitMutex unlocked, haveBundles notified, current thread yielding\n");
-				current_thread::yield();
-				queueMutex.lock();
-				DBGPRINT("##> queueMutex locked until bundleQueue.Count()==qCount\n");
-				while (bundleQueue.Count()==qCount) {
+		#ifndef NOTHREADS
+					//push this in the bundle queue where it'll be picked up by the threads
+					DBGPRINT2("##> Locking queueMutex to push loaded bundle into the queue (bundle.start=%d)\n", bundle->start);
+					int qCount=0;
+					queueMutex.lock();
+					bundleQueue.Push(bundle);
+					bundleWork |= 0x02; //set bit 1
+					qCount=bundleQueue.Count();
 					queueMutex.unlock();
-					DBGPRINT2("##> queueMutex unlocked as bundleQueue.Count()==%d\n", qCount);
+					DBGPRINT2("##> bundleQueue.Count()=%d)\n", qCount);
+					//wait for a thread to pop this bundle from the queue
+					waitMutex.lock();
+					DBGPRINT("##> waiting for a thread to become available..\n");
+					while (threadsWaiting==0) {
+						haveThreads.wait(waitMutex);
+					}
+					waitMutex.unlock();
 					haveBundles.notify_one();
+					DBGPRINT("##> waitMutex unlocked, haveBundles notified, current thread yielding\n");
 					current_thread::yield();
 					queueMutex.lock();
-					DBGPRINT("##> queueMutex locked again within while loop\n");
-				}
-				queueMutex.unlock();
+					DBGPRINT("##> queueMutex locked until bundleQueue.Count()==qCount\n");
+					while (bundleQueue.Count()==qCount) {
+						queueMutex.unlock();
+						DBGPRINT2("##> queueMutex unlocked as bundleQueue.Count()==%d\n", qCount);
+						haveBundles.notify_one();
+						current_thread::yield();
+						queueMutex.lock();
+						DBGPRINT("##> queueMutex locked again within while loop\n");
+					}
+					queueMutex.unlock();
 
-	#else //no threads
-				//Num_Fragments+=bundle->num_fragments;
-				//Frag_Len+=bundle->frag_len;
-				processBundle(bundle);
-	#endif
-				// ncluster++; used it for debug purposes only
+		#else //no threads
+					//Num_Fragments+=bundle->num_fragments;
+					//Frag_Len+=bundle->frag_len;
+					processBundle(bundle);
+		#endif
+					// ncluster++; used it for debug purposes only
 				} //have alignments to process
 				else { //no read alignments in this bundle?
 	#ifndef NOTHREADS
@@ -1568,6 +1575,7 @@ int main(int argc, char* argv[]) {
 					} while (cend_changed);
 				}
 			} //adjusted currentend and checked for overlapping reference transcripts
+			
 			GReadAlnData alndata(brec, 0, nh, hi, tinfo);
 			bool ovlpguide=bundle->evalReadAln(alndata, xstrand);
 
@@ -1577,6 +1585,9 @@ int main(int argc, char* argv[]) {
 			 *****************************/
 			// eonly: for mergeMode includes estimated coverage sum in the merged transcripts
 			if(!eonly || ovlpguide) {
+				/*****************************
+				 * If it is not in the MergeMode or it does not overlap the reference.
+				 *****************************/
 				if (xstrand=='+') alndata.strand=1;
 				else if (xstrand=='-') alndata.strand=-1;
 				//GMessage("%s\t%c\t%d\thi=%d\n",brec->name(), xstrand, alndata.strand,hi);
@@ -1585,6 +1596,7 @@ int main(int argc, char* argv[]) {
 				processRead(currentstart, currentend, *bundle, hashread, alndata);
 			}
 		} //for each read alignment
+	
 	}
 
 

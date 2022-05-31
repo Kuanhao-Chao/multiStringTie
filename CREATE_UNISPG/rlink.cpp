@@ -100,13 +100,27 @@ void printBitVec(GBitVec& bv) {
 void cov_edge_add(GVec<float> *bpcov, int sno, int start, int end, float v) {
 	bool neutral=false;
 	if(sno!=1) neutral=true; // why is neutral true here: because if the sno is -/+ than I want to add their counts to bpcov[1] too
+
+	fprintf(stderr, ">> v: %f\n", v);
+
+	fprintf(stderr, "sno: %d; start: %d\n", sno, start);
+	fprintf(stderr, "	before start => bpcov[sno][start+1]: %f\n", bpcov[sno][start+1]);
 	bpcov[sno][start+1]+=v; // if sno==1 then I add v to it here
+	fprintf(stderr, "	after start => bpcov[sno][start+1]: %f\n", bpcov[sno][start+1]);
+
+	fprintf(stderr, "sno: %d; end: %d\n", sno, end);
+	fprintf(stderr, "	before end => bpcov[sno][end+1]: %f\n", bpcov[sno][end+1]);
+	// bpcov[sno][start+1]+=v; // if sno==1 then I add v to it here
 	bpcov[sno][end+1]-=v;
+	fprintf(stderr, "	after end => bpcov[sno][end+1]: %f\n", bpcov[sno][end+1]);
+
+
 	if(neutral) { // if neutral (i.e. stranded) gets added to bpcov[1] here too => bpcov[1]=all coverage
 		bpcov[1][start+1]+=v;
 		bpcov[1][end+1]-=v;
 	}
 }
+
 
 void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart) {
 
@@ -343,6 +357,10 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 	bool match=false;  // true if current read matches a previous read
 	int n=readlist.Count()-1;
 
+	/*****************************
+	 * It is not the merge mode => 
+	 * 		Starting from the last read start => see if it's same as the brec.start
+	 *****************************/
 	if(!mergeMode) while(n>-1 && readlist[n]->start==brec.start) {
 		if(strand==readlist[n]->strand && (readlist[n]->longread==longr) && (!isunitig || (unitig_cov>0) == readlist[n]->unitig)) {
 			match=exonmatch(readlist[n]->segs,brec.exons);
@@ -352,6 +370,10 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 		if(match) break; // this way I make sure that I keep the n of the matching readlist
 		n--;
 	}
+
+	/*****************************
+	 * Following two are in the MergeMode
+	 *****************************/
 	else if((alndata.tinfo->cov>=0 && alndata.tinfo->cov<readthr) || (alndata.tinfo->fpkm>=0 && alndata.tinfo->fpkm<fpkm_thr) ||
 			(alndata.tinfo->tpm>=0 && alndata.tinfo->tpm < tpm_thr)) return; // do not store 'read' if it doesn't meet minimum criteria; this is mergeMode
 	else { //mergeMode but the read is above thresholds
@@ -367,6 +389,9 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 	bdata.numreads++;                         // number of reads gets increased no matter what
 	//bdata.wnumreads+=float(1)/nh;
 
+	/*****************************
+	 * if this is a new read I am seeing I need to set it up
+	 *****************************/
 	if (!match) { // if this is a new read I am seeing I need to set it up
 		if(mergeMode && mintranscriptlen) {
 			int len=0;
@@ -378,8 +403,14 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 		alndata.tinfo=NULL; //alndata.tinfo was passed to CReadAln
 		for (int i=0;i<brec.exons.Count();i++) {
 			readaln->len+=brec.exons[i].len();
-			if(i) {
 
+			/*****************************
+			 * It is not the first exon.
+			 *****************************/
+			if(i) {
+				/*****************************
+				 * always add null junction first
+				 *****************************/
 				if(!junction.Count()) { // always add null junction first
 					CJunction *nullj=new CJunction(0, 0, 0);
 					junction.Add(nullj);
@@ -404,6 +435,9 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 					readaln->juncs.Add(nj);
 				}
 			}
+			/*****************************
+			 * Add the exon into the segments.
+			 *****************************/
 			readaln->segs.Add(brec.exons[i]);
 		}
 		n=readlist.Add(readaln);  // reset n for the case there is no match
@@ -458,6 +492,9 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 	//nm+=brec.clipL; Note: this clippings were to aggressive
 	//nm+=brec.clipR;
 
+	/*****************************
+	 * There are more than 1 junction for the alignment.
+	 *****************************/
 	if(readlist[n]->juncs.Count()) {
 		bool mismatch=false;
 		if(readlist[n]->longread) mismatch=true;
@@ -478,7 +515,10 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 	}
 
 
-	// now set up the pairing
+	/*****************************
+	 * now set up the pairing
+	 *    only consider mate pairing data if mates are on the same chromosome/contig and are properly paired
+	 *****************************/
 	if (brec.refId()==brec.mate_refId()) {  //only consider mate pairing data if mates are on the same chromosome/contig and are properly paired
 	//if (brec.refId()==brec.mate_refId() && brec.isProperlyPaired()) {  //only consider mate pairing data if mates are on the same chromosome/contig and are properly paired
 	//if (brec.isProperlyPaired()) {  //only consider mate pairing data if mates  are properly paired
@@ -1418,6 +1458,9 @@ float compute_cost(GArray<float>& wincov,int i,float sumleft,float sumright,int 
 	return(cost);
 }
 
+/*****************************
+ ** now I need to deal with the single count
+ *****************************/
 float get_cov(int s,uint start,uint end,GVec<float>* bpcov) {
 	int m=int((end+1)/BSIZE);
 	int k=int(start/BSIZE);
@@ -1435,12 +1478,24 @@ float get_cov(int s,uint start,uint end,GVec<float>* bpcov) {
 }
 
 float get_cov_sign(int s,uint start,uint end,GVec<float>* bpcov) {
+	// fprintf(stderr, ">> get_cov_sign~~~ start: %d;  end: %d \n", start, end);
 	int m=int((end+1)/BSIZE);
 	int k=int(start/BSIZE);
+	// fprintf(stderr, ">> get_cov_sign~~~ m: %d;  k: %d \n", m, k);
+	// fprintf(stderr, ">> get_cov_sign~~~ BSIZE: %d \n", BSIZE);
+
 	int o=2-s;
 	float cov=0;
-	for(int i=k+1;i<=m;i++)
+	for(int i=k+1;i<=m;i++) {
 		cov+=bpcov[1][i*BSIZE-1]-bpcov[o][i*BSIZE-1];
+		// fprintf(stderr, "\t>> get_cov_sign~~~ cov[%d]: %f \n", i, cov);
+	}
+
+	float cov_2=0;
+	for(int i=start+1;i<=end;i++) {
+		// cov_2+=bpcov[1][i-1]-bpcov[o][i-1];
+		// fprintf(stderr, "\t **** get_cov_sign~~~ cov[%d]: %f \n", i, bpcov[1][i-1]-bpcov[o][i-1]);
+	}
 	cov+=bpcov[1][end+1]-bpcov[1][start]-bpcov[o][end+1]+bpcov[o][start];
 	if(cov<0) cov=0;
 	return(cov);
@@ -3863,7 +3918,7 @@ void get_read_pattern(int s, float readcov,GVec<int> &rgno, float rprop,GVec<int
 				int nbnode=bundle2graph[s][bnode].Count(); // number of nodes in bundle
 				int j=0;
 
-				fprintf(stderr,"bundle2graph[%d] for read %d:",bnode,n);
+				fprintf(stderr,"bundle2graph[%d] for read: %d \n",bnode,n);
 
 				/*****************************
 				 ** Iterating the nodes inside bundle2graph[s][bnode]
@@ -15759,7 +15814,7 @@ void count_good_junctions(BundleData* bdata) {
 						}
 					}
 				}
-				//fprintf(stderr,"Add guide junction=%d-%d:%d from reference %s\n",guides[g]->exons[i-1]->end,guides[g]->exons[i]->start,s,guides[g]->getID());
+				fprintf(stderr,"Add guide junction=%d-%d:%d from reference %s\n",guides[g]->exons[i-1]->end,guides[g]->exons[i]->start,s,guides[g]->getID());
 			}
 		}
 

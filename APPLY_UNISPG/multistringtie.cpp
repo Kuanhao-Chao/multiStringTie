@@ -80,6 +80,10 @@ float fpkm_thr=1;
 bool isunitig=true;
 bool nomulti=false;
 uint junctionsupport=10; // anchor length for junction to be considered well supported <- consider shorter??
+uint sserror=25; // window arround splice sites that we use to generate consensus in case of long read data
+int junctionthr=1; // number of reads needed to support a particular junction
+float mcov=1; // fraction of bundle allowed to be covered by multi-hit reads paper uses 1
+int mintranscriptlen=200; // minimum length for a transcript to be printed
 
 TInputFiles bamreader;
 DOTInputFile dotreader;
@@ -301,6 +305,10 @@ int main(int argc, char*argv[]) {
 
 						refseqName=brec->refName();
 						xstrand=brec->spliceStrand(); // tagged strand gets priority
+
+						// fprintf(stderr, "** refseqName：%s\n", refseqName);
+
+
 						if(xstrand=='.' && (fr_strand || rf_strand)) { // set strand if stranded library
 							if(brec->isPaired()) { // read is paired
 								if(brec->pairOrder()==1) { // first read in pair
