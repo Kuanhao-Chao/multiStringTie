@@ -188,12 +188,20 @@ void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart) 
 					if(sno==1) strand=snop;
 					else if(snop!=1) strand=1;
 				}
+
+				fprintf(stderr, ">>>>> start: %d;  refstart: %d;  start-refstart: %d\n", start, refstart, start-refstart);
+				fprintf(stderr, ">>>>> end: %d;  refstart: %d;  end-refstart: %d\n", end, refstart, end-refstart);
 				cov_edge_add(bpcov,strand,start-refstart,end-refstart+1,rd[n]->pair_count[i]);
 			}
 		}
 	}
 	if(single_count>epsilon) {
 		for(int i=0;i<rd[n]->segs.Count();i++) {
+			if (rd[n]->segs[i].start-refstart < 0) {
+				fprintf(stderr, "!!!! Warning!!!\n");
+			}
+			fprintf(stderr, ">>>>> start: %d;  refstart: %d;  start-refstart: %d\n", rd[n]->segs[i].start, refstart, rd[n]->segs[i].start-refstart);
+			fprintf(stderr, ">>>>> end: %d;  refstart: %d;  end-refstart: %d\n", rd[n]->segs[i].end, refstart, rd[n]->segs[i].end-refstart);
 			cov_edge_add(bpcov,sno,rd[n]->segs[i].start-refstart,rd[n]->segs[i].end-refstart+1,single_count);
 		}
 	}
@@ -1066,6 +1074,9 @@ int merge_read_to_group(int n,int np, int p, float readcov, int sno,int readcol,
 						lastpushedgroup=thisgroup->grid;
 					}
 
+					/*****************************
+					 ** Important!! This is how I get the coverage of a group.
+					 *****************************/
 					thisgroup->cov_sum+=(readlist[n]->segs[i].end-readlist[n]->segs[i].start+1)*readcov; // coverage is different than number of reads
 				} // end if(thisgroup && readlist[n]->segs[i].end >= thisgroup->start)
 				else { // read is at the end of groups, or read is not overlapping other groups -> lastgroup is not null here because currgroup was not null
@@ -2053,7 +2064,9 @@ CGraphnode *add_trim_to_graph(int s, int g,uint lastpos,CTrimPoint& mytrim,CGrap
 	return(graphnode);
 }
 
-// cummulative bpcov
+/*****************************
+ ** cummulative bpcov
+ *****************************/
 CGraphnode *source2guide(int s, int g, int refstart,uint newstart,uint newend, CGraphnode *graphnode,CGraphnode *source,
 		GVec<float>* bpcov,GVec<float>& futuretr, int& graphno,CBundlenode *bundlenode,GVec<CGraphinfo> **bundle2graph,
 		GPVec<CGraphnode> **no2gnode, int &edgeno) {
@@ -2062,7 +2075,9 @@ CGraphnode *source2guide(int s, int g, int refstart,uint newstart,uint newend, C
 		for(int p=0;p<graphnode->parent.Count();p++) if(!graphnode->parent[p]) return(graphnode);
 	}
 
-	// compute maxabund
+	/*****************************
+	 ** compute maxabund
+	 *****************************/
 	float leftcov=0;
 	float rightcov=0;
 
@@ -2114,7 +2129,6 @@ CGraphnode *source2guide(int s, int g, int refstart,uint newstart,uint newend, C
 	edgeno++;
 
 	return(graphnode);
-
 }
 
 // cummulative version
@@ -3908,8 +3922,7 @@ void get_read_pattern(int s, float readcov,GVec<int> &rgno, float rprop,GVec<int
 		/*****************************
 		 ** group has a bundle node associated with it and bundle was processed
 		 *****************************/
-		if(bnode>-1 && bundle2graph[s][bnode].Count()) { // group has a bundle node associated with it and bundle was processed
-		
+		if(bnode>-1 && bundle2graph[s][bnode].Count()) {
 			/*****************************
 			 ** The node has not added to the hash yet.
 			 *****************************/
@@ -3934,7 +3947,11 @@ void get_read_pattern(int s, float readcov,GVec<int> &rgno, float rprop,GVec<int
 					 **  	 found how much of readlist[n] intersects node represented by bnode; here I assume that read is always included in bundle2graph
 					 *****************************/
 					bool intersect=false;
-					while(k<ncoord) { // found how much of readlist[n] intersects node represented by bnode; here I assume that read is always included in bundle2graph
+
+					/*****************************
+					 ** found how much of readlist[n] intersects node represented by bnode; here I assume that read is always included in bundle2graph
+					 *****************************/
+					while(k<ncoord) { 
 
 						if(readlist[n]->segs[k].end<node->start) k++;
 						else {
@@ -4126,9 +4143,16 @@ CTreePat *construct_treepat(int gno, GIntHash<int>& gpos,GPVec<CTransfrag>& tran
 			for(int n=1;n<gno;n++){
 				if(transfrag[t]->pattern[n]) {
 					CTreePat *child;
-					if(m) { // there is a node m that was seen before
+
+					/**********************
+					 ** there is a node m that was seen before
+					 **********************/
+					if(m) {
 						int *pos=gpos[edge(m,n,gno)];
-						if(pos && transfrag[t]->pattern[*pos]) // there is an edge between m and n
+						/**********************
+						 ** there is an edge between m and n
+						 **********************/
+						if(pos && transfrag[t]->pattern[*pos])
 							child=tree->settree(gno-1-m+n-m-1,n,2*(gno-n-1));
 						else child=tree->settree(n-m-1,n,2*(gno-n-1));
 					}
@@ -4573,7 +4597,10 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 
 				rpat[rnode[r][j]]=1;
 				if(j) { // add edge pattern
-					if(no2gnode[s][rgno[r]][rnode[r][j]]->start-1==no2gnode[s][rgno[r]][rnode[r][j-1]]->end) { // continuous node
+					/*****************************
+					 *  continuous node
+					 *****************************/
+					if(no2gnode[s][rgno[r]][rnode[r][j]]->start-1==no2gnode[s][rgno[r]][rnode[r][j-1]]->end) { 
 						bool cont=true;
 						if(readlist[n]->unitig) { // see if node j-1 has sink as child, or node j has source as parent -> this means trimming was involved
 							CGraphnode *jnode=no2gnode[s][rgno[r]][rnode[r][j]];
@@ -4604,7 +4631,10 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 							if(pos!=NULL) rpat[*pos]=1;
 						}
 					}
-					else { // non-continuous node
+					/*****************************
+					 *  non-continuous node
+					 *****************************/
+					else { 
 						while(i<readlist[n]->juncs.Count() && readlist[n]->juncs[i]->end<no2gnode[s][rgno[r]][rnode[r][j]]->start) i++; // end of junction should be after start of node
 						if(i<readlist[n]->juncs.Count() && readlist[n]->juncs[i]->start<=no2gnode[s][rgno[r]][rnode[r][j-1]]->end) {
 							if(readlist[n]->juncs[i]->strand && readlist[n]->juncs[i]->start==no2gnode[s][rgno[r]][rnode[r][j-1]]->end &&
@@ -13120,13 +13150,15 @@ void exon_covered(int ex,GffObj *guide,int &b,GPVec<CBundle>& bundle,GPVec<CBund
 
 bool get_covered(GffObj *guide,GPVec<CBundle>& bundle,GPVec<CBundlenode>& bnode,GList<CJunction>& junction,
 		GVec<int>* bnodeguides,int g) {
-
+	
 	bool covered=true;
 
 	int s=-1;
 	if(guide->strand=='+') s=1;
 
-	// first check if all exons are covered by junctions
+	/*****************************
+	 ** first check if all exons are covered by junctions
+	 *****************************/
 	int nj=0; // index of junctions
 	int njunctions=junction.Count();
 	for(int i=1;i<guide->exons.Count();i++) {
@@ -13219,7 +13251,6 @@ bool get_covered(GffObj *guide,GPVec<CBundle>& bundle,GPVec<CBundlenode>& bnode,
 		if(maxguidelen<(uint)mintranscriptlen) covered=false;
 
 	}
-
 	return(covered);
 }
 
@@ -14751,7 +14782,6 @@ int build_graphs(BundleData* bdata) {
     		if(bundle[sno].Count()) {
     			transfrag[s]=new GPVec<CTransfrag>[bundle[sno].Count()]; // for each bundle I have a graph ? only if I don't ignore the short bundles
     			no2gnode[s]=new GPVec<CGraphnode>[bundle[sno].Count()];
-
     			gpos[s]=new GIntHash<int>[bundle[sno].Count()];
 
 
@@ -14770,8 +14800,12 @@ int build_graphs(BundleData* bdata) {
 
     				int cg=g;
     				int nolap=0;
-    				while(cg<ng && guides[cg]->start<=bnode[sno][bundle[sno][b]->lastnodeid]->end) { // this are potential guides that might overlap the current bundle, and they might introduce extra edges
 
+					/*****************************
+					 ** this are potential guides that might overlap the current bundle, 
+					 **   and they might introduce extra edges
+					 *****************************/
+    				while(cg<ng && guides[cg]->start<=bnode[sno][bundle[sno][b]->lastnodeid]->end) {
     					//fprintf(stderr,"...consider guide cg=%d with strand=%c and in_bundle=%d\n",cg,guides[cg]->strand,((RC_TData*)(guides[cg]->uptr))->in_bundle);
     					if((guides[cg]->strand==strnd || guides[cg]->strand=='.') && ((RC_TData*)(guides[cg]->uptr))->in_bundle>=2) {
     						//fprintf(stderr,"Add guide g=%d with start=%d end=%d\n",cg,guides[cg]->start,guides[cg]->end);
@@ -15406,7 +15440,9 @@ int build_merge(BundleData* bdata) { // here a "read" is in fact a transcript
     */
 
 
-	// create bundles : bundles collect connected groups (with same color)
+	/*****************************
+	 ** create bundles : bundles collect connected groups (with same color)
+	 *****************************/
 	for (int i=0;i<3;i++) {
 		currgroup[i]=startgroup[i];
 		prevgroup[i]=NULL;
@@ -15524,7 +15560,9 @@ int build_merge(BundleData* bdata) { // here a "read" is in fact a transcript
 	int geneno=0;
 
 
-    // ### store transcripts in unstranded bundles here; I can not have guides in here because those are signed
+	/*****************************
+	 ** store transcripts in unstranded bundles here; I can not have guides in here because those are signed
+	 *****************************/
 	for(int b=0;b<bundle[1].Count();b++) {
 
     	if(bundle[1][b]->cov) {
@@ -15555,7 +15593,9 @@ int build_merge(BundleData* bdata) { // here a "read" is in fact a transcript
 
     //fprintf(stderr,"Done with unstranded bundles geneno=%d\n",geneno);
 
-	// ### build graphs for stranded bundles here
+	/*****************************
+	 ** build graphs for stranded bundles here
+	 *****************************/
     if(startgroup[0]!=NULL || startgroup[2]!=NULL) { //# there are stranded groups to process
 
     	// sort junctions -> junctions are sorted already according with their start, but not their end
@@ -15575,7 +15615,9 @@ int build_merge(BundleData* bdata) { // here a "read" is in fact a transcript
 
     	int bno[2]={0,0};
 
-    	// build graph structure
+		/*****************************
+		 ** build graph structure
+		 *****************************/
     	for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
 
     		int s=sno/2; // adjusted strand due to ignoring neutral strand
@@ -15663,6 +15705,10 @@ int build_merge(BundleData* bdata) { // here a "read" is in fact a transcript
     	}
 
 
+		/*****************************
+		 ** check if read is active: nh>0
+		 **   get_read_to_transfrag
+		 *****************************/
     	for (int n=0;n<readlist.Count();n++) { // check if read is active: nh>0
 
     		/*
@@ -15682,7 +15728,6 @@ int build_merge(BundleData* bdata) { // here a "read" is in fact a transcript
     			fprintf(stderr,"\n");
     		}
     		*/
-
     	}
 
 
@@ -16115,7 +16160,6 @@ void count_good_junctions(BundleData* bdata) {
 				//if(rd.juncs[i-1]->len()>verylongintron) { if(anchor<verylongintronanchor) anchor=verylongintronanchor; } // I want to use a longer anchor for long introns to believe them
 				//else
 					if(anchor<longintronanchor) anchor=longintronanchor;
-
 			}
 
 			//if(rd.unitig) anchor=1; // v7 also **** if not trimming involved in super-read creation then comment this; unitigs should be trimmed so I will accept them as anchors
@@ -16152,7 +16196,6 @@ void count_good_junctions(BundleData* bdata) {
 	float prev_sum[3]={0,0,0};
 	while(k<m) {
 		int end=(k+1)*BSIZE;
-
 
 		//fprintf(stderr,"end=%d\n",end);
 		for(int i=k*BSIZE;i<end;i++) {

@@ -40,6 +40,13 @@ template <class OBJ> class GVec {
     int fCapacity;
     void qSort(int L, int R, GCompareProc* cmpFunc);
   public:
+    // KH add 
+
+    int get_fCapacity() {
+      return fCapacity;
+    }
+
+
     GVec(int init_capacity=2);
     GVec(int init_count, const OBJ init_val);
     GVec(int init_count, OBJ* init_val, bool delete_initval=true); //convenience constructor for complex vectors

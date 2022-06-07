@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(lldb) Launch",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/multistringtie",
+            "args": ["APPLY_UNISPG", "--dot", "../../results/Brain/chr22/SUB_SRR1352706", "-o", "../../results/Brain/chr22/SUB_SRR1352706_chr22.gtf", "../../data/Brain/chr22/SUB_SRR1352706_chr22.bam"]
+
+
+
+            // "logging": {
+            //     "moduleLoad": true,
+            //     "programOutput": true,
+            //     "trace": false
+            // },
+            // "stopAtEntry": false,
+            // "cwd": "${fileDirname}",
+            // "environment": [],
+            // "externalConsole": false,
+            // "MIMode": "lldb"
+        }
+    ]
+}

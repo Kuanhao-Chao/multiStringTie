@@ -1,5 +1,6 @@
 #include "multist.h"
 #include "GBitVec.h"
+#include "unispg.h"
 #include <float.h>
 
 #define GMEMTRACE 1  //debugging memory allocation
@@ -23,21 +24,21 @@ bool DOTInputFile::start(const char* fn) {
 	// 	this -> rec = this -> reader->next();
 	// }
 	return is_dot_open;
-    // UniSpliceGraph* brec=this -> reader->next();
+    // UnispgGp* brec=this -> reader->next();
 }
 
 
-UniSpliceGraph* DOTInputFile::next() {
+UnispgGp* DOTInputFile::next() {
 	//must free old current record first
 	delete rec;
 	rec=NULL;
 	rec = reader->next();
-	// this -> updateUniSpliceGraphGp();
+	// this -> updateUnispgGpGp();
 	// uni_splice_graphs
 	return rec;
     // if (recs.Count()>0) {
     // 	crec=recs.Pop();//lowest coordinate
-    	// UniSpliceGraph* rnext = this->reader->next();
+    	// UnispgGp* rnext = this->reader->next();
     	// if (rnext)
     	// 	recs.Add(new DOTInputRecord(rnext, crec->fidx));
     	// return crec->brec;

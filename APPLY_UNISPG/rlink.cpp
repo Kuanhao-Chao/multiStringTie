@@ -124,7 +124,6 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 	CReadAln* readaln=NULL;                        // readaln is initialized with NULL
 	//bool covSaturated=false;                       // coverage is set to not saturated
 
-
 	// /*
 	{ // DEBUG ONLY
 		fprintf(stderr,"Process read %s with strand=%d and exons:",brec.name(),strand);
@@ -144,6 +143,11 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 	bool match=false;  // true if current read matches a previous read
 	int n=readlist.Count()-1;
 
+	/*****************************
+	 * Check if it's matched or not
+	 * 	 matched => just change the nh tag.
+	 *   not matched => add a new reads.
+	 *****************************/
 	while(n>-1 && readlist[n]->start==brec.start) {
 		if(strand==readlist[n]->strand && (readlist[n]->longread==longr) && (!isunitig || (unitig_cov>0) == readlist[n]->unitig)) {
 			match=exonmatch(readlist[n]->segs,brec.exons);
@@ -160,9 +164,10 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 	bdata.numreads++;                         // number of reads gets increased no matter what
 	//bdata.wnumreads+=float(1)/nh;
 
+	/*****************************
+	 * if this is a new read I am seeing I need to set it up
+	 *****************************/
 	if (!match) { // if this is a new read I am seeing I need to set it up
-
-
 	// 	GStr name; //transcript name
 	// int fileidx; //index of transcript file in the TInputFiles.files array
 	// double cov;
@@ -174,7 +179,6 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 		// fprintf(stderr, "**>> CReadAln=>   fileidx: %d\n", alndata.tinfo->fileidx);
 		// fprintf(stderr, "**>> CReadAln=>   name: %s,  fileidx: %d\n", alndata.tinfo->name.chars(), alndata.tinfo->fileidx);
 		// fprintf(stderr, "**>> CReadAln=>   name: %s,  fileidx: %d,  cov: %f,  fpkm: %f,  tpm:%f,  g: %d \n", alndata.tinfo->name.chars(), alndata.tinfo->fileidx, alndata.tinfo->cov, alndata.tinfo->fpkm, alndata.tinfo->tpm, alndata.tinfo->g);
-
 
 		readaln=new CReadAln(strand, nh, brec.start, brec.end, alndata.tinfo);
 		readaln->longread=longr;
@@ -241,7 +245,9 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 	if(!nomulti) rdcount/=nh;
 	readlist[n]->read_count+=rdcount; // increase single count just in case I don't see the pair
 
-	// store the mismatch count per junction so that I can eliminate it later
+	/*****************************
+	 * store the mismatch count per junction so that I can eliminate it later
+	 *****************************/
 	if(!nm) {
 		nm=(double)brec.tag_int("nM"); // paired mismatch : big problem with STAR alignments
 		if(brec.isPaired()) nm/=2;
@@ -271,9 +277,11 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 		}
 	}
 
-
-	// now set up the pairing
-	if (brec.refId()==brec.mate_refId()) {  //only consider mate pairing data if mates are on the same chromosome/contig and are properly paired
+	/*****************************
+	 * now set up the pairing
+	 *    only consider mate pairing data if mates are on the same chromosome/contig and are properly paired
+	 *****************************/
+	if (brec.refId()==brec.mate_refId()) {
 	//if (brec.refId()==brec.mate_refId() && brec.isProperlyPaired()) {  //only consider mate pairing data if mates are on the same chromosome/contig and are properly paired
 	//if (brec.isProperlyPaired()) {  //only consider mate pairing data if mates  are properly paired
 		int pairstart=brec.mate_start();
@@ -351,7 +359,6 @@ void cov_edge_add(GVec<float> *bpcov, int sno, int start, int end, float v) {
 	if(sno!=1) neutral=true; // why is neutral true here: because if the sno is -/+ than I want to add their counts to bpcov[1] too
 
 	fprintf(stderr, ">> v: %f\n", v);
-
 	fprintf(stderr, "sno: %d; start: %d\n", sno, start);
 	fprintf(stderr, "	before start => bpcov[sno][start+1]: %f\n", bpcov[sno][start+1]);
 	bpcov[sno][start+1]+=v; // if sno==1 then I add v to it here
@@ -363,7 +370,6 @@ void cov_edge_add(GVec<float> *bpcov, int sno, int start, int end, float v) {
 	bpcov[sno][end+1]-=v;
 	fprintf(stderr, "	after end => bpcov[sno][end+1]: %f\n", bpcov[sno][end+1]);
 
-
 	if(neutral) { // if neutral (i.e. stranded) gets added to bpcov[1] here too => bpcov[1]=all coverage
 		bpcov[1][start+1]+=v;
 		bpcov[1][end+1]-=v;
@@ -372,14 +378,14 @@ void cov_edge_add(GVec<float> *bpcov, int sno, int start, int end, float v) {
 
 
 void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart) {
-	fprintf(stderr, "Inside `add_read_to_cov`\n");
+	// fprintf(stderr, "Inside `add_read_to_cov`\n");
 
 	int sno=(int)rd[n]->strand+1; // 0(-),1(.),2(+)
 
 	float single_count=rd[n]->read_count;
 
 	/*****************************
-	 * Iterating the pair idx of a given read.
+	 * Processing all paired reads for each read.
 	 *****************************/
 	for(int i=0;i<rd[n]->pair_idx.Count();i++) {
 		single_count-=rd[n]->pair_count[i];
@@ -443,33 +449,49 @@ void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart) 
 					else if(snop!=1) strand=1;
 				}
 
-				fprintf(stderr, ">>>>> start: %d;  refstart: %d;  start-refstart: %d\n", start, refstart, start-refstart);
-				fprintf(stderr, ">>>>> end: %d;  refstart: %d;  end-refstart: %d\n", end, refstart, end-refstart);
+				// fprintf(stderr, ">>>>> start: %d;  refstart: %d;  start-refstart: %d\n", start, refstart, start-refstart);
+				// fprintf(stderr, ">>>>> end: %d;  refstart: %d;  end-refstart: %d\n", end, refstart, end-refstart);
 
-				if (start-refstart < 0) {
-					start = refstart;
-				}
-				if (end-refstart < 0) {
-					end = refstart;
-				}
+				// if (start-refstart < 0) {
+				// 	start = refstart;
+				// }
+				// if (end-refstart < 0) {
+				// 	end = refstart;
+				// }
 				cov_edge_add(bpcov,strand,start-refstart,end-refstart+1,rd[n]->pair_count[i]);
 			}
 		}
 	}
 	if(single_count>epsilon) {
 		for(int i=0;i<rd[n]->segs.Count();i++) {
+			// fprintf(stderr, "~~~~!!!\n");
+			if ((int(rd[n]->segs[i].start) - refstart) < 0) {
+				fprintf(stderr, "!!!! Warning!!! Smaller than 0\n");
+			}
 			fprintf(stderr, ">>>>> start: %d;  refstart: %d;  start-refstart: %d\n", rd[n]->segs[i].start, refstart, rd[n]->segs[i].start-refstart);
 			fprintf(stderr, ">>>>> end: %d;  refstart: %d;  end-refstart: %d\n", rd[n]->segs[i].end, refstart, rd[n]->segs[i].end-refstart);
 
-			int passed_start = rd[n]->segs[i].start-refstart;
-			int passed_end = rd[n]->segs[i].end-refstart;
+			int passed_start = int(rd[n]->segs[i].start)-refstart;
+			int passed_end = int(rd[n]->segs[i].end)-refstart;
+			
+
+			
 			if (passed_start < 0) {
 				passed_start = 0;
 			}
 			if (passed_end < 0) {
 				passed_end = 0;
 			}
-			cov_edge_add(bpcov,sno,passed_start, passed_end+1, single_count);
+
+
+
+			if (passed_end != 0) {
+				fprintf(stderr, "))))))) start: %d;  end: %d;\n", passed_start, passed_end+1);
+				// cov_edge_add(bpcov,sno,passed_start, passed_end+1, single_count);
+			} else {
+				fprintf(stderr, "===> start: %d;  end: %d;\n", passed_start, passed_end+1);
+			}
+ 			
 
 			// cov_edge_add(bpcov,sno,rd[n]->segs[i].start-refstart,rd[n]->segs[i].end-refstart+1,single_count);
 		}
@@ -481,7 +503,6 @@ void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart) 
  * compute coverages and junction support here
  *****************************/
 void count_good_junctions(BundleData* bdata) {
-
 	GList<CReadAln>& readlist = bdata->readlist;
 	GList<CJunction>& junction = bdata->junction;
 	GVec<float>* bpcov = bdata->bpcov;
@@ -505,7 +526,11 @@ void count_good_junctions(BundleData* bdata) {
 
 		int nex=rd.segs.Count();
 
-		fprintf(stderr, ">> add_read_to_cov => refstart - refend : %d - %d \n", refstart, refend);
+		/*****************************
+		 * Add the read into the coverage.
+		 *****************************/
+		// fprintf(stderr, ">> add_read_to_cov => refstart - refend : %d - %d \n", refstart, refend);
+
 		if(!rd.unitig) add_read_to_cov(readlist,n,bpcov,refstart);
 		else if(rdcount>1) rdcount=1;
 
@@ -516,12 +541,18 @@ void count_good_junctions(BundleData* bdata) {
 
 		//int sno=(int)rd.strand+1; // 0(-),1(.),2(+)
 		//if(nex>1) fprintf(stderr,"Process spliced read[%d] with cov=%f and sno=%d: ",n,rdcount,sno);
+		/*****************************
+		 * Iterate all segments in a read.
+		 *****************************/
 		for(int i=0;i<nex;i++) {
 			//if(nex>1) fprintf(stderr," %d-%d",rd.segs[i].start,rd.segs[i].end);
 			if(i) {
 				//fprintf(stderr,":%d",rd.juncs[i-1]->strand);
 
-				if(modified) { // see if read uses modified junction -> correct it
+				/*****************************
+				 * see if read uses modified junction -> correct it
+				 *****************************/
+				if(modified) { 
 					//sprintf(sbuf, "%p", rd.juncs[i-1]);
 					CJunction* jp=jhash[rd.juncs[i-1]];
 					if(jp) {
@@ -533,7 +564,6 @@ void count_good_junctions(BundleData* bdata) {
 							rd.juncs[i-1]->nreads-=rd.read_count;
 							//if(rd.juncs[i-1]->nreads<ERROR_PERC) rd.juncs[i-1]->strand=0; // this approach removes a perfectly valid (guide) junction which might not be the desired effect
 							rd.juncs[i-1]=junction[0];
-
 						}
 						else {
 							rd.juncs[i-1]=jp;
@@ -568,7 +598,6 @@ void count_good_junctions(BundleData* bdata) {
 				//if(rd.unitig) rd.juncs[i-1]->guide_match=true; // v7 this might be a little too much!
 			}
 			//if(!rd.unitig) cov_edge_add(bpcov,sno,rd.segs[i].start-refstart,rd.segs[i].end+1-refstart,rd.read_count);
-
 		}
 		//if(nex>1) fprintf(stderr," With anchors: ");
 		for(int i=1;i<nex;i++) {
@@ -579,11 +608,9 @@ void count_good_junctions(BundleData* bdata) {
 			// 	//if(rd.juncs[i-1]->len()>verylongintron) { if(anchor<verylongintronanchor) anchor=verylongintronanchor; } // I want to use a longer anchor for long introns to believe them
 			// 	//else
 			// 		if(anchor<longintronanchor) anchor=longintronanchor;
-
 			// }
 
 			//if(rd.unitig) anchor=1; // v7 also **** if not trimming involved in super-read creation then comment this; unitigs should be trimmed so I will accept them as anchors
-
 			//if(leftsup[i-1]>=anchor && rightsup[nex-i-1]>=anchor) rd.juncs[i-1]->nreads_good+=rd.read_count;
 			if(leftsup[i-1]>=anchor) { // support only comes from spliced reads that are bigger than the anchor
 				rd.juncs[i-1]->leftsupport+=rdcount;
@@ -603,21 +630,17 @@ void count_good_junctions(BundleData* bdata) {
 	}
 
 
-	//fprintf(stderr,"Compute coverages:\n");
-
+	fprintf(stderr,"Compute coverages:\n");
 	// this code enssures that I can find interval coverages very fast
 	int m=int((bpcov[1].Count()-1)/BSIZE);
-	//fprintf(stderr,"m=%d refstart=%d refend=%d bpcount=%d\n",m,refstart,refend,bpcov[1].Count());
+	fprintf(stderr,"m=%d refstart=%d refend=%d bpcount=%d\n",m,refstart,refend,bpcov[1].Count());
 	int k=0;
 	float prev_val[3]={0,0,0};
 	float prev_sum[3]={0,0,0};
 	while(k<m) {
 		int end=(k+1)*BSIZE;
-
-
 		//fprintf(stderr,"end=%d\n",end);
 		for(int i=k*BSIZE;i<end;i++) {
-
 			for(int s=0;s<3;s++) {
 				//fprintf(stderr,"(1)bpcov[%d][%d]=%f ",s,i,bpcov[s][i]);
 				bpcov[s][i]+=prev_val[s];
@@ -641,10 +664,57 @@ void count_good_junctions(BundleData* bdata) {
 			prev_val[s]=bpcov[s][i];
 			bpcov[s][i]+=prev_sum[s];
 			prev_sum[s]=bpcov[s][i];
-			//fprintf(stderr,"bpPos[%d][%d]: cov=%f sumbpcov=%f\n",s,i,prev_val[s],prev_sum[s]);
+			fprintf(stderr,"bpPos[%d][%d]: cov=%f sumbpcov=%f\n",s,i,prev_val[s],prev_sum[s]);
 		}
+}
+
+
+/*****************************
+ ** This is for + / - stranded reads?
+ *****************************/
+float get_cov(int s,uint start,uint end,GVec<float>* bpcov) {
+	int m=int((end+1)/BSIZE);
+	int k=int(start/BSIZE);
+	float cov=0;	
+
+	for(int i=k+1;i<=m;i++) {
+		cov+=bpcov[s][i*BSIZE-1];
+	}
+	cov+=bpcov[s][end+1]-bpcov[s][start];
+	// fprintf(stderr, "** bpcov->Count(): %f\n", bpcov[s][0]) ;
+	if(cov<0) cov=0;
+	return(cov);
 
 }
+
+/*****************************
+ ** This is for unstranded reads?
+ *****************************/
+float get_cov_sign(int s,uint start,uint end,GVec<float>* bpcov) {
+	// fprintf(stderr, ">> get_cov_sign~~~ start: %d;  end: %d \n", start, end);
+	int m=int((end+1)/BSIZE);
+	int k=int(start/BSIZE);
+	// fprintf(stderr, ">> get_cov_sign~~~ m: %d;  k: %d \n", m, k);
+	// fprintf(stderr, ">> get_cov_sign~~~ BSIZE: %d \n", BSIZE);
+
+	int o=2-s;
+	float cov=0;
+	for(int i=k+1;i<=m;i++) {
+		cov+=bpcov[1][i*BSIZE-1]-bpcov[o][i*BSIZE-1];
+		// fprintf(stderr, "\t>> get_cov_sign~~~ cov[%d]: %f \n", i, cov);
+	}
+
+	float cov_2=0;
+	for(int i=start+1;i<=end;i++) {
+		// cov_2+=bpcov[1][i-1]-bpcov[o][i-1];
+		// fprintf(stderr, "\t **** get_cov_sign~~~ cov[%d]: %f \n", i, bpcov[1][i-1]-bpcov[o][i-1]);
+	}
+	cov+=bpcov[1][end+1]-bpcov[1][start]-bpcov[o][end+1]+bpcov[o][start];
+	if(cov<0) cov=0;
+	return(cov);
+}
+
+
 
 
 
@@ -3177,7 +3247,7 @@ void count_good_junctions(BundleData* bdata) {
 //         				fprintf(stderr,"edgeno[%d][%d]=%d\n",s,b,edgeno[s][b]);
 //     					if(bundle[sno][b]->cov) {
 //     						fprintf(stderr,"proc bundle[%d][%d] %f/%f is %f len=%d and %d guides\n",sno,b,
-//     								bundle[sno][b]->multi,bundle[sno][b]->cov,(float)bundle[sno][b]->multi/bundle[sno][b]->cov,
+    								// bundle[sno][b]->multi,bundle[sno][b]->cov,(float)bundle[sno][b]->multi/bundle[sno][b]->cov,
 //     								bundle[sno][b]->len,nolap);
 //     					}
 //     				}

@@ -18,6 +18,7 @@
 #include <vector>
 using namespace std;
 
+extern int sample_num;
 extern GVec<FILE*> pos_dot_vec;
 extern GVec<GStr> pos_dotfname_vec; 
 extern GVec<FILE*> neg_dot_vec;
@@ -235,10 +236,9 @@ struct CGraphnodeUnispg:public GSeg {
 	int old_graph_id = -1;
 	int old_node_id = -1;
 
-
 	/*****************************
 	 ** APPLY_UNISPG & CREATE_UNISPG
-	*****************************/
+	 *****************************/
 	int nodeid;
 	// Samples having this node
     GVec<bool>* is_passed_s;
@@ -249,7 +249,9 @@ struct CGraphnodeUnispg:public GSeg {
 	GVec<int> child;
 	GVec<int> parent;
 
-
+	/*****************************
+	 ** To-do 
+	 *****************************/
 	GBitVec childpat;
 	GBitVec parentpat;
 	GVec<int> trf; // transfrags that pass the node
@@ -286,21 +288,24 @@ struct UnispgGp {
 		/*****************************
 		 ** APPLY_UNISPG & CREATE_UNISPG
 		 *****************************/
+		int refstart = 0; // the start of the first node.
+		int refend = 0; // the end of the last node.
+
 		GPVec<CGraphnodeUnispg>* no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode_unispg[s][g][i] gives the node i
 		int graphno_unispg[2] = {0};  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
 		int edgeno_unispg[2] = {0};  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
-		
+
 		// GPVec<CTransfrag> *transfrag_unispg[2]; // for each transfrag t on a strand s, in a graph g, transfrag[s][g][t] gives it's abundance and it's pattern
 		// CTreePat **tr2no_unispg[2]; // for each graph g, on a strand s, tr2no[s][g] keeps the tree pattern structure for quick retrieval of the index t of a tansfrag
 		// GIntHash<int> *gpos_unispg[2]; // for each graph g, on a strand s, gpos[s][g] keeps the hash between edges and positions in the bitvec associated to a pattern
 		// GVec<int> lastgpos_unispg[2];
-
-
 		/*****************************
 		 ** CREATE_UNISPG Only
-		 *****************************/
+		 *****************************/		
 		GPVec<CGraphnodeUnispg>* lclg_nonoverlap[2]; // for each graph g, on a strand s, lclg_nonoverlap[s][g][i] gives the node i
 		GPVec<CTransfrag>* lclg_nonoverlap_transfrag[2]; // for each transfrag t on a strand s, in a graph g, lclg_nonoverlap_transfrag[s][g][t] gives it's abundance and it's pattern
+		
+
 		GPVec<CGraphnodeUnispg>* new_no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
 		GVec<int> new_gidx; // graph id
 
@@ -335,20 +340,45 @@ struct UnispgGp {
 				// sink_gp[s] = new CGraphnodeUnispg[1];
 			}
 		}
+
+		UnispgGp(int refstart_i, int refend_i) {
+			refstart = refstart_i;
+			refend = refend_i;
+			for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+				int s=sno/2; // adjusted strand due to ignoring neutral strand
+				no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[20000];
+				new_no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[20000];
+				lclg_nonoverlap[s] = new GPVec<CGraphnodeUnispg>[20000];
+				lclg_nonoverlap_transfrag[s] = new GPVec<CTransfrag>[20000];
+
+				// transfrag_unispg[s] = new GPVec<CTransfrag>[20000];
+				// source_gp[s] = new CGraphnodeUnispg[1];
+				// sink_gp[s] = new CGraphnodeUnispg[1];
+			}
+		}
+
 		~UnispgGp() {
 			for(int i=0;i<2;i++) {
 				// graphno_unispg[s] = 0;
 				// edgeno_unispg[s] = 0;
 				delete [] no2gnode_unispg[i];
+				delete [] new_no2gnode_unispg[i];
 				delete [] lclg_nonoverlap[i];
 				delete [] lclg_nonoverlap_transfrag[i];
-				delete [] new_no2gnode_unispg[i];
-				delete [] source_gp[i];
-				delete [] sink_gp[i];
-
+				// delete [] source_gp[i];
+				// delete [] sink_gp[i];
 				// delete [] transfrag_unispg[i];
 			};
 		}
+
+		int get_refstart() {
+			return refstart;
+		}
+
+		int get_refend() {
+			return refend;
+		}
+
 		void ProcessSample(GStr sample_name);
 		void WriteLCLG(int fidx, int s, GPVec<CGraphnode>* no2gnode, int g);
 		void WriteUNISPG(int fidx, int s, int unispg_start_idx, int unispg_end_idx);
