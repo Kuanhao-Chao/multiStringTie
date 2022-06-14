@@ -17,6 +17,18 @@
         "string_view": "cpp",
         "unordered_map": "cpp",
         "vector": "cpp",
-        "new": "cpp"
-    }
+        "new": "cpp",
+        "memory_resource": "cpp",
+        "iterator": "cpp",
+        "locale": "cpp",
+        "algorithm": "cpp",
+        "functional": "cpp",
+        "*.tcc": "cpp",
+        "bitset": "cpp",
+        "fstream": "cpp",
+        "istream": "cpp",
+        "streambuf": "cpp",
+        "variant": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }

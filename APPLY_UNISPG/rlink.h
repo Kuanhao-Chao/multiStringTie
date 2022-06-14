@@ -771,8 +771,8 @@ struct BundleData {
 		pred.setSorted(false);
 		readlist.Clear();
 		for(int i=0;i<3;i++) {
-			fprintf(stderr, "bpcov[%d].Count: %d \n", i, bpcov[i].Count());
-			fprintf(stderr, "bpcov[%d].get_fCapacity: %d \n", i, bpcov[i].get_fCapacity());
+			// fprintf(stderr, "bpcov[%d].Count: %d \n", i, bpcov[i].Count());
+			// fprintf(stderr, "bpcov[%d].get_fCapacity: %d \n", i, bpcov[i].get_fCapacity());
 			bpcov[i].Clear();
 			bpcov[i].setCapacity(1024);
 		}

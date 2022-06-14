@@ -371,7 +371,7 @@ class DOTReader {
          string line;  
          if (getline(ifile_dot, line)) {
             // line.erase(remove(line.begin(), line.end(), ' '), line.end());
-            fprintf(stderr, "Before parsing line: %s \n", line.c_str());
+            // fprintf(stderr, "Before parsing line: %s \n", line.c_str());
             // if (regex_match(line, regex("(strict\\s+)(digraph\\s+)([0-9]*)(_)([0-9]*)(_)([0-9]*\\s+)(.*)(->)(.*)(\\[label=)(.*)(\\];)"))) {
             // regex rgx("(\\w+)->(\\w+)\\[label=(\\w+)\\];");
 
@@ -418,6 +418,7 @@ class DOTReader {
             }
 
             // UnispgGp* uni_splice_graph = new UnispgGp();
+            fprintf(stderr, ">> boundaries: %u - %u\n ", refstart, refend);
             UnispgGp* uni_splice_graph = new UnispgGp(refstart, refend);
 
             uni_splice_graph->ProcessSample(fname);
@@ -491,8 +492,6 @@ class DOTReader {
                   }
                   tail = stoi(match[1]);
                   head = stoi(match[2]);
-                  fprintf(stderr, "head : %d\n", head);
-                  fprintf(stderr, "tail : %d\n", tail);
                   // uni_splice_graph->AddEdge(refstart, refend, tail, head);
 
                   uni_splice_graph->no2gnode_unispg[s][g_idx].Get(tail)->child.cAdd(head);

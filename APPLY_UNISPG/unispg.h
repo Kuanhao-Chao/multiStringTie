@@ -261,12 +261,12 @@ struct CGraphnodeUnispg:public GSeg {
 	// CGraphnodeUnispg(int sample_num_i=0, int s=0,int e=0, int old_graph_id_i=0, int old_node_id_i=0, unsigned int id=MAX_NODE, GVec<bool>* is_passed_s_i=NULL, GVec<float>* cov_s_i=NULL, GVec<float>* capacity_s_i=NULL, bool is_passed=false, float cov=0, float capacity=0,float r=0):GSeg(s,e),sample_num(sample_num_i), old_graph_id(old_graph_id_i), old_node_id(old_node_id_i), nodeid(id),is_passed_s(is_passed_s_i),cov_s(cov_s_i),capacity_s(capacity_s_i),child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){
 	CGraphnodeUnispg(int sample_num_i=0, int s=0,int e=0, int id=MAX_NODE, GVec<bool>* is_passed_s_i=NULL, GVec<float>* cov_s_i=NULL, GVec<float>* capacity_s_i=NULL, bool is_passed=false, float cov=0, float capacity=0,float r=0, bool set_g_n_idx=false, int g_idx=-1, int n_idx=-1):GSeg(s,e),sample_num(sample_num_i), nodeid(id),is_passed_s(is_passed_s_i),cov_s(cov_s_i),capacity_s(capacity_s_i), child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){
 
-		fprintf(stderr, "		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
-		fprintf(stderr, "		^^^ Creating graphnode id: %d (%u - %u) \n", id, s, e);
-		fprintf(stderr, "		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
-		fprintf(stderr, "		^^ is_passed: %d\n", is_passed);
-		fprintf(stderr, "		^^ cov      : %f\n", cov);
-		fprintf(stderr, "		^^ capacity : %f\n", capacity);
+		// fprintf(stderr, "		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+		// fprintf(stderr, "		^^^ Creating graphnode id: %d (%u - %u) \n", id, s, e);
+		// fprintf(stderr, "		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+		// fprintf(stderr, "		^^ is_passed: %d\n", is_passed);
+		// fprintf(stderr, "		^^ cov      : %f\n", cov);
+		// fprintf(stderr, "		^^ capacity : %f\n", capacity);
 		is_passed_s->cAdd(is_passed);
 		cov_s->cAdd(cov);
 		capacity_s->cAdd(capacity);
@@ -322,7 +322,6 @@ struct UnispgGp {
 
 		std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> lclg_nidx_2_new_nidx_ls_pos;
 		std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> unispg_nidx_2_new_nidx_ls_pos;
-
 		std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> lclg_nidx_2_new_nidx_ls_neg;
 		std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> unispg_nidx_2_new_nidx_ls_neg;
 
@@ -335,11 +334,38 @@ struct UnispgGp {
 				lclg_nonoverlap_transfrag[s] = new GPVec<CTransfrag>[20000];
 
 				// transfrag_unispg[s] = new GPVec<CTransfrag>[20000];
-
 				// source_gp[s] = new CGraphnodeUnispg[1];
 				// sink_gp[s] = new CGraphnodeUnispg[1];
 			}
 		}
+
+		// UnispgGp(UnispgGp* unispgGp) {
+		// 	refstart = unispgGp->get_refstart();
+		// 	refend = unispgGp->get_refend();
+		// 	for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+		// 		int s=sno/2; // adjusted strand due to ignoring neutral strand
+		// 		no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[20000];
+
+		// 		for (int node=0; node<unispgGp->no2gnode_unispg[s][0].Count(); node++) {
+		// 			GVec<bool>* is_passed = new GVec<bool>(unispgGp->no2gnode_unispg[s][0].Get(node) );
+		// 			GVec<float>* cov = new GVec<float>(sample_num-1, 0.0f);
+		// 			GVec<float>* capacity = new GVec<float>(sample_num-1, 0.0f);
+		// 		}
+
+		// 		no2gnode_unispg[s][0] = new GPVec<CGraphnodeUnispg>(unispgGp->no2gnode_unispg[s][0]);
+		// 		new_no2gnode_unispg[s] = new GPVec<CGraphnodeUnispg>[20000];
+		// 		// new_no2gnode_unispg[s][0] = new GPVec<CGraphnodeUnispg>(unispgGp->new_no2gnode_unispg[s][0]);
+				
+		// 		lclg_nonoverlap[s] = new GPVec<CGraphnodeUnispg>[20000];
+		// 		// lclg_nonoverlap[s][0] = new GPVec<CGraphnodeUnispg>(unispgGp->lclg_nonoverlap[s][0]);
+				
+		// 		lclg_nonoverlap_transfrag[s] = new GPVec<CTransfrag>[20000];
+		// 		// lclg_nonoverlap_transfrag[s][0] = new GPVec<CTransfrag>(unispgGp->lclg_nonoverlap_transfrag[s][0]);
+		// 		// no2gnode_unispg[s][current_gidx[s]] = new GPVec<CGraphnodeUnispg>(new_no2gnode_unispg[s][0]);
+		// 		                //   uni_splice_graph->no2gnode_unispg[s][g_idx].Add(source);
+
+		// 	}
+		// }
 
 		UnispgGp(int refstart_i, int refend_i) {
 			refstart = refstart_i;

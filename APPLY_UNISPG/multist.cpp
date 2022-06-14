@@ -30,7 +30,7 @@ bool DOTInputFile::start(const char* fn) {
 
 UnispgGp* DOTInputFile::next() {
 	//must free old current record first
-	delete rec;
+	// delete rec;
 	rec=NULL;
 	rec = reader->next();
 	// this -> updateUnispgGpGp();

@@ -449,7 +449,6 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 			readaln->segs.Add(brec.exons[i]);
 		}
 		n=readlist.Add(readaln);  // reset n for the case there is no match
-
 	}
 	else { //redundant read alignment matching a previous alignment
 		// keep shortest nh so that I can see for each particular read the multi-hit proportion
@@ -1285,8 +1284,10 @@ int add_read_to_group(int n,GList<CReadAln>& readlist,int color,GPVec<CGroup>& g
 		// check if I've seen read's pair and if yes get its readcol; at the least get read's pair strand if available
 		int np=readlist[n]->pair_idx[p]; // pair read number
 
-		if(np>-1 && readlist[np]->nh) { // read pair still exists and it wasn't deleted -> false keep elminates all these cases
-
+		/*****************************
+		 ** read pair still exists and it wasn't deleted -> false keep elminates all these cases
+		 *****************************/
+		if(np>-1 && readlist[np]->nh) {
 			// see if I have the correct read strand
 			char snop=readlist[np]->strand+1;  // snop is the strand of pair read
 			if(sno!=snop) { // different strands for read and pair
@@ -1295,7 +1296,10 @@ int add_read_to_group(int n,GList<CReadAln>& readlist,int color,GPVec<CGroup>& g
 					// readlist[n]->strand=readlist[np]->strand; I can not update the read strand anymore -> REMEMBER this later
 					sno=snop;  // assign strand of pair to read
 				}
-				else if(snop!=1) { // conflicting strands -> un-pair reads in the hope that one is right
+				else if(snop!=1) {
+					/*****************************
+					 ** conflicting strands -> un-pair reads in the hope that one is right
+					 *****************************/
 					readlist[n]->pair_idx[p]=-1;
 					for(int j=0;j<readlist[np]->pair_idx.Count();j++) // also unpair read np to n
 						if(readlist[np]->pair_idx[j]==n) {
@@ -1365,7 +1369,6 @@ int add_read_to_group(int n,GList<CReadAln>& readlist,int color,GPVec<CGroup>& g
 			readcov=single_count;
 		color=merge_read_to_group(n,-1,-1,readcov,readlist[n]->strand+1,readcol,readlist,color,group,
 								allcurrgroup,startgroup,readgroup,eqcol,merge,usedcol);
-
 	}
 
 	return color;
@@ -14481,7 +14484,10 @@ int build_graphs(BundleData* bdata) {
 		}
 		currgroup[nextgr]->color=grcol;
 
-		if(nextgr == 0 || nextgr ==2 || (nextgr==1 &&(eqnegcol[grcol]==-1) && (eqposcol[grcol]==-1))) { // negative or positive strand bundle or unstranded bundle
+		/*****************************
+		 * negative or positive strand bundle or unstranded bundle
+		 *****************************/
+		if(nextgr == 0 || nextgr ==2 || (nextgr==1 &&(eqnegcol[grcol]==-1) && (eqposcol[grcol]==-1))) { 
 
 			int bno=bundlecol[grcol];
 
@@ -14498,7 +14504,10 @@ int build_graphs(BundleData* bdata) {
 			group2bundle[nextgr][currgroup[nextgr]->grid]=bundle[nextgr][bno]->lastnodeid;
 
 		}
-		else { // unknown strand : here is where I should compute positive and negative proportions
+		/*****************************
+		 * unknown strand : here is where I should compute positive and negative proportions
+		 *****************************/
+		else { 
 
 			if(eqnegcol[grcol]!=-1){
 				int negcol=eqnegcol[grcol];
@@ -15242,9 +15251,16 @@ int build_merge(BundleData* bdata) { // here a "read" is in fact a transcript
 			else if((bdata->covflags & IS_COV_FLAG)!=0) rd.read_count=rd.tinfo->cov;
 
 			//if(rd.juncs.Count()) { // why is this commented?
+			// m is the next graph index.
 			int m=n+1;
 			while(m<nreads && readlist[m]->start<=rd.segs[0].end) {
+				/*****************************
+				 ** m is not guide && m & n junction counts are same.
+				 *****************************/
 				if(readlist[m]->nh && readlist[m]->tinfo->g==-1 && readlist[m]->juncs.Count()==rd.juncs.Count()) {
+					/*****************************
+					 ** Check if m & n have same junctions
+					 *****************************/
 					bool samejuncs=true;
 					for(int i=0;i<rd.juncs.Count();i++)
 						if(rd.juncs[i]!=readlist[m]->juncs[i]) {
@@ -15257,6 +15273,9 @@ int build_merge(BundleData* bdata) { // here a "read" is in fact a transcript
 						if((bdata->covflags & IS_TPM_FLAG)!=0) readlist[m]->read_count=readlist[m]->tinfo->tpm;
 						else if((bdata->covflags & IS_FPKM_FLAG)!=0) readlist[m]->read_count=readlist[m]->tinfo->fpkm;
 						else if((bdata->covflags & IS_COV_FLAG)!=0) readlist[m]->read_count=readlist[m]->tinfo->cov;
+						/*****************************
+						 ** How the read_count is calculated.
+						 *****************************/
 						rd.read_count=rd.read_count*rd.len+readlist[m]->read_count*readlist[m]->len;
 						if(readlist[m]->end>rd.end) {
 							rd.len+=readlist[m]->end-rd.end;
@@ -15271,7 +15290,7 @@ int build_merge(BundleData* bdata) { // here a "read" is in fact a transcript
 		}
 
 		/*****************************
-		 ** I need to add the source to start, and end to sink junctions to read as well
+		 ** I need to add the source to start, and sink to end junctions to read as well
 		 *****************************/
 		char strand=-1;
 		if(rd.strand) strand=rd.strand;

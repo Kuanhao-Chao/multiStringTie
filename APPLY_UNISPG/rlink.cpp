@@ -377,10 +377,11 @@ void cov_edge_add(GVec<float> *bpcov, int sno, int start, int end, float v) {
 }
 
 
-void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart) {
+void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart, int refend) {
 	// fprintf(stderr, "Inside `add_read_to_cov`\n");
 
 	int sno=(int)rd[n]->strand+1; // 0(-),1(.),2(+)
+	fprintf(stderr, "snosnosnosno: %d\n", sno);
 
 	float single_count=rd[n]->read_count;
 
@@ -473,24 +474,44 @@ void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart) 
 
 			int passed_start = int(rd[n]->segs[i].start)-refstart;
 			int passed_end = int(rd[n]->segs[i].end)-refstart;
-			
-
-			
-			if (passed_start < 0) {
-				passed_start = 0;
-			}
-			if (passed_end < 0) {
-				passed_end = 0;
-			}
 
 
 
-			if (passed_end != 0) {
-				fprintf(stderr, "))))))) start: %d;  end: %d;\n", passed_start, passed_end+1);
-				// cov_edge_add(bpcov,sno,passed_start, passed_end+1, single_count);
+			// if (passed_end != 0) {
+			// 	fprintf(stderr, "))))))) start: %d;  end: %d;\n", passed_start, passed_end+1);
+			// 	// cov_edge_add(bpcov,sno,passed_start, passed_end+1, single_count);
+			// } else {
+			// 	fprintf(stderr, "===> start: %d;  end: %d;\n", passed_start, passed_end+1);
+			// }
+
+
+			if (rd[n]->segs[i].end < refstart || rd[n]->segs[i].start > refend) {
 			} else {
-				fprintf(stderr, "===> start: %d;  end: %d;\n", passed_start, passed_end+1);
+				if (rd[n]->segs[i].start < refstart) {
+					passed_start = 0;
+				}
+				if (rd[n]->segs[i].end > refend) {
+					passed_end = refend-refstart;
+				}
+				cov_edge_add(bpcov,sno,passed_start, passed_end+1,single_count);
 			}
+			
+			// if (rd[n]->segs[i].start < refstart && rd[n]->segs[i].end >= refstart && rd[n]->segs[i].end <= refend) {
+
+			// } else if () {
+
+			// }
+
+
+			// if (passed_start <= 0 && passed_end <= 0 ) {
+			// } else {
+			// 	if (passed_start < 0 && passed_end > 0) {
+			// 		cov_edge_add(bpcov,sno,0,rd[n]->segs[i].end-refstart+1,single_count);
+
+			// 	} else if (passed_start >= 0) {
+			// 		cov_edge_add(bpcov,sno,rd[n]->segs[i].start-refstart,rd[n]->segs[i].end-refstart+1,single_count);
+			// 	}
+			// }
  			
 
 			// cov_edge_add(bpcov,sno,rd[n]->segs[i].start-refstart,rd[n]->segs[i].end-refstart+1,single_count);
@@ -531,7 +552,7 @@ void count_good_junctions(BundleData* bdata) {
 		 *****************************/
 		// fprintf(stderr, ">> add_read_to_cov => refstart - refend : %d - %d \n", refstart, refend);
 
-		if(!rd.unitig) add_read_to_cov(readlist,n,bpcov,refstart);
+		if(!rd.unitig) add_read_to_cov(readlist,n,bpcov,refstart,refend);
 		else if(rdcount>1) rdcount=1;
 
 		GVec<uint> leftsup;
@@ -694,14 +715,13 @@ float get_cov_sign(int s,uint start,uint end,GVec<float>* bpcov) {
 	// fprintf(stderr, ">> get_cov_sign~~~ start: %d;  end: %d \n", start, end);
 	int m=int((end+1)/BSIZE);
 	int k=int(start/BSIZE);
-	// fprintf(stderr, ">> get_cov_sign~~~ m: %d;  k: %d \n", m, k);
-	// fprintf(stderr, ">> get_cov_sign~~~ BSIZE: %d \n", BSIZE);
+	fprintf(stderr, ">> get_cov_sign~~~ m: %d;  k: %d \n", m, k);
+	fprintf(stderr, ">> get_cov_sign~~~ BSIZE: %d \n", BSIZE);
 
 	int o=2-s;
 	float cov=0;
 	for(int i=k+1;i<=m;i++) {
 		cov+=bpcov[1][i*BSIZE-1]-bpcov[o][i*BSIZE-1];
-		// fprintf(stderr, "\t>> get_cov_sign~~~ cov[%d]: %f \n", i, cov);
 	}
 
 	float cov_2=0;
@@ -709,6 +729,10 @@ float get_cov_sign(int s,uint start,uint end,GVec<float>* bpcov) {
 		// cov_2+=bpcov[1][i-1]-bpcov[o][i-1];
 		// fprintf(stderr, "\t **** get_cov_sign~~~ cov[%d]: %f \n", i, bpcov[1][i-1]-bpcov[o][i-1]);
 	}
+
+	fprintf(stderr, "\t>> bpcov[1][end+1]-bpcov[1][start]: %f \n", bpcov[1][end+1]-bpcov[1][start]);
+	fprintf(stderr, "\t>> bpcov[%d][end+1]+bpcov[%d][start]: %f \n", o, o, bpcov[o][end+1]-bpcov[o][start]);
+
 	cov+=bpcov[1][end+1]-bpcov[1][start]-bpcov[o][end+1]+bpcov[o][start];
 	if(cov<0) cov=0;
 	return(cov);
