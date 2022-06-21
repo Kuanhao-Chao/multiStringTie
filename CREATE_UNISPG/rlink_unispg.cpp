@@ -3790,8 +3790,10 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
     				{ //DEBUG ONLY
     					//printTime(stderr);
     					fprintf(stderr,">>> There are %d nodes for graph[%d][%d]:\n",graphno[s][b],s,b);
-    					for(int i=0;i<graphno[s][b];i++) {
-    						fprintf(stderr,"%d (%d-%d): %f len=%d cov=%f capacity=%f rate=%f",i,no2gnode[s][b][i]->start,no2gnode[s][b][i]->end,no2gnode[s][b][i]->cov,no2gnode[s][b][i]->len(),no2gnode[s][b][i]->cov/no2gnode[s][b][i]->len(), no2gnode[s][b][i]->capacity, no2gnode[s][b][i]->rate);
+    					for(int i=1;i<graphno[s][b]-1;i++) {
+    						
+							fprintf(stderr,"%d (%d-%d): %f len=%d cov=%f capacity=%f rate=%f",i,no2gnode[s][b][i]->start,no2gnode[s][b][i]->end,no2gnode[s][b][i]->cov,no2gnode[s][b][i]->len(),no2gnode[s][b][i]->cov/no2gnode[s][b][i]->len(), no2gnode[s][b][i]->capacity, no2gnode[s][b][i]->rate);
+
     						fprintf(stderr," parents:");
     						for(int j=0;j<no2gnode[s][b][i]->parent.Count();j++) fprintf(stderr," %d",no2gnode[s][b][i]->parent[j]);
     						fprintf(stderr," children:");
@@ -3799,6 +3801,17 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
     						fprintf(stderr," trf=");
     						for(int j=0;j<no2gnode[s][b][i]->trf.Count();j++) fprintf(stderr," %d",no2gnode[s][b][i]->trf[j]);
     						fprintf(stderr,"\n");
+
+							float node_coverage_neg = get_cov(0, no2gnode[s][b][i]->start-refstart, no2gnode[s][b][i]->end-refstart, bdata->bpcov);
+							float node_coverage_uns = get_cov(1, no2gnode[s][b][i]->start-refstart, no2gnode[s][b][i]->end-refstart, bdata->bpcov);
+							float node_coverage_pos = get_cov(2, no2gnode[s][b][i]->start-refstart, no2gnode[s][b][i]->end-refstart, bdata->bpcov);
+							node_coverage_uns = node_coverage_uns - node_coverage_neg - node_coverage_pos;
+							float node_coverage_neg_sign = get_cov(0, no2gnode[s][b][i]->start-refstart, no2gnode[s][b][i]->end-refstart, bdata->bpcov);
+							float node_coverage_pos_sign = get_cov_sign(2, no2gnode[s][b][i]->start-refstart, no2gnode[s][b][i]->end-refstart, bdata->bpcov);
+
+
+    						fprintf(stderr,"\t && node_coverage_neg=%f  node_coverage_uns=%f  node_coverage_pos=%f\n", node_coverage_neg, node_coverage_uns, node_coverage_pos);
+    						fprintf(stderr,"\t && node_coverage_neg_sign=%f  node_coverage_pos_sign=%f\n", node_coverage_neg_sign, node_coverage_pos_sign);
     					}
     					fprintf(stderr,">>> There are %d transfrags[%d][%d]:\n",transfrag[s][b].Count(),s,b);
     					for(int t=0;t<transfrag[s][b].Count();t++) {

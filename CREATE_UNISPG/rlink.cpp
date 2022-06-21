@@ -124,8 +124,11 @@ void cov_edge_add(GVec<float> *bpcov, int sno, int start, int end, float v) {
 
 void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart) {
 
+	fprintf(stderr, ">>> In add_read_to_cov, (int)rd[n]->strand: %d \n", (int)rd[n]->strand);
+
 	int sno=(int)rd[n]->strand+1; // 0(-),1(.),2(+)
 
+	fprintf(stderr, ">>> In add_read_to_cov, sno: %d \n", sno);
 	float single_count=rd[n]->read_count;
 	for(int i=0;i<rd[n]->pair_idx.Count();i++) {
 		single_count-=rd[n]->pair_count[i];
@@ -184,11 +187,13 @@ void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart) 
 					nsegs--;
 				}
 				int strand=sno;
+				fprintf(stderr, "\t>>> In add_read_to_cov, sno: %d \n", sno);
+				fprintf(stderr, "\t>>> In add_read_to_cov, snop: %d \n", snop);
 				if(sno!=snop) {
 					if(sno==1) strand=snop;
 					else if(snop!=1) strand=1;
 				}
-
+				fprintf(stderr, ">> Iterating pair_idx!!!\n");
 				fprintf(stderr, ">>>>> start: %d;  refstart: %d;  start-refstart: %d\n", start, refstart, start-refstart);
 				fprintf(stderr, ">>>>> end: %d;  refstart: %d;  end-refstart: %d\n", end, refstart, end-refstart);
 				cov_edge_add(bpcov,strand,start-refstart,end-refstart+1,rd[n]->pair_count[i]);
@@ -196,6 +201,7 @@ void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart) 
 		}
 	}
 	if(single_count>epsilon) {
+		fprintf(stderr, ">> single_count>epsilon\n");
 		for(int i=0;i<rd[n]->segs.Count();i++) {
 			if (rd[n]->segs[i].start-refstart < 0) {
 				fprintf(stderr, "!!!! Warning!!!\n");
@@ -527,14 +533,26 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 	 *    only consider mate pairing data if mates are on the same chromosome/contig and are properly paired
 	 *****************************/
 	if (brec.refId()==brec.mate_refId()) {  //only consider mate pairing data if mates are on the same chromosome/contig and are properly paired
+
+		// fprintf(stderr, ">> brec.refId(): %d\n", brec.refId());
+		// fprintf(stderr, ">> brec.mate_refId(): %d\n", brec.mate_refId());
+		// fprintf(stderr, ">> At the same pair!!!\n");
+
 	//if (brec.refId()==brec.mate_refId() && brec.isProperlyPaired()) {  //only consider mate pairing data if mates are on the same chromosome/contig and are properly paired
 	//if (brec.isProperlyPaired()) {  //only consider mate pairing data if mates  are properly paired
 		int pairstart=brec.mate_start();
+
+		// fprintf(stderr, ">> currentstart: %d\n", currentstart);
+		// fprintf(stderr, ">> pairstart: %d\n", pairstart);
+		// fprintf(stderr, ">> readstart: %d\n", readstart);
+
 		if (currentstart<=pairstart) { // if pairstart is in a previous bundle I don't care about it
 			//GStr readname();
 			//GStr id(brec.name(), 16); // init id with readname
 			_id.assign(brec.name()); //assign can be forced to prevent shrinking of the string
 			if(pairstart<=readstart) { // if I've seen the pair already <- I might not have seen it yet because the pair starts at the same place
+				// fprintf(stderr, ">> pairstart<=readstat\n");
+
 				_id+='-';_id+=pairstart;
 				_id+=".=";_id+=hi; // (!) this suffix actually speeds up the hash by improving distribution!
 				const int* np=hashread[_id.chars()];
@@ -568,6 +586,8 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 				}
 			}
 			else { // I might still see the pair in the future
+				// fprintf(stderr, ">> pairstart>readstat\n");
+
 				_id+='-';_id+=readstart; // this is the correct way
 				_id+=".=";_id+=hi;
 				hashread.Add(_id.chars(), n);
@@ -16069,6 +16089,10 @@ void count_good_junctions(BundleData* bdata) {
 	 *****************************/
 	for(int n=0;n<readlist.Count();n++) {
 		CReadAln & rd=*(readlist[n]);
+
+		fprintf(stderr, ">> rd[n]->pair_idx.Count(): %d\n", rd.pair_idx.Count());
+
+
 		float rdcount=rd.read_count;
 
 		int nex=rd.segs.Count();

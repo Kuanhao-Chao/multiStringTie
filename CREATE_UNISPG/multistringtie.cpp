@@ -937,6 +937,8 @@ int main(int argc, char* argv[]) {
 		#endif
 					refseqName=brec->refName();
 					xstrand=brec->spliceStrand(); // tagged strand gets priority
+
+					fprintf(stderr, "** Before setting strand: %c\n", xstrand);
 					if(xstrand=='.' && (fr_strand || rf_strand)) { // set strand if stranded library
 						if(brec->isPaired()) { // read is paired
 							if(brec->pairOrder()==1) { // first read in pair
@@ -953,6 +955,7 @@ int main(int argc, char* argv[]) {
 							else xstrand='-';
 						}
 					}
+					fprintf(stderr, "** After setting strand: %c\n", xstrand);
 
 					/*
 					if (xstrand=='.' && brec->exons.Count()>1) {
@@ -1221,7 +1224,11 @@ int main(int argc, char* argv[]) {
 					}
 				} //adjusted currentend and checked for overlapping reference transcripts
 				GReadAlnData alndata(brec, 0, nh, hi, tinfo);
+				fprintf(stderr, "brec: %d\n", brec->mapped_len);
+				fprintf(stderr, "brec: %d - %d\n", brec->start, brec->end);
+				fprintf(stderr, ">>> before evalReadAln xstrand: %c\n", xstrand);
 				bool ovlpguide=bundle->evalReadAln(alndata, xstrand);
+				fprintf(stderr, ">>> after evalReadAln xstrand: %c\n", xstrand);
 
 				/*****************************
 				 * in eonly case consider read only if it overlaps guide
@@ -1577,7 +1584,9 @@ int main(int argc, char* argv[]) {
 			} //adjusted currentend and checked for overlapping reference transcripts
 			
 			GReadAlnData alndata(brec, 0, nh, hi, tinfo);
+			fprintf(stderr, ">>> before evalReadAln xstrand: %c\n", xstrand);
 			bool ovlpguide=bundle->evalReadAln(alndata, xstrand);
+			fprintf(stderr, ">>> after evalReadAln xstrand: %c\n", xstrand);
 
 			/*****************************
 			 * in eonly case consider read only if it overlaps guide

@@ -28,7 +28,14 @@
         "fstream": "cpp",
         "istream": "cpp",
         "streambuf": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "memory": "cpp",
+        "thread": "cpp",
+        "tuple": "cpp",
+        "__functional_base": "cpp",
+        "utility": "cpp",
+        "__mutex_base": "cpp",
+        "mutex": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

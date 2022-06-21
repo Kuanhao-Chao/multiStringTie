@@ -282,17 +282,31 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 	 *    only consider mate pairing data if mates are on the same chromosome/contig and are properly paired
 	 *****************************/
 	if (brec.refId()==brec.mate_refId()) {
+		fprintf(stderr, ">> brec.refId(): %d\n", brec.refId());
+		fprintf(stderr, ">> brec.mate_refId(): %d\n", brec.mate_refId());
+		fprintf(stderr, ">> At the same pair!!!\n");
 	//if (brec.refId()==brec.mate_refId() && brec.isProperlyPaired()) {  //only consider mate pairing data if mates are on the same chromosome/contig and are properly paired
 	//if (brec.isProperlyPaired()) {  //only consider mate pairing data if mates  are properly paired
 		int pairstart=brec.mate_start();
+
+		fprintf(stderr, ">> currentstart: %d\n", currentstart);
+		fprintf(stderr, ">> pairstart: %d\n", pairstart);
+		fprintf(stderr, ">> readstart: %d\n", readstart);
+
 		if (currentstart<=pairstart) { // if pairstart is in a previous bundle I don't care about it
 			//GStr readname();
 			//GStr id(brec.name(), 16); // init id with readname
 			_id.assign(brec.name()); //assign can be forced to prevent shrinking of the string
+			fprintf(stderr, ">> _id.assign(brec.name()): %s\n", brec.name());
+
 			if(pairstart<=readstart) { // if I've seen the pair already <- I might not have seen it yet because the pair starts at the same place
+				fprintf(stderr, ">> pairstart<=readstat\n");
 				_id+='-';_id+=pairstart;
 				_id+=".=";_id+=hi; // (!) this suffix actually speeds up the hash by improving distribution!
 				const int* np=hashread[_id.chars()];
+
+				fprintf(stderr, ">> np: %d\n", np);
+
 				if(np) { // the pair was stored --> why wouldn't it be? : only in the case that the pair starts at the same position
 					if(readlist[*np]->nh>nh && !nomulti) rdcount=float(1)/readlist[*np]->nh;
 					bool notfound=true;
@@ -305,6 +319,9 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 					if(notfound) { // I didn't see the pairing before
 						readlist[*np]->pair_idx.Add(n);
 						readlist[*np]->pair_count.Add(rdcount);
+
+						fprintf(stderr, ">> Add pair_idx 1\n");
+
 					}
 
 					notfound=true;
@@ -318,11 +335,15 @@ void processRead(int currentstart, int currentend, BundleData& bdata,
 						int i=*np;
 						readlist[n]->pair_idx.Add(i);
 						readlist[n]->pair_count.Add(rdcount);
+
+						fprintf(stderr, ">> Add pair_idx 2\n");
+
 					}
 					hashread.Remove(_id.chars());
 				}
 			}
 			else { // I might still see the pair in the future
+				fprintf(stderr, ">> pairstart>readstat\n");
 				_id+='-';_id+=readstart; // this is the correct way
 				_id+=".=";_id+=hi;
 				hashread.Add(_id.chars(), n);
@@ -380,8 +401,9 @@ void cov_edge_add(GVec<float> *bpcov, int sno, int start, int end, float v) {
 void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart, int refend) {
 	// fprintf(stderr, "Inside `add_read_to_cov`\n");
 
+	fprintf(stderr, ">>> In add_read_to_cov, (int)rd[n]->strand: %d \n", (int)rd[n]->strand);
 	int sno=(int)rd[n]->strand+1; // 0(-),1(.),2(+)
-	fprintf(stderr, "snosnosnosno: %d\n", sno);
+	fprintf(stderr, ">>> In add_read_to_cov, sno: %d \n", sno);
 
 	float single_count=rd[n]->read_count;
 
@@ -445,13 +467,15 @@ void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart, 
 					nsegs--;
 				}
 				int strand=sno;
+				fprintf(stderr, "\t>>> In add_read_to_cov, sno: %d \n", sno);
+				fprintf(stderr, "\t>>> In add_read_to_cov, snop: %d \n", snop);
 				if(sno!=snop) {
 					if(sno==1) strand=snop;
 					else if(snop!=1) strand=1;
 				}
 
-				// fprintf(stderr, ">>>>> start: %d;  refstart: %d;  start-refstart: %d\n", start, refstart, start-refstart);
-				// fprintf(stderr, ">>>>> end: %d;  refstart: %d;  end-refstart: %d\n", end, refstart, end-refstart);
+				fprintf(stderr, ">>>>> start: %d;  refstart: %d;  start-refstart: %d\n", start, refstart, start-refstart);
+				fprintf(stderr, ">>>>> end: %d;  refstart: %d;  end-refstart: %d\n", end, refstart, end-refstart);
 
 				// if (start-refstart < 0) {
 				// 	start = refstart;
@@ -464,6 +488,7 @@ void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart, 
 		}
 	}
 	if(single_count>epsilon) {
+		fprintf(stderr, "single_count>epsilon\n");
 		for(int i=0;i<rd[n]->segs.Count();i++) {
 			// fprintf(stderr, "~~~~!!!\n");
 			if ((int(rd[n]->segs[i].start) - refstart) < 0) {
@@ -485,7 +510,7 @@ void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart, 
 			// }
 
 
-			if (rd[n]->segs[i].end < refstart || rd[n]->segs[i].start > refend) {
+			if (rd[n]->segs[i].end <= refstart || rd[n]->segs[i].start >= refend) {
 			} else {
 				if (rd[n]->segs[i].start < refstart) {
 					passed_start = 0;
@@ -493,28 +518,10 @@ void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart, 
 				if (rd[n]->segs[i].end > refend) {
 					passed_end = refend-refstart;
 				}
-				cov_edge_add(bpcov,sno,passed_start, passed_end+1,single_count);
+				if (passed_end-passed_start > 70 )  {
+					cov_edge_add(bpcov,sno,passed_start, passed_end+1,single_count);
+				}
 			}
-			
-			// if (rd[n]->segs[i].start < refstart && rd[n]->segs[i].end >= refstart && rd[n]->segs[i].end <= refend) {
-
-			// } else if () {
-
-			// }
-
-
-			// if (passed_start <= 0 && passed_end <= 0 ) {
-			// } else {
-			// 	if (passed_start < 0 && passed_end > 0) {
-			// 		cov_edge_add(bpcov,sno,0,rd[n]->segs[i].end-refstart+1,single_count);
-
-			// 	} else if (passed_start >= 0) {
-			// 		cov_edge_add(bpcov,sno,rd[n]->segs[i].start-refstart,rd[n]->segs[i].end-refstart+1,single_count);
-			// 	}
-			// }
- 			
-
-			// cov_edge_add(bpcov,sno,rd[n]->segs[i].start-refstart,rd[n]->segs[i].end-refstart+1,single_count);
 		}
 	}
 }
@@ -543,6 +550,10 @@ void count_good_junctions(BundleData* bdata) {
 	 *****************************/
 	for(int n=0;n<readlist.Count();n++) {
 		CReadAln & rd=*(readlist[n]);
+
+		fprintf(stderr, ">> rd[n]->pair_idx.Count(): %d\n", rd.pair_idx.Count());
+
+
 		float rdcount=rd.read_count;
 
 		int nex=rd.segs.Count();
@@ -660,18 +671,18 @@ void count_good_junctions(BundleData* bdata) {
 	float prev_sum[3]={0,0,0};
 	while(k<m) {
 		int end=(k+1)*BSIZE;
-		//fprintf(stderr,"end=%d\n",end);
+		// fprintf(stderr,"end=%d\n",end);
 		for(int i=k*BSIZE;i<end;i++) {
 			for(int s=0;s<3;s++) {
-				//fprintf(stderr,"(1)bpcov[%d][%d]=%f ",s,i,bpcov[s][i]);
+				// fprintf(stderr,"(1)bpcov[%d][%d]=%f ",s,i,bpcov[s][i]);
 				bpcov[s][i]+=prev_val[s];
 				if(bpcov[s][i]<0) bpcov[s][i]=0;
 				prev_val[s]=bpcov[s][i];
-				//fprintf(stderr,"(2)bpcov[%d][%d]=%f ",s,i,bpcov[s][i]);
+				// fprintf(stderr,"(2)bpcov[%d][%d]=%f ",s,i,bpcov[s][i]);
 				bpcov[s][i]+=prev_sum[s];
 				prev_sum[s]=bpcov[s][i];
-				//fprintf(stderr,"(2)bpcov[%d][%d]=%f ",s,i,bpcov[s][i]);
-				//fprintf(stderr,"bpPos[%d][%d]: prev_val=%f prev_sum=%f\n",s,i,prev_val[s],prev_sum[s]);
+				// fprintf(stderr,"(2)bpcov[%d][%d]=%f ",s,i,bpcov[s][i]);
+				// fprintf(stderr,"bpPos[%d][%d]: prev_val=%f prev_sum=%f\n",s,i,prev_val[s],prev_sum[s]);
 			}
 		}
 		for(int s=0;s<3;s++) prev_sum[s]=0;
@@ -685,7 +696,7 @@ void count_good_junctions(BundleData* bdata) {
 			prev_val[s]=bpcov[s][i];
 			bpcov[s][i]+=prev_sum[s];
 			prev_sum[s]=bpcov[s][i];
-			fprintf(stderr,"bpPos[%d][%d]: cov=%f sumbpcov=%f\n",s,i,prev_val[s],prev_sum[s]);
+			// fprintf(stderr,"bpPos[%d][%d]: cov=%f sumbpcov=%f\n",s,i,prev_val[s],prev_sum[s]);
 		}
 }
 
@@ -731,7 +742,8 @@ float get_cov_sign(int s,uint start,uint end,GVec<float>* bpcov) {
 	}
 
 	fprintf(stderr, "\t>> bpcov[1][end+1]-bpcov[1][start]: %f \n", bpcov[1][end+1]-bpcov[1][start]);
-	fprintf(stderr, "\t>> bpcov[%d][end+1]+bpcov[%d][start]: %f \n", o, o, bpcov[o][end+1]-bpcov[o][start]);
+	fprintf(stderr, "\t>> bpcov[%d][end+1]-bpcov[%d][start]: %f \n", o, o, bpcov[o][end+1]-bpcov[o][start]);
+	fprintf(stderr, "\t>> bpcov[%d][end+1]-bpcov[%d][start]: %f \n", s, s, bpcov[s][end+1]-bpcov[s][start]);
 
 	cov+=bpcov[1][end+1]-bpcov[1][start]-bpcov[o][end+1]+bpcov[o][start];
 	if(cov<0) cov=0;
