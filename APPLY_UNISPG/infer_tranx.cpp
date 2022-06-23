@@ -29,6 +29,25 @@ void infer_transcripts_unispg(BundleData* bundle, GPVec<UnispgGp>** graphs_vec) 
     float node_coverage_uns = 0.0;
     float node_coverage_pos = 0.0;
 
+	/*****************************
+	 ** Calculate bundle pos / neg coverage ratio
+	 *****************************/
+    float bundle_coverage_neg = get_cov(0, 0, refend-refstart+1, bundle->bpcov);
+    float bundle_coverage_uns = get_cov(1, 0, refend-refstart+1, bundle->bpcov);
+    float bundle_coverage_pos = get_cov(2, 0, refend-refstart+1, bundle->bpcov);
+
+    float bundle_coverage_ratio_neg = get_cov(0, 0, refend-refstart+1, bundle->bpcov);
+    float bundle_coverage_ratio_pos = get_cov(0, 0, refend-refstart+1, bundle->bpcov);
+
+    if (bundle_coverage_neg == 0.0 && bundle_coverage_pos == 0.0) {
+        bundle_coverage_ratio_neg = 0.5;
+        bundle_coverage_ratio_pos = 0.5;
+    } else {
+        bundle_coverage_ratio_neg = bundle_coverage_neg/(bundle_coverage_neg+bundle_coverage_pos);
+        bundle_coverage_ratio_pos = 1-bundle_coverage_ratio_neg;
+    }
+
+    fprintf(stderr, "bundle_coverage_neg: %f (ratio: %f); bundle_coverage_uns: %f; bundle_coverage_pos: %f (ratio: %f)\n", bundle_coverage_neg, bundle_coverage_ratio_neg, bundle_coverage_uns, bundle_coverage_pos, bundle_coverage_ratio_pos);
 
     if (graphs_vec[0]->Count() == 0) {
         fprintf(stderr, "####### Positive strand!!!\n");
@@ -140,7 +159,8 @@ void infer_transcripts_unispg(BundleData* bundle, GPVec<UnispgGp>** graphs_vec) 
                         float node_coverage_pos = 0.0;
                         float node_coverage_neg = 0.0;
 
-                        calculate_ovp_coverage(pos_n_start, pos_n_end, neg_n_start, neg_n_end, refstart, refend, node_coverage_pos, node_coverage_neg, bundle->bpcov);
+                        calculate_ovp_coverage(pos_n_start, pos_n_end, neg_n_start, neg_n_end, refstart, refend, bundle_coverage_ratio_pos, bundle_coverage_ratio_neg, node_coverage_pos, node_coverage_neg, bundle->bpcov);
+
                         // node_coverage = get_cov(1, overlap_n_start-refstart, overlap_n_end-refstart, bundle->bpcov);
 
                         fprintf(stderr, "pos_g_idx: %d; pos_n_idx: %d; nodeid: %d (%u - %u) => node_coverage (%f, %f / %f, %f)\nneg_g_idx: %d; neg_n_idx: %d; nodeid: %d (%u - %u) => node_coverage (%f, %f / %f, %f)\nunstranded node_coverage (%f)\n", pos_g_idx, pos_n_idx, graphs_vec[1]->Get(pos_g_idx)->no2gnode_unispg[1][0].Get(pos_n_idx)->nodeid, pos_n_start, pos_n_end, node_coverage_pos, node_coverage_pos/(pos_n_end-pos_n_start), graphs_vec[1]->Get(pos_g_idx)->no2gnode_unispg[1][0].Get(pos_n_idx)->cov_s->Get(0), graphs_vec[1]->Get(pos_g_idx)->no2gnode_unispg[1][0].Get(pos_n_idx)->cov_s->Get(0)/(pos_n_end-pos_n_start), neg_g_idx, neg_n_idx, graphs_vec[0]->Get(neg_g_idx)->no2gnode_unispg[0][0].Get(neg_n_idx)->nodeid, neg_n_start, neg_n_end, node_coverage_neg, node_coverage_neg/(neg_n_end-neg_n_start), graphs_vec[0]->Get(neg_g_idx)->no2gnode_unispg[0][0].Get(neg_n_idx)->cov_s->Get(0), graphs_vec[0]->Get(neg_g_idx)->no2gnode_unispg[0][0].Get(neg_n_idx)->cov_s->Get(0)/(neg_n_end-neg_n_start), node_coverage_uns);

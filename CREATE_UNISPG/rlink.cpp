@@ -101,18 +101,18 @@ void cov_edge_add(GVec<float> *bpcov, int sno, int start, int end, float v) {
 	bool neutral=false;
 	if(sno!=1) neutral=true; // why is neutral true here: because if the sno is -/+ than I want to add their counts to bpcov[1] too
 
-	fprintf(stderr, ">> v: %f\n", v);
+	fprintf(stderr, "\t\t>> v: %f\n", v);
 
-	fprintf(stderr, "sno: %d; start: %d\n", sno, start);
-	fprintf(stderr, "	before start => bpcov[sno][start+1]: %f\n", bpcov[sno][start+1]);
+	fprintf(stderr, "\t\tsno: %d; start: %d\n", sno, start);
+	fprintf(stderr, "\t\t	before start => bpcov[sno][start+1]: %f\n", bpcov[sno][start+1]);
 	bpcov[sno][start+1]+=v; // if sno==1 then I add v to it here
-	fprintf(stderr, "	after start => bpcov[sno][start+1]: %f\n", bpcov[sno][start+1]);
+	fprintf(stderr, "\t\t	after start => bpcov[sno][start+1]: %f\n", bpcov[sno][start+1]);
 
-	fprintf(stderr, "sno: %d; end: %d\n", sno, end);
-	fprintf(stderr, "	before end => bpcov[sno][end+1]: %f\n", bpcov[sno][end+1]);
+	fprintf(stderr, "\t\tsno: %d; end: %d\n", sno, end);
+	fprintf(stderr, "\t\t	before end => bpcov[sno][end+1]: %f\n", bpcov[sno][end+1]);
 	// bpcov[sno][start+1]+=v; // if sno==1 then I add v to it here
 	bpcov[sno][end+1]-=v;
-	fprintf(stderr, "	after end => bpcov[sno][end+1]: %f\n", bpcov[sno][end+1]);
+	fprintf(stderr, "\t\t	after end => bpcov[sno][end+1]: %f\n", bpcov[sno][end+1]);
 
 
 	if(neutral) { // if neutral (i.e. stranded) gets added to bpcov[1] here too => bpcov[1]=all coverage
@@ -122,7 +122,7 @@ void cov_edge_add(GVec<float> *bpcov, int sno, int start, int end, float v) {
 }
 
 
-void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart) {
+void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart, int refend) {
 
 	fprintf(stderr, ">>> In add_read_to_cov, (int)rd[n]->strand: %d \n", (int)rd[n]->strand);
 
@@ -140,7 +140,12 @@ void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart) 
 			int p=0;
 			int r=0;
 			int nsegs=pcount+rcount;
+			fprintf(stderr, ">>> nsegs: %d \n", nsegs);
+
+			int counter = 0;
 			while(nsegs) {
+				fprintf(stderr, ">>> loop %d ~~~\n", counter);
+				counter++;
 				int start;
 				int end;
 				if(r<rcount) {
@@ -193,9 +198,9 @@ void add_read_to_cov(GList<CReadAln>& rd,int n,GVec<float> *bpcov,int refstart) 
 					if(sno==1) strand=snop;
 					else if(snop!=1) strand=1;
 				}
-				fprintf(stderr, ">> Iterating pair_idx!!!\n");
-				fprintf(stderr, ">>>>> start: %d;  refstart: %d;  start-refstart: %d\n", start, refstart, start-refstart);
-				fprintf(stderr, ">>>>> end: %d;  refstart: %d;  end-refstart: %d\n", end, refstart, end-refstart);
+				fprintf(stderr, "\t>> Iterating pair_idx!!!\n");
+				fprintf(stderr, "\t>>>>> start: %d;  refstart-refend: %d-%d;  start-refstart: %d\n", start, refstart, refend, start-refstart);
+				fprintf(stderr, "\t>>>>> end: %d;  refstart-refend: %d-%d;  end-refstart: %d\n", end, refstart, refend, end-refstart);
 				cov_edge_add(bpcov,strand,start-refstart,end-refstart+1,rd[n]->pair_count[i]);
 			}
 		}
@@ -16097,7 +16102,7 @@ void count_good_junctions(BundleData* bdata) {
 
 		int nex=rd.segs.Count();
 
-		if(!rd.unitig) add_read_to_cov(readlist,n,bpcov,refstart);
+		if(!rd.unitig) add_read_to_cov(readlist,n,bpcov,refstart, refend);
 		else if(rdcount>1) rdcount=1;
 
 		GVec<uint> leftsup;
