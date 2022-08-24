@@ -165,7 +165,7 @@ endif
 	${CXX} ${CXXFLAGS} -c $< -o $@
 
 # OBJS += rlink.o tablemaker.o tmerge.o
-OBJS += tmerge.o multist.o rlink.o tablemaker.o unispg.o infer_tranx.o helper.o
+OBJS += tmerge.o multist.o rlink.o tablemaker.o unispg.o infer_tranx.o helper.o parse_reads.o
 
 
 all release static static-cpp debug: multistringtie${EXE}
@@ -182,6 +182,7 @@ tablemaker.o : tablemaker.h rlink.h
 multist.o : tablemaker.h rlink.h
 unispg.o : tablemaker.h
 infer_tranx.o: rlink.h
+parse_reads.o:
 helper.o:
 
 ##${BAM}/libbam.a: 

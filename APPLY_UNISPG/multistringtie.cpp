@@ -13,6 +13,11 @@
 #include "helper.h"
 // #include "unispg.h"
 
+// Include fstream to quickly write out the ratio!!!
+#include <fstream>
+
+
+
 #include "time.h"
 #include "GHashMap.hh"
 #include "mode.hpp"
@@ -95,6 +100,9 @@ DOTInputFile dotreader_pos;
 DOTInputFile dotreader_neg;
 
 int sample_num = 1;
+
+
+ofstream ratio_file;
 
 int main(int argc, char*argv[]) {
 	std::cout << "This is the multiStringTie program.\n" << std::endl;
@@ -320,7 +328,7 @@ int main(int argc, char*argv[]) {
 		bool process_graphs_vec = false;
 
 
-
+  		ratio_file.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/ratio.txt");
 
 
 
@@ -1208,6 +1216,8 @@ int main(int argc, char*argv[]) {
 		dotreader.stop(); //close all DOT files
 		// dotreader_pos.stop(); //close all DOT files
 		// dotreader_neg.stop(); //close all DOT files
+
+  		ratio_file.close();
 	}
     return 0;
 }

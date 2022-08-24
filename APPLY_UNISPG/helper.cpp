@@ -1,59 +1,550 @@
 #include "helper.h"
 
 bool segs_overlap(int s1_start, int s1_end, int s2_start, int s2_end) {
-    fprintf(stderr, "Inside `segs_overlap`\n");
+    // fprintf(stderr, "Inside `segs_overlap`\n");
     bool ovp =true;
     fprintf(stderr, "Process two segments (pre: %d - %d ;  now: %d - %d)!!!\n", s1_start, s1_end, s2_start, s2_end);
     // fprintf(stderr, "\t>>>>> brec: %d - %d\n", s1_start, s1_end);
     if (s1_end <  s2_start) {
-        // ----------   |(s).................(e)|
-        // The read is outside the current bundle => skipped!
         fprintf(stderr, "\t** Bundle: ----------   |(s).................(e)|\n");
         ovp = false;
     } else if (s1_start < s2_start && s1_end == s2_start) {
-        // ----------|(s).................(e)|   or   -----|(s)-----............(e)|
         fprintf(stderr, "\t** Bundle: ----------|(s).................(e)|\n");
-        // ovp = false;
-    } else if (s1_start < s2_start && s1_end > s2_start) {
-        // ----------|(s).................(e)|   or   -----|(s)-----............(e)|
+        ovp = false;
+    } else if (s1_start < s2_start && s1_end > s2_start && s1_end < s2_end) {
         fprintf(stderr, "\t** Bundle: -----|(s)-----............(e)|\n");
-    } else if (s1_start < s2_start && s1_end == s2_start) {
-        // -----|(s)---------(e)|
+    } else if (s1_start < s2_start && s1_end > s2_start && s1_end == s2_end) {
         fprintf(stderr, "\t** Bundle: -----|(s)-------(e)|\n");
+    } else if (s1_start < s2_start && s1_end > s2_start && s1_end > s2_end) {
+        fprintf(stderr, "\t** Bundle: -----|(s)----------(e)|------\n");
     } else if (s1_start == s2_start && s1_start < s2_end && s1_end < s2_end) {
-        // |(s)----------.................(e)|   or   |(s)....----------........(e)|
         fprintf(stderr, "\t** Bundle: |(s)----------.................(e)| \n");
     } else if (s1_start == s2_start && s1_start < s2_end && s1_end == s2_end) {
-        // |(s)----------.................(e)|   or   |(s)....----------........(e)|
         fprintf(stderr, "\t** Bundle: |(s)----------(e)|\n");
     } else if (s1_start == s2_start && s1_start < s2_end && s1_end > s2_end) {
-        // |(s)----------.................(e)|   or   |(s)....----------........(e)|
         fprintf(stderr, "\t** Bundle: |(s)----------(e)|----\n");
-    } else if (s1_start > s2_start && s1_start < s2_end && s1_end < s2_end) {
-        // |(s)----------.................(e)|   or   |(s)....----------........(e)|
+    } else if (s1_start > s2_start && s1_start < s2_end && s1_end > s2_start && s1_end < s2_end) {
         fprintf(stderr, "\t** Bundle: |(s)....----------........(e)|\n");
     } else if (s1_start > s2_start && s1_start < s2_end && s1_end == s2_end) {
-        // |(s)----------.................(e)|   or   |(s)....----------........(e)|
         fprintf(stderr, "\t** Bundle: |(s)....----------(e)|\n");
     } else if (s1_start > s2_start && s1_start < s2_end && s1_end > s2_end) {
-        // |(s)----------.................(e)|   or   |(s)....----------........(e)|
         fprintf(stderr, "\t** Bundle: |(s)....----------(e)|-----\n");
     } else if (s1_start > s2_start && s1_start == s2_end && s1_end > s2_end) {
-        // |(s)...............------(e)|-----    or   |(s).................(e)|----------   
-        // The overlapping with the current processing bundle.
         fprintf(stderr, "\t** Bundle: |(s).................(e)|----------\n");
-        // ovp = false;
+        ovp = false;
     } else if (s1_start > s2_end) {
         fprintf(stderr, "\t** Bundle: |(s).................(e)|   ----------\n");
         ovp = false;
     }
+    return ovp;
+}
+
+
+bool segs_overlap_chain(char target_node_strand, int pos_start, int pos_end, int neg_start, int neg_end, int refstart, int refend, float bundle_coverage_ratio_pos, float bundle_coverage_ratio_neg, int& last_ovp_end, char& chaining_hold_strand, float& chaining_hold_cov, float& end_chaining_cov, GVec<float>* bpcov) {
+    // fprintf(stderr, "\tInside `segs_overlap`\n");
+    // fprintf(stderr, "\t\t Before ~~ (%c) chaining_hold_cov: %f\n", chaining_hold_strand, chaining_hold_cov);
+    bool ovp =true;
+    // 'chaining_hold_strand' stores the strand of the coverage of the overlapping region.
+    // 'chaining_hold_cov' no overlapping of the previous pair => end_strand == '.'
+
+
+    // float end_chaining_cov = 0;
+    float pos_cov_ovp = 0.0;
+    float uns_cov_ovp = 0.0;
+    float neg_cov_ovp = 0.0;
+
+    fprintf(stderr, "\t>>> last_ovp_end: %d \n", last_ovp_end);
+
+
+    fprintf(stderr, "\t>> chaining_hold_cov (%c): %f\n", chaining_hold_strand, chaining_hold_cov);
+
+    fprintf(stderr, "\tProcess two segments (pre: %d - %d ;  now: %d - %d)!!!\n", pos_start, pos_end, neg_start, neg_end);
+    // fprintf(stderr, "\t>>>>> brec: %d - %d\n", pos_start, pos_end);
+    if (pos_end <  neg_start) {
+        fprintf(stderr, "\t** Bundle: ----------   |(s).................(e)|\n");
+        ovp = false;
+        if (target_node_strand == '+') {
+            //Positive gonna be pushed to next node
+            if (chaining_hold_strand == '+' && last_ovp_end > pos_start) {
+                end_chaining_cov = chaining_hold_cov + get_cov_sign(2, last_ovp_end-refstart, pos_end-refstart, bpcov);
+                fprintf(stderr, "\t\t** end_chaining_cov: chaining_hold_cov(%f) + get_cov_sign(2, last_ovp_end[%d]-refstart, pos_end[%d]-refstart, bpcov)(%f) = %f \n", chaining_hold_cov, last_ovp_end, pos_end, get_cov_sign(2, last_ovp_end-refstart, pos_end-refstart, bpcov),end_chaining_cov);
+            } else {
+                end_chaining_cov = get_cov_sign(2, pos_start-refstart, pos_end-refstart, bpcov);
+                fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(2, pos_start[%d]-refstart, pos_end[%d]-refstart, bpcov)(%f) = %f \n", pos_start, pos_end, get_cov_sign(2, pos_start-refstart, pos_end-refstart, bpcov), end_chaining_cov);
+            }
+            chaining_hold_strand = '-';
+            chaining_hold_cov = 0;
+            last_ovp_end = 0;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+        } else if (target_node_strand == '-') {
+            //Negative gonna be pushed to next node
+            end_chaining_cov = get_cov_sign(0, neg_start-refstart, neg_end-refstart, bpcov);
+            fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(0, neg_start[%d]-refstart, neg_end[%d]-refstart, bpcov)(%f) = %f \n", neg_start, neg_end, get_cov_sign(0, neg_start-refstart, neg_end-refstart, bpcov), end_chaining_cov);
+            chaining_hold_strand = '+';
+            chaining_hold_cov = 0;
+            last_ovp_end = 0;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+        }
+    } else if (pos_start < neg_start && pos_end == neg_start) {
+        fprintf(stderr, "\t** Bundle: ----------|(s).................(e)|\n");
+        ovp = false;
+        if (target_node_strand == '+') {
+            //Positive gonna be pushed to next node
+            if (chaining_hold_strand == '+' && last_ovp_end > pos_start) {
+                end_chaining_cov = chaining_hold_cov + get_cov_sign(2, last_ovp_end-refstart, pos_end-refstart, bpcov);
+                fprintf(stderr, "\t\t** end_chaining_cov: chaining_hold_cov(%f) +  get_cov_sign(2, last_ovp_end[%d]-refstart, pos_end[%d]-refstart, bpcov)(%f)= %f \n", chaining_hold_cov, last_ovp_end, pos_end, get_cov_sign(2, last_ovp_end-refstart, pos_end-refstart, bpcov), end_chaining_cov);
+            } else {
+                end_chaining_cov = get_cov_sign(2, pos_start-refstart, pos_end-refstart, bpcov);
+                fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(2, pos_start[%d]-refstart, pos_end[%d]-refstart, bpcov)(%f) = %f \n", pos_start, pos_end, get_cov_sign(2, pos_start-refstart, pos_end-refstart, bpcov), end_chaining_cov);
+            }
+            chaining_hold_strand = '-';
+            chaining_hold_cov = 0;
+            last_ovp_end = 0;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+        } else if (target_node_strand == '-') {
+            //Negative gonna be pushed to next node
+            end_chaining_cov = get_cov_sign(0, neg_start-refstart, neg_end-refstart, bpcov);
+            fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(0, neg_start[%d]-refstart, neg_end[%d]-refstart, bpcov)(%f) = %f \n", neg_start, neg_end, get_cov_sign(0, neg_start-refstart, neg_end-refstart, bpcov), end_chaining_cov);
+            chaining_hold_strand = '+';
+            chaining_hold_cov = 0;
+            last_ovp_end = 0;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+        }
+    } else if (pos_start < neg_start && pos_end > neg_start && pos_end < neg_end) {
+        fprintf(stderr, "\t** Bundle: -----|(s)-----............(e)|\n");
+        ovp = true;
+        // Calculate the overlapping coverage for pos / uns / neg.
+        pos_cov_ovp = get_cov(2, neg_start-refstart, pos_end-refstart, bpcov);
+        uns_cov_ovp = get_cov(1, neg_start-refstart, pos_end-refstart, bpcov);
+        neg_cov_ovp = get_cov(0, neg_start-refstart, pos_end-refstart, bpcov);
+        uns_cov_ovp = uns_cov_ovp - pos_cov_ovp - neg_cov_ovp;
+        if (pos_cov_ovp <=0.5) pos_cov_ovp = 0;
+        if (neg_cov_ovp <=0.5) neg_cov_ovp = 0;
+        if (uns_cov_ovp <=0.5) uns_cov_ovp = 0;
+
+        if (target_node_strand == '+') {
+            //Positive gonna be pushed to next node
+            if (chaining_hold_strand == '+' && last_ovp_end > pos_start) {
+                end_chaining_cov = chaining_hold_cov + get_cov_sign(2, last_ovp_end-refstart, neg_start-refstart, bpcov) + pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+                fprintf(stderr, "\t\t** end_chaining_cov: chaining_hold_cov(%f) + get_cov_sign(2, last_ovp_end[%d]-refstart, neg_start[%d]-refstart, bpcov)(%f) + pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) = %f \n", chaining_hold_cov, last_ovp_end, neg_start, get_cov_sign(2, last_ovp_end-refstart, neg_start-refstart, bpcov), pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, end_chaining_cov);
+            } else {
+                end_chaining_cov = get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov) + pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+                fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(2, pos_start[%d]-refstart, neg_start[%d]-refstart, bpcov)(%f) + pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f)= %f \n", pos_start, neg_start, get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov), pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, end_chaining_cov);
+            }
+            chaining_hold_strand = '-';
+            chaining_hold_cov = 0 + neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+            last_ovp_end = pos_end;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f + neg_cov_ovp(%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f) = %f\n", 0, neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, chaining_hold_cov);
+        } else if (target_node_strand == '-') {
+            //Negative gonna be pushed to next node
+            end_chaining_cov = neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg + get_cov_sign(0, pos_end-refstart, neg_end-refstart, bpcov);
+            fprintf(stderr, "\t\t** end_chaining_cov: neg_cov_ovp(%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f](%f) +  get_cov_sign(0, pos_end[%d]-refstart, neg_end[%d]-refstart, bpcov) (%f) = %f \n", neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, pos_end, neg_end, get_cov_sign(0, pos_end-refstart, neg_end-refstart, bpcov), end_chaining_cov);
+            chaining_hold_strand = '+';
+            chaining_hold_cov = 0;
+            last_ovp_end = pos_end;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+        }
+
+    } else if (pos_start < neg_start && pos_end > neg_start && pos_end == neg_end) {
+        fprintf(stderr, "\t** Bundle: -----|(s)-------(e)|\n");
+        ovp = true;
+        // Calculate the overlapping coverage for pos / uns / neg.
+        pos_cov_ovp = get_cov(2, neg_start-refstart, neg_end-refstart, bpcov);
+        uns_cov_ovp = get_cov(1, neg_start-refstart, neg_end-refstart, bpcov);
+        neg_cov_ovp = get_cov(0, neg_start-refstart, neg_end-refstart, bpcov);
+        uns_cov_ovp = uns_cov_ovp - pos_cov_ovp - neg_cov_ovp;
+        if (pos_cov_ovp <=0.5) pos_cov_ovp = 0;
+        if (neg_cov_ovp <=0.5) neg_cov_ovp = 0;
+        if (uns_cov_ovp <=0.5) uns_cov_ovp = 0;
+
+        if (target_node_strand == '+') {
+            //Positive gonna be pushed to next node
+            if (chaining_hold_strand == '+' && last_ovp_end > pos_start) {
+                end_chaining_cov = chaining_hold_cov + get_cov_sign(2, last_ovp_end-refstart, neg_start-refstart, bpcov) + pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+                fprintf(stderr, "\t\t** end_chaining_cov: chaining_hold_cov(%f) + get_cov_sign(2, last_ovp_end[%d]-refstart, neg_start[%d]-refstart, bpcov)(%f) + pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) = %f \n", chaining_hold_cov, last_ovp_end, neg_start, get_cov_sign(2, last_ovp_end-refstart, neg_start-refstart, bpcov),  pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, end_chaining_cov);
+            } else {
+                end_chaining_cov = get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov) + pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+                fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(2, pos_start[%d]-refstart, neg_start[%d]-refstart, bpcov)(%f) + pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) = %f \n", pos_start, neg_start, get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov),  pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, end_chaining_cov);
+            }
+            chaining_hold_strand = '-';
+            chaining_hold_cov = neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+            last_ovp_end = pos_end;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+        } else if (target_node_strand == '-') {
+            //Negative gonna be pushed to next node
+            end_chaining_cov = neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+            fprintf(stderr, "\t\t** end_chaining_cov: neg_cov_ovp(%f) + uns_cov_ovp*bundle_coverage_ratio_neg(%f) = %f \n", neg_cov_ovp, uns_cov_ovp*bundle_coverage_ratio_neg, end_chaining_cov);
+
+            // Get the positive `chaining_hold_cov`
+            if (chaining_hold_strand == '+') {
+                if (last_ovp_end > pos_start) {
+                    fprintf(stderr, "\t\t** chaining_hold_cov: chaining_hold_cov (%f) + get_cov_sign(2, last_ovp_end[%d]-refstart, neg_start[%d]-refstart, bpcov) (%f) + pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f)\n", chaining_hold_cov, last_ovp_end, neg_start, get_cov_sign(2, last_ovp_end-refstart, neg_start-refstart, bpcov), pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos);
+                    chaining_hold_cov = chaining_hold_cov + get_cov_sign(2, last_ovp_end-refstart, neg_start-refstart, bpcov) + pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+                } else {
+                    fprintf(stderr, "\t\t** chaining_hold_cov: get_cov_sign(2, pos_start[%d]-refstart, neg_start[%d]-refstart, bpcov) (%f) + pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f)\n", pos_start, neg_start, get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov), pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos);
+                    chaining_hold_cov = get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov) + pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+                }
+            } else {
+                chaining_hold_cov = get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov) + pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+            }
+            chaining_hold_strand = '+';
+            last_ovp_end = pos_end;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+        }
+    } else if (pos_start < neg_start && pos_end > neg_start && pos_end > neg_end) {
+        fprintf(stderr, "\t** Bundle: -----|(s)----------(e)|------\n");
+        ovp = true;
+        // Calculate the overlapping coverage for pos / uns / neg.
+        pos_cov_ovp = get_cov(2, neg_start-refstart, neg_end-refstart, bpcov);
+        uns_cov_ovp = get_cov(1, neg_start-refstart, neg_end-refstart, bpcov);
+        neg_cov_ovp = get_cov(0, neg_start-refstart, neg_end-refstart, bpcov);
+        uns_cov_ovp = uns_cov_ovp - pos_cov_ovp - neg_cov_ovp;
+        if (pos_cov_ovp <=0.5) pos_cov_ovp = 0;
+        if (neg_cov_ovp <=0.5) neg_cov_ovp = 0;
+        if (uns_cov_ovp <=0.5) uns_cov_ovp = 0;
+
+        if (target_node_strand == '+') {
+            //Positive gonna be pushed to next node
+            if (chaining_hold_strand == '+' && last_ovp_end > pos_start) {
+                end_chaining_cov = chaining_hold_cov + get_cov_sign(2, last_ovp_end-refstart, neg_start-refstart, bpcov) + pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos + get_cov_sign(2, neg_end-refstart, pos_end-refstart, bpcov);
+                fprintf(stderr, "\t\t** end_chaining_cov: chaining_hold_cov(%f) + get_cov_sign(2, last_ovp_end[%d]-refstart, neg_start[%d]-refstart, bpcov)(%f) + pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) + get_cov_sign(2, neg_end[%d]-refstart, pos_end[%d]-refstart, bpcov)(%f) = %f\n", chaining_hold_cov, last_ovp_end, neg_start, get_cov_sign(2, last_ovp_end-refstart, neg_start-refstart, bpcov), pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, neg_end, pos_end, get_cov_sign(2, neg_end-refstart, pos_end-refstart, bpcov), end_chaining_cov);
+            } else {
+                end_chaining_cov = get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov) + pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos + get_cov_sign(2, neg_end-refstart, pos_end-refstart, bpcov);
+
+                fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(2, pos_start[%d]-refstart, neg_start[%d]-refstart, bpcov) (%f) + pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) + get_cov_sign(2, neg_end[%d]-refstart, pos_end[%d]-refstart, bpcov) (%f) = %f \n", pos_start, neg_start, get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov), pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, neg_end, pos_end, get_cov_sign(2, neg_end-refstart, pos_end-refstart, bpcov), end_chaining_cov);
+            }
+            chaining_hold_strand = '-';
+            chaining_hold_cov = 0;
+            last_ovp_end = neg_end;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+        } else if (target_node_strand == '-') {
+            //Negative gonna be pushed to next node
+            end_chaining_cov = neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+            fprintf(stderr, "\t\t** end_chaining_cov: neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f) = %f\n", neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, end_chaining_cov);
+            if (chaining_hold_strand == '+') {
+                if (last_ovp_end > pos_start) {
+                    fprintf(stderr, "\t\t** chaining_hold_cov: chaining_hold_cov(%f) + get_cov_sign(2, last_ovp_end[%d]-refstart, neg_start[%d]-refstart, bpcov) (%f) + pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f)\n", chaining_hold_cov, last_ovp_end, neg_start, get_cov_sign(2, last_ovp_end-refstart, neg_start-refstart, bpcov), pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos);
+                    chaining_hold_cov = chaining_hold_cov + get_cov_sign(2, last_ovp_end-refstart, neg_start-refstart, bpcov)+pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;     
+                } else {
+                    chaining_hold_cov = get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov)+pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+                    fprintf(stderr, "\t\t** chaining_hold_cov:  get_cov_sign(2, pos_start[%d]-refstart, neg_start[%d]-refstart, bpcov) (%f) + pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) = %f\n", pos_start, neg_start, get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov), pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, chaining_hold_cov);
+                }
+            } else {
+                chaining_hold_cov = get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov)+pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+                fprintf(stderr, "\t\t** chaining_hold_cov:  get_cov_sign(2, pos_start[%d]-refstart, neg_start[%d]-refstart, bpcov) (%f) + pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) = %f\n",  pos_start, neg_start, get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov), pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, chaining_hold_cov);
+            }
+            chaining_hold_strand = '+';
+            last_ovp_end = neg_end;
+        }
+    } else if (pos_start == neg_start && pos_start < neg_end && pos_end < neg_end) {
+        fprintf(stderr, "\t** Bundle: |(s)----------.................(e)| \n");
+        ovp = true;
+        // Calculate the overlapping coverage for pos / uns / neg.
+        pos_cov_ovp = get_cov(2, pos_start-refstart, pos_end-refstart, bpcov);
+        uns_cov_ovp = get_cov(1, pos_start-refstart, pos_end-refstart, bpcov);
+        neg_cov_ovp = get_cov(0, pos_start-refstart, pos_end-refstart, bpcov);
+        uns_cov_ovp = uns_cov_ovp - pos_cov_ovp - neg_cov_ovp;
+        if (pos_cov_ovp <=0.5) pos_cov_ovp = 0;
+        if (neg_cov_ovp <=0.5) neg_cov_ovp = 0;
+        if (uns_cov_ovp <=0.5) uns_cov_ovp = 0;
+
+        if (target_node_strand == '+') {
+            //Positive gonna be pushed to next node
+            end_chaining_cov = pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+            fprintf(stderr, "\t\t** end_chaining_cov: pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) = %f\n", pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, end_chaining_cov);
+
+            chaining_hold_strand = '-';
+            chaining_hold_cov = neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+
+            fprintf(stderr, "\t\t** chaining_hold_cov: neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f) = %f\n", neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, chaining_hold_cov);
+            last_ovp_end = pos_end;
+        } else if (target_node_strand == '-') {
+            //Negative gonna be pushed to next node
+            end_chaining_cov = neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg + get_cov_sign(0, pos_end-refstart, neg_end-refstart, bpcov);
+            fprintf(stderr, "\t\t** end_chaining_cov: neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f) + get_cov_sign(0, pos_end[%d]-refstart, neg_end[%d]-refstart, bpcov) (%f) = %f\n", neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, pos_end, neg_end, get_cov_sign(0, pos_end-refstart, neg_end-refstart, bpcov), end_chaining_cov);
+            chaining_hold_strand = '+';
+            chaining_hold_cov = 0;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f\n", 0);
+            last_ovp_end = pos_end;
+        }
+
+    } else if (pos_start == neg_start && pos_start < neg_end && pos_end == neg_end) {
+        fprintf(stderr, "\t** Bundle: |(s)----------(e)|\n");
+        ovp = true;
+        // Calculate the overlapping coverage for pos / uns / neg.
+        pos_cov_ovp = get_cov(2, pos_start-refstart, pos_end-refstart, bpcov);
+        uns_cov_ovp = get_cov(1, pos_start-refstart, pos_end-refstart, bpcov);
+        neg_cov_ovp = get_cov(0, pos_start-refstart, pos_end-refstart, bpcov);
+        uns_cov_ovp = uns_cov_ovp - pos_cov_ovp - neg_cov_ovp;
+        if (pos_cov_ovp <=0.5) pos_cov_ovp = 0;
+        if (neg_cov_ovp <=0.5) neg_cov_ovp = 0;
+        if (uns_cov_ovp <=0.5) uns_cov_ovp = 0;
+
+        if (target_node_strand == '+') {
+            //Positive gonna be pushed to next node
+            end_chaining_cov = pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+            fprintf(stderr, "\t\t** end_chaining_cov: pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) = %f\n", pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, end_chaining_cov);
+
+            chaining_hold_strand = '-';
+            chaining_hold_cov = neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+            last_ovp_end = pos_end;
+            fprintf(stderr, "\t\t** chaining_hold_cov: neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f) = %f\n", neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, chaining_hold_cov);
+
+        } else if (target_node_strand == '-') {
+            //Negative gonna be pushed to next node
+            end_chaining_cov = neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+            fprintf(stderr, "\t\t** end_chaining_cov: neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f) = %f\n", neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, end_chaining_cov);
+            chaining_hold_strand = '+';
+            chaining_hold_cov = pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+            last_ovp_end = pos_end;
+            fprintf(stderr, "\t\t** chaining_hold_cov: pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) = %f\n", pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, chaining_hold_cov);
+        }
+
+    } else if (pos_start == neg_start && pos_start < neg_end && pos_end > neg_end) {
+        fprintf(stderr, "\t** Bundle: |(s)----------(e)|----\n");
+        ovp = true;
+        // Calculate the overlapping coverage for pos / uns / neg.
+        pos_cov_ovp = get_cov(2, neg_start-refstart, neg_end-refstart, bpcov);
+        uns_cov_ovp = get_cov(1, neg_start-refstart, neg_end-refstart, bpcov);
+        neg_cov_ovp = get_cov(0, neg_start-refstart, neg_end-refstart, bpcov);
+        uns_cov_ovp = uns_cov_ovp - pos_cov_ovp - neg_cov_ovp;
+        if (pos_cov_ovp <=0.5) pos_cov_ovp = 0;
+        if (neg_cov_ovp <=0.5) neg_cov_ovp = 0;
+        if (uns_cov_ovp <=0.5) uns_cov_ovp = 0;
+
+        if (target_node_strand == '+') {
+            //Positive gonna be pushed to next node
+            end_chaining_cov = pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+            fprintf(stderr, "\t\t** end_chaining_cov: pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) + get_cov_sign(2, neg_end[%d]-refstart, pos_end[%d]-refstart, bpcov) = %f\n", pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, neg_end, pos_end, get_cov_sign(2, neg_end-refstart, pos_end-refstart, bpcov),end_chaining_cov);
+            chaining_hold_strand = '-';
+            chaining_hold_cov = 0;
+            last_ovp_end = neg_end;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+        } else if (target_node_strand == '-') {
+            //Negative gonna be pushed to next node
+            end_chaining_cov = neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+            fprintf(stderr, "\t\t** end_chaining_cov: neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f) = %f\n", neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, end_chaining_cov);
+            chaining_hold_strand = '+';
+            chaining_hold_cov = pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+            last_ovp_end = neg_end;
+            fprintf(stderr, "\t\t** chaining_hold_cov: pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) = %f\n", pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, chaining_hold_cov);
+        }
+
+    } else if (pos_start > neg_start && pos_start < neg_end && pos_end > neg_start && pos_end < neg_end) {
+        fprintf(stderr, "\t** Bundle: |(s)....----------........(e)|\n");
+        ovp = true;
+        // Calculate the overlapping coverage for pos / uns / neg.
+        pos_cov_ovp = get_cov(2, pos_start-refstart, pos_end-refstart, bpcov);
+        uns_cov_ovp = get_cov(1, pos_start-refstart, pos_end-refstart, bpcov);
+        neg_cov_ovp = get_cov(0, pos_start-refstart, pos_end-refstart, bpcov);
+        uns_cov_ovp = uns_cov_ovp - pos_cov_ovp - neg_cov_ovp;
+        if (pos_cov_ovp <=0.5) pos_cov_ovp = 0;
+        if (neg_cov_ovp <=0.5) neg_cov_ovp = 0;
+        if (uns_cov_ovp <=0.5) uns_cov_ovp = 0;
+
+        if (target_node_strand == '+') {
+            //Positive gonna be pushed to next node
+            end_chaining_cov = pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+            fprintf(stderr, "\t\t** end_chaining_cov: pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) = %f\n", pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, end_chaining_cov);
+            if (chaining_hold_strand == '-') {
+                if (last_ovp_end > neg_start) {
+                    fprintf(stderr, "\t\t** chaining_hold_cov: chaining_hold_cov (%f) + get_cov_sign(0, last_ovp_end[%d]-refstart, pos_start[%d]-refstart, bpcov) (%f) + neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f)\n", chaining_hold_cov, last_ovp_end, pos_start, get_cov_sign(0, last_ovp_end-refstart, pos_start-refstart, bpcov), neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg);
+
+                    chaining_hold_cov = chaining_hold_cov + get_cov_sign(0, last_ovp_end-refstart, pos_start-refstart, bpcov)+ neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+                } else {
+                    fprintf(stderr, "\t\t** chaining_hold_cov: %f + get_cov_sign(0, neg_start[%d]-refstart, pos_start[%d]-refstart, bpcov) (%f) + neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f)\n", 0, neg_start, pos_start, get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov), neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg);
+
+                    chaining_hold_cov = get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov)+ neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+                }
+            } else {
+                fprintf(stderr, "\t\t** chaining_hold_cov: %f + get_cov_sign(0, neg_start[%d]-refstart, pos_start[%d]-refstart, bpcov) (%f) + neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f)\n", 0, neg_start, pos_start, get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov), neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg);
+
+                chaining_hold_cov = get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov)+neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg ;
+            }
+            chaining_hold_strand = '-';
+            last_ovp_end = pos_end;
+        } else if (target_node_strand == '-') {
+            //Negative gonna be pushed to next node
+            if (chaining_hold_strand == '-' && last_ovp_end > neg_start) {
+                end_chaining_cov = chaining_hold_cov + get_cov_sign(0, last_ovp_end-refstart, pos_start-refstart, bpcov) + neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg + get_cov_sign(0, pos_end-refstart, neg_end-refstart, bpcov);
+
+                fprintf(stderr, "\t\t** end_chaining_cov: chaining_hold_cov(%f) + get_cov_sign(0, last_ovp_end[%d]-refstart, pos_start[%d]-refstart, bpcov)(%f) + neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f) + get_cov_sign(0, pos_end[%d]-refstart, neg_end[%d]-refstart, bpcov)(%f) = %f\n", chaining_hold_cov, last_ovp_end, pos_start, get_cov_sign(0, last_ovp_end-refstart, pos_start-refstart, bpcov), neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, pos_end, neg_end, get_cov_sign(0, pos_end-refstart, neg_end-refstart, bpcov), end_chaining_cov);
+            } else {
+                end_chaining_cov = get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov) + neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg + get_cov_sign(0, pos_end-refstart, neg_end-refstart, bpcov);
+                fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(0, neg_start[%d]-refstart, pos_start[%d]-refstart, bpcov)(%f) + neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f) + get_cov_sign(0, pos_end[%d]-refstart, neg_end[%d]-refstart, bpcov)(%f) = %f\n", neg_start, pos_start, get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov), neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, pos_end, neg_end, get_cov_sign(0, pos_end-refstart, neg_end-refstart, bpcov), end_chaining_cov);
+            }
+            chaining_hold_strand = '+';
+            chaining_hold_cov = 0;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+            last_ovp_end = pos_end;
+        }
+    } else if (pos_start > neg_start && pos_start < neg_end && pos_end == neg_end) {
+        fprintf(stderr, "\t** Bundle: |(s)....----------(e)|\n");
+        ovp = true;
+        // Calculate the overlapping coverage for pos / uns / neg.
+        pos_cov_ovp = get_cov(2, pos_start-refstart, pos_end-refstart, bpcov);
+        uns_cov_ovp = get_cov(1, pos_start-refstart, pos_end-refstart, bpcov);
+        neg_cov_ovp = get_cov(0, pos_start-refstart, pos_end-refstart, bpcov);
+        uns_cov_ovp = uns_cov_ovp - pos_cov_ovp - neg_cov_ovp;
+        if (pos_cov_ovp <=0.5) pos_cov_ovp = 0;
+        if (neg_cov_ovp <=0.5) neg_cov_ovp = 0;
+        if (uns_cov_ovp <=0.5) uns_cov_ovp = 0;
+
+        if (target_node_strand == '+') {
+            //Positive gonna be pushed to next node
+            end_chaining_cov = pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+            fprintf(stderr, "\t\t** end_chaining_cov: pos_cov_ovp (%f) + uns_cov_ovp*bundle_coverage_ratio_pos (%f) = %f\n", pos_cov_ovp, uns_cov_ovp*bundle_coverage_ratio_pos, end_chaining_cov);
+            // Get the negative `chaining_hold_cov`
+            if (chaining_hold_strand == '+') {
+                chaining_hold_cov =  get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov) + neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+            } else {
+                if (last_ovp_end > neg_start) {
+                    fprintf(stderr, "\t\t** chaining_hold_cov: chaining_hold_cov (%f) + get_cov_sign(0, last_ovp_end[%d] -refstart, pos_start[%d] -refstart, bpcov) (%f) + neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f)\n", chaining_hold_cov, last_ovp_end, pos_start, get_cov_sign(0, last_ovp_end-refstart, pos_start-refstart, bpcov), neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg);
+
+                    chaining_hold_cov = chaining_hold_cov + get_cov_sign(0, last_ovp_end-refstart, pos_start-refstart, bpcov)+ neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+                } else {
+                    fprintf(stderr, "\t\t** chaining_hold_cov: %f + get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov) (%f) + neg_cov_ovp (%f) + uns_cov_ovp*bundle_coverage_ratio_neg (%f)\n", 0, get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov), neg_cov_ovp, uns_cov_ovp*bundle_coverage_ratio_neg);
+
+                    chaining_hold_cov = get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov)+ neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+                }
+            }
+            chaining_hold_strand = '-';
+            last_ovp_end = pos_end;
+        } else if (target_node_strand == '-') {
+            //Negative gonna be pushed to next node
+            if (chaining_hold_strand == '-' && last_ovp_end > neg_start) {
+                end_chaining_cov = chaining_hold_cov + get_cov_sign(0, last_ovp_end-refstart, pos_start-refstart, bpcov) + neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+
+                fprintf(stderr, "\t\t** end_chaining_cov: chaining_hold_cov (%f) + get_cov_sign(0, last_ovp_end[%d]-refstart, pos_start[%d]-refstart, bpcov)(%f) + neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f) = %f\n", chaining_hold_cov, last_ovp_end, pos_start, get_cov_sign(0, last_ovp_end-refstart, pos_start-refstart, bpcov), neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, end_chaining_cov);
+            } else {
+                end_chaining_cov = get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov) + neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+                fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(0, neg_start[%d]-refstart, pos_start[%d]-refstart, bpcov)(%f) + neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f) = %f\n", neg_start, pos_start, get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov), neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, end_chaining_cov);
+
+            }
+            chaining_hold_strand = '+';
+            chaining_hold_cov = pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+            last_ovp_end = pos_end;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+        }
+    } else if (pos_start > neg_start && pos_start < neg_end && pos_end > neg_end) {
+        fprintf(stderr, "\t** Bundle: |(s)....----------(e)|-----\n");
+        ovp = true;
+        // Calculate the overlapping coverage for pos / uns / neg.
+        pos_cov_ovp = get_cov(2, pos_start-refstart, neg_end-refstart, bpcov);
+        uns_cov_ovp = get_cov(1, pos_start-refstart, neg_end-refstart, bpcov);
+        neg_cov_ovp = get_cov(0, pos_start-refstart, neg_end-refstart, bpcov);
+        uns_cov_ovp = uns_cov_ovp - pos_cov_ovp - neg_cov_ovp;
+        if (pos_cov_ovp <=0.5) pos_cov_ovp = 0;
+        if (neg_cov_ovp <=0.5) neg_cov_ovp = 0;
+        if (uns_cov_ovp <=0.5) uns_cov_ovp = 0;
+
+        if (target_node_strand == '+') {
+            //Positive gonna be pushed to next node
+            end_chaining_cov = pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos + get_cov_sign(2, neg_end-refstart, pos_end-refstart, bpcov);
+            fprintf(stderr, "\t\t** end_chaining_cov: pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) + get_cov_sign(2, neg_end[%d]-refstart, pos_end[%d]-refstart, bpcov) (%f) = %f\n", pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, neg_end, pos_end, get_cov_sign(2, neg_end-refstart, pos_end-refstart, bpcov), end_chaining_cov);
+            chaining_hold_strand = '-';
+            chaining_hold_cov = 0;
+            last_ovp_end = neg_end;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+        } else if (target_node_strand == '-') {
+            //Negative gonna be pushed to next node
+            if (chaining_hold_strand == '-' && last_ovp_end > neg_start) {
+                end_chaining_cov = chaining_hold_cov + get_cov_sign(0, last_ovp_end-refstart, pos_start-refstart, bpcov) + neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+                fprintf(stderr, "\t\t** end_chaining_cov: chaining_hold_cov (%f) + get_cov_sign(0, last_ovp_end[%d]-refstart, pos_start[%d]-refstart, bpcov) (%f) + neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f) = %f\n", chaining_hold_cov, last_ovp_end, pos_start, get_cov_sign(0, last_ovp_end-refstart, pos_start-refstart, bpcov), neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, end_chaining_cov);
+            } else {
+                end_chaining_cov = get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov) + neg_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_neg;
+                fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(0, neg_start[%d]-refstart, pos_start[%d]-refstart, bpcov) (%f) + neg_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_neg[%f] (%f) = %f\n", neg_start, pos_start, get_cov_sign(0, neg_start-refstart, pos_start-refstart, bpcov), neg_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_neg, uns_cov_ovp*bundle_coverage_ratio_neg, end_chaining_cov);
+            }
+            chaining_hold_strand = '+';
+            chaining_hold_cov = pos_cov_ovp + uns_cov_ovp*bundle_coverage_ratio_pos;
+            last_ovp_end = neg_end;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f + pos_cov_ovp (%f) + uns_cov_ovp[%f]*bundle_coverage_ratio_pos[%f] (%f) = %f\n", 0, pos_cov_ovp, uns_cov_ovp, bundle_coverage_ratio_pos, uns_cov_ovp*bundle_coverage_ratio_pos, chaining_hold_cov);
+        }
+    } else if (pos_start > neg_start && pos_start == neg_end && pos_end > neg_end) {
+        fprintf(stderr, "\t** Bundle: |(s).................(e)|----------\n");
+        ovp = false;
+        if (target_node_strand == '+') {
+            //Positive gonna be pushed to next node
+            end_chaining_cov = get_cov_sign(0, pos_start-refstart, pos_end-refstart, bpcov);
+            fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(0, pos_start[%d]-refstart, pos_end[%d]-refstart, bpcov) (%f) = %f\n",pos_start, pos_end, get_cov_sign(0, pos_start-refstart, pos_end-refstart, bpcov), end_chaining_cov);
+            chaining_hold_strand = '-';
+            chaining_hold_cov = 0;
+            last_ovp_end = 0;   
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);         
+        } else if (target_node_strand == '-') {
+            //Negative gonna be pushed to next node
+            if (chaining_hold_strand == '-' && last_ovp_end > pos_start) {
+                end_chaining_cov = chaining_hold_cov + get_cov_sign(0, last_ovp_end-refstart, neg_end-refstart, bpcov);
+                fprintf(stderr, "\t\t** end_chaining_cov: chaining_hold_cov (%f) + get_cov_sign(0, last_ovp_end[%d]-refstart, neg_end[%d]-refstart, bpcov) (%f) = %f\n", chaining_hold_cov, last_ovp_end, neg_end, get_cov_sign(0, last_ovp_end-refstart, neg_end-refstart, bpcov), end_chaining_cov);
+            } else {
+                end_chaining_cov = get_cov_sign(0, neg_start-refstart, neg_end-refstart, bpcov);
+                fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(0, neg_start[%d]-refstart, neg_end[%d]-refstart, bpcov) (%f) = %f\n", neg_start, neg_end, get_cov_sign(0, neg_start-refstart, neg_end-refstart, bpcov), end_chaining_cov);
+            }
+            chaining_hold_strand = '+';
+            chaining_hold_cov = 0;
+            last_ovp_end = 0;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+        }
+    } else if (pos_start > neg_end) {
+        fprintf(stderr, "\t** Bundle: |(s).................(e)|   ----------\n");
+        ovp = false;
+        if (target_node_strand == '+') {
+            //Positive gonna be pushed to next node
+            end_chaining_cov = get_cov_sign(2, pos_start-refstart, pos_end-refstart, bpcov);
+            fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(0, pos_start[%d]-refstart, pos_end[%d]-refstart, bpcov) (%f) = %f\n",pos_start, pos_end, get_cov_sign(0, pos_start-refstart, pos_end-refstart, bpcov), end_chaining_cov);
+            chaining_hold_strand = '-';
+            chaining_hold_cov = 0;
+            last_ovp_end = 0;       
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);     
+        } else if (target_node_strand == '-') {
+            //Negative gonna be pushed to next node
+            if (chaining_hold_strand == '-' && last_ovp_end > neg_start) {
+                end_chaining_cov = chaining_hold_cov + get_cov_sign(0, last_ovp_end-refstart, neg_end-refstart, bpcov);
+                fprintf(stderr, "\t\t** end_chaining_cov: chaining_hold_cov (%f) + get_cov_sign(0, last_ovp_end[%d]-refstart, neg_end[%d]-refstart, bpcov) (%f) = %f\n", chaining_hold_cov, last_ovp_end, neg_end, get_cov_sign(0, last_ovp_end-refstart, neg_end-refstart, bpcov), end_chaining_cov);
+            } else {
+                end_chaining_cov = get_cov_sign(0, neg_start-refstart, neg_end-refstart, bpcov);
+                fprintf(stderr, "\t\t** end_chaining_cov: get_cov_sign(0, neg_start[%d]-refstart, neg_end[%d]-refstart, bpcov) (%f) = %f\n", neg_start, neg_end, get_cov_sign(0, neg_start-refstart, neg_end-refstart, bpcov), end_chaining_cov);
+            }
+            chaining_hold_strand = '+';
+            chaining_hold_cov = 0;
+            last_ovp_end = 0;
+            fprintf(stderr, "\t\t** chaining_hold_cov: %f \n", chaining_hold_cov);
+        }
+    }
+
+    fprintf(stderr, ">>> ovp : %f \n", ovp);
+    fprintf(stderr, ">>> Final coverage (%c): %f \n", target_node_strand, end_chaining_cov);
+    fprintf(stderr, ">>> chaining_hold_cov (%c): %f, last_ovp_end: %d \n", chaining_hold_strand, chaining_hold_cov, last_ovp_end);
+
+    if (end_chaining_cov < 0.5) end_chaining_cov=0.0;
+    if (chaining_hold_cov < 0.5) chaining_hold_cov = 0.0;
 
     return ovp;
 }
 
 
+
+
+void ovp_coverage_push_node(int& g_idx, int& g_num, int& n_idx, int& n_num, bool& reach_end) {
+    if (g_idx < g_num-1) {
+        if (n_idx < n_num-1) {
+            n_idx++;
+        } else if (n_idx == n_num-1) {
+            g_idx += 1;
+            n_idx = 1;
+        }
+    } else if (g_idx == g_num-1) {
+        if (n_idx < n_num-1) {
+            n_idx++;
+        } else if (n_idx == n_num-1) {
+            reach_end = true;
+        }
+    }
+}
+
+
 void calculate_ovp_coverage(int pos_start, int pos_end, int neg_start, int neg_end, int refstart, int refend, float bundle_coverage_ratio_pos, float bundle_coverage_ratio_neg, float& pos_cov, float& neg_cov, GVec<float>* bpcov) {
-    fprintf(stderr, "Inside `segs_overlap`\n");
+    // fprintf(stderr, "Inside `segs_overlap`\n");
     fprintf(stderr, "Process read (pre: %d - %d ;  now: %d - %d)!!!\n", pos_start, pos_end, neg_start, neg_end);
     // fprintf(stderr, "\t>>>>> brec: %d - %d\n", pos_start, pos_end);
 
@@ -84,7 +575,7 @@ void calculate_ovp_coverage(int pos_start, int pos_end, int neg_start, int neg_e
 
         pos_cov = get_cov_sign(2, pos_start-refstart, neg_start-refstart, bpcov);
         neg_cov = get_cov_sign(0, pos_end-refstart, neg_end-refstart, bpcov);
-    } else if (pos_start < neg_start && pos_end > neg_start && pos_end == neg_start) {
+    } else if (pos_start < neg_start && pos_end > neg_start && pos_end == neg_end) {
         // -----|(s)---------(e)|
         fprintf(stderr, "\t** Bundle: -----|(s)-------(e)|\n");
         pos_cov_ovp = get_cov(2, neg_start-refstart, pos_end-refstart, bpcov);

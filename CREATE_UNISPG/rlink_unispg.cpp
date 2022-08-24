@@ -3029,9 +3029,16 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 
 		int grcol = currgroup[nextgr]->color;    // set smallest color for currgroup[$nextgr]
 
+		fprintf(stderr, ">> grcol before: %d\n", grcol);			fprintf(stderr, ">> eqposcol count: %d\n", eqposcol.Count());
 		while(equalcolor[grcol]!=grcol) {
 			grcol=equalcolor[grcol];
+			fprintf(stderr, ">> grcol in while: %d\n", grcol);
 		}
+		fprintf(stderr, ">> grcol after: %d\n", grcol);
+
+		// while(equalcolor[grcol]!=grcol) {
+		// 	grcol=equalcolor[grcol];
+		// }
 		currgroup[nextgr]->color=grcol;
 
 		// fprintf(stderr,"group %d id=%d: %u-%u col=%d from col=%d\n",nextgr,currgroup[nextgr]->grid,currgroup[nextgr]->start,currgroup[nextgr]->end,grcol,prevcol);
@@ -3044,6 +3051,11 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 				uint maxstart = currgroup[nextgr]->start > prevgroup[0]->start ? currgroup[nextgr]->start : prevgroup[0]->start;
 				uint minend = currgroup[nextgr]->end < prevgroup[0]->end ? currgroup[nextgr]->end : prevgroup[0]->end;
 				if(minend<maxstart) minend=maxstart; // this can only happen if bundledist >0
+
+				fprintf(stderr, "## prevgroup[0]->cov_sum: %f\n", prevgroup[0]->cov_sum);
+				fprintf(stderr, "## currgroup[nextgr]->neg_prop: %f\n", currgroup[nextgr]->neg_prop);
+				fprintf(stderr, "## prevgroup[0]->cov_sum*(minend-maxstart+1)/prevgroup[0]->len(): %f\n", prevgroup[0]->cov_sum*(minend-maxstart+1)/prevgroup[0]->len());
+
 				currgroup[nextgr]->neg_prop+=prevgroup[0]->cov_sum*(minend-maxstart+1)/prevgroup[0]->len();
 			}
 
@@ -3061,6 +3073,12 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 				uint maxstart = currgroup[nextgr]->start > currgroup[0]->start ? currgroup[nextgr]->start : currgroup[0]->start;
 				uint minend = currgroup[nextgr]->end < currgroup[0]->end ? currgroup[nextgr]->end : currgroup[0]->end;
 				if(minend<maxstart) minend=maxstart;
+
+				fprintf(stderr, "## currgroup[0]->cov_sum: %f\n", currgroup[0]->cov_sum);
+				fprintf(stderr, "## currgroup[nextgr]->neg_prop: %f\n", currgroup[nextgr]->neg_prop);
+				fprintf(stderr, "## currgroup[0]->cov_sum*(minend-maxstart+1)/currgroup[0]->len(): %f\n", currgroup[0]->cov_sum*(minend-maxstart+1)/currgroup[0]->len());
+
+
 				currgroup[nextgr]->neg_prop+=currgroup[0]->cov_sum*(minend-maxstart+1)/currgroup[0]->len();
 
 
@@ -3319,7 +3337,6 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 	for(int b=0;b<bundle[1].Count();b++) { // these are neutral bundles that do not overlap any signed reads
 
 		// I need to address features here too -> TODO
-
 		bool guide_ovlp=false;
 		while(g<guides.Count() && (guides[g]->exons.Count()>1 || guides[g]->end<bnode[1][bundle[1][b]->startnode]->start)) {
 			g++;
@@ -3331,10 +3348,27 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
     		// bundle might contain multiple fragments of a transcript but since we don't know the complete structure -> print only the pieces that are well represented
     		CBundlenode *currbnode=bnode[1][bundle[1][b]->startnode];
     		int t=1;
+			// fprintf(node_unispg_unstrand_bed,"strict digraph %d_%d {", refstart, refend);
     		while(currbnode!=NULL) {
+
+				/*****************************
+				 ** 3. Write out global splice graph in DOT format
+				*****************************/
+				/****************
+				 **  KH Adding 
+				****************/
+				fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
+				fprintf(stderr,"after traverse:\n");
+				// graphno[s][b]: number of nodes in graph.
+                fprintf(node_unispg_unstrand_bed, "chr22\t%d\t%d\t%d\t%f\t%s\n", currbnode->start,currbnode->end, currbnode->bid, currbnode->cov, ".");
+
+				// fprintf(node_unispg_unstrand_bed,"%d[start=%d end=%d cov=%f];",currbnode->bid,currbnode->start,currbnode->end,currbnode->cov);
+				/****************
+				 **  END KH Adding 
+				****************/
+
     			//int len=currbnode->end-currbnode->start+1;
     			//float cov=currbnode->cov/(currbnode->end-currbnode->start+1);
-
     			bool printguides=false;
 
     			if(!rawreads) for(int i=0;i<bnodeguides[currbnode->bid].Count();i++) {
@@ -3433,6 +3467,7 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
     			}
     			currbnode=currbnode->nextnode;
     		}
+			// fprintf(node_unispg_unstrand_bed,"}\n");
     	}
     }
     //fprintf(stderr,"Done with unstranded bundles\n");
@@ -3644,6 +3679,7 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
     		}
     		else {*/
     			float single_count=readlist[n]->read_count;
+				fprintf(stderr, ">> single_count: %f\n", single_count);
     			for(int j=0; j<readlist[n]->pair_idx.Count();j++) {
     				int np=readlist[n]->pair_idx[j];
     				if(np>-1) {
@@ -3663,54 +3699,15 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 
 		// unispg_gp->WriteGraphGp();
 
-		/*****************************
-		 ** 3-1. Write out global splice graph in DOT format
-		*****************************/
-		/****************
-		 **  KH Adding 
-		 ****************/
-		// if (universal_splice_graph) {
-		// 	//  DOT file outut here 
-		// 	//  not capacity and rate 
-		// 	//  only edge weight
-		// 	for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-		// 		int s=sno/2; // adjusted strand due to ignoring neutral strand
-		// 		int g_idx = 0;
-		// 		for(int b=0;b<bundle[sno].Count();b++) {
-		// 			fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
-		// 			fprintf(stderr,"after traverse:\n");
-		// 			if(graphno[s][b]) {
-		// 				fprintf(uinigraph_out,"strict digraph %d_%d_%d_%d {", refstart, refend, s, g_idx);
-		// 				// graphno[s][b]: number of nodes in graph.
-		// 				if(graphno[s][b]) {
-		// 					for(int nd=1;nd<graphno[s][b]-1;nd++)
-		// 						fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov);
-
-		// 					for(int nd=0;nd<graphno[s][b];nd++) {
-		// 						// fprintf(stderr,"Node %d with parents:",i);
-		// 						for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
-		// 							fprintf(uinigraph_out,"%d->",nd);			
-		// 							fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
-		// 						}
-		// 					}
-		// 				}
-		// 				fprintf(uinigraph_out,"}\n");
-		// 				g_idx += 1;
-		// 				fprintf(stderr,"g_idx: %d\n", g_idx);
-		// 			}
-		// 		}
-		// 	}
-		// }
-		/****************
-		 **  END KH Adding 
-		****************/
         /*****************************
-		 ** 3-2. Creating the Unispg for the universal graph and add it into UnispgGp
+		 ** 3-1. Creating the Unispg for the universal graph and add it into UnispgGp
 		*****************************/
-
         if (multiMode) {
             for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> thoses shouldn't have junctions
                 int s=sno/2; // adjusted strand due to ignoring neutral strand				
+				/*****************************
+				 ** 3-2. Write out global splice graph in DOT format
+				*****************************/
 				unispg_gp->AddGraph(fidx, s, no2gnode[s], bundle[sno].Count());
 
 				// unispg_gp->construct_transfrag_unispg(fidx, s);

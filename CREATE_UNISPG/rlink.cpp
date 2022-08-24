@@ -673,7 +673,6 @@ void set_strandcol(CGroup *prevgroup, CGroup *group, int grcol, GVec<int>& eqcol
 	else {
 		eqcol[prevgroup->color]=grcol;
 	}
-
 }
 
 void add_group_to_bundle(CGroup *group, CBundle *bundle, GPVec<CBundlenode>& bnode, uint localdist){
@@ -684,8 +683,9 @@ void add_group_to_bundle(CGroup *group, CBundle *bundle, GPVec<CBundlenode>& bno
 	int bid=bnode.Count();
 	
 	/*****************************
-	 * Step 2: group after last bnode / group overlaps bnode within bundledist
+	 * Step 2: checking overlapping cond between group & the current last node.
 	 *****************************/
+	// group does not overlaps bnode within bundledist
 	if(group->start > currlastnode->end + localdist) { // group after last bnode
 		CBundlenode *currbnode=new CBundlenode(group->start,group->end,group->cov_sum,bid);
 		currlastnode->nextnode=currbnode;
@@ -697,8 +697,8 @@ void add_group_to_bundle(CGroup *group, CBundle *bundle, GPVec<CBundlenode>& bno
 	}
 	else { // group overlaps bnode within bundledist
 		if(currlastnode->end < group->end) {
-		    bundle->len+= group->end - currlastnode->end;
-		    currlastnode->end= group->end;
+		    bundle->len += group->end - currlastnode->end;
+		    currlastnode->end = group->end;
 		}
 		bundle->cov+=group->cov_sum;
 		bundle->multi+=group->multi;
@@ -3929,6 +3929,9 @@ void get_read_pattern(int s, float readcov,GVec<int> &rgno, float rprop,GVec<int
 		GList<CReadAln>& readlist,int n,GVec<int> *readgroup,GVec<int>& merge,GVec<int> *group2bundle,
 		GVec<CGraphinfo> **bundle2graph,GPVec<CGraphnode> **no2gnode) {
 
+	// rgno: It stores the bundle<->graph indices in a BundleData that a read belongs to.
+	// rnode: It stores the node indices in the bundle<->graph indices in a BundleData that a read belongs to.
+
 	int lastgnode=-1;
 	int lastngraph=-1;
 	int ncoord=readlist[n]->segs.Count();
@@ -3938,17 +3941,20 @@ void get_read_pattern(int s, float readcov,GVec<int> &rgno, float rprop,GVec<int
 	GIntHash<bool> hashnode;
 
 	/*****************************
-	 ** Traversing the readgroups that a read belongs to.
+	 ** Traversing the "readgroups that a read belongs to".
 	 **    how can a read be associated to multiple groups? ---> If it is spliced
 	 *****************************/
 	for(int i=0;i<readgroup[n].Count();i++) { // how can a read be associated to multiple groups? ---> If it is spliced
 		int gr=readgroup[n][i];
 		while(merge[gr]!=gr) gr=merge[gr];
 		readgroup[n][i]=gr;
+		// It is the bundle index that a group links to
 		int bnode=group2bundle[2*s][gr]; // group was associated to bundle
 
 		/*****************************
 		 ** group has a bundle node associated with it and bundle was processed
+		 ** Make sure this bundle is worth processing
+		 **  bundle2graph[s][bnode].Count() => # of bundle (graph) inside the bundleData 
 		 *****************************/
 		if(bnode>-1 && bundle2graph[s][bnode].Count()) {
 			/*****************************
@@ -3956,18 +3962,20 @@ void get_read_pattern(int s, float readcov,GVec<int> &rgno, float rprop,GVec<int
 			 *****************************/
 			if(!hashnode[bnode]) {
 				hashnode.Add(bnode,true);
-				int nbnode=bundle2graph[s][bnode].Count(); // number of nodes in bundle
+				int nbnode=bundle2graph[s][bnode].Count(); // number of bundle (graph) in bundleData
 				int j=0;
 
 				fprintf(stderr,"bundle2graph[%d] for read: %d \n",bnode,n);
 
 				/*****************************
-				 ** Iterating the nodes inside bundle2graph[s][bnode]
+				 ** Iterating (bundle <-> graph) inside bundle2graph[s][bnode] (BundleData)
 				 *****************************/
 				// ncoord: segment count
 				// k     : need to keep track of coordinates already added to coverages of graphnodes
 				while(j<nbnode && k<ncoord) {
+					// bundle <-> Graph index in the BundleData
 					int ngraph=bundle2graph[s][bnode][j].ngraph;
+					// # of nodes inside bundle <-> Graph index
 					int gnode=bundle2graph[s][bnode][j].nodeno;
 					CGraphnode *node=no2gnode[s][ngraph].Get(gnode);
 					/*****************************
@@ -3977,6 +3985,7 @@ void get_read_pattern(int s, float readcov,GVec<int> &rgno, float rprop,GVec<int
 					bool intersect=false;
 
 					/*****************************
+					 ** Step 1: Add the coverage contributed by a read to the node 
 					 ** found how much of readlist[n] intersects node represented by bnode; here I assume that read is always included in bundle2graph
 					 *****************************/
 					while(k<ncoord) { 
@@ -3999,9 +4008,12 @@ void get_read_pattern(int s, float readcov,GVec<int> &rgno, float rprop,GVec<int
 							else break;
 						}
 					}
-
+					fprintf(stderr, ">> node->cov: %f\n", node->cov);
 					/*****************************
-					 ** read intersects gnode
+					 ** Step 2: read intersects gnode
+					 **  	Step 2-1: record the bundle <-> graph idx in the BundelData
+					 **  	Step 2-2: add ngraph to list of graphs if not seen before
+					 **  	Step 2-3: Check if the node need to be trimmed (either first node or it's super read)
 					 *****************************/
 					if(intersect) { // read intersects gnode
 						int g=-1; // position of graph in list
@@ -4077,8 +4089,10 @@ void get_read_pattern(float readcov,GBitVec& pattern0,GBitVec& pattern1,int *rgn
     		while(merge[gr]!=gr) gr=merge[gr];
     		for(int s=0;s<2;s++)
     			if(valid[s]) {
+					// bnode => bundle ID
     				int bnode=group2bundle[2*s][gr]; // group was associated to bundle
     				if(bnode>-1 && bundle2graph[s][bnode].Count()) { // group $id has a bundle node associated with it and bundle was processed
+						// Number of nodes in the bundle.
     					int nbnode=bundle2graph[s][bnode].Count();
     					int j=0;
     					while(j<nbnode && k[s]<ncoord) {
@@ -4098,6 +4112,8 @@ void get_read_pattern(float readcov,GBitVec& pattern0,GBitVec& pattern1,int *rgn
 				  				}
     							else break;
     						}
+
+							fprintf(stderr, ">> node->cov: %f\n", node->cov);
 
     						if(intersect) { // read intersects gnode
     							if(lastgnode[s]>-1 && gnode!=lastgnode[s]) { // this is not the first time I see a gnode for the read
@@ -4514,6 +4530,7 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 	// compute proportions of unstranded read associated to strands
 
 	/*****************************
+	 * Step 1: Calculatingt the redistribution ratio.
 	 *  both reads are unstranded
 	 *****************************/
 	if(readlist[n]->nh && !readlist[n]->strand && np>-1 && readlist[np]->nh && !readlist[np]->strand) {
@@ -4587,11 +4604,21 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 		}
 	}
 
+	/*****************************
+	 * Step 2: Generate the read pattern !!!
+	 *  both reads are unstranded
+	 *****************************/
 	for(int s=0;s<2;s++) if(rprop[s]){
 
-		// Read graph number
+		// All the bundle<->graph indices that a read belongs to.
 		GVec<int> rgno;
-		// Read node
+		// Read node (how many groups a read belongs to~)
+		// All the node indices in each bundle<->graph indices that a read belongs to.
+
+
+		/*****************************
+		 * After the `get_read_pattern`, the node coverage gonna be updated & 
+		 *****************************/
 		GVec<int> *rnode=new GVec<int>[readgroup[n].Count()];
 		if(readlist[n]->nh)
 			get_read_pattern(s, readcov,rgno,rprop[s],rnode,readlist,n,readgroup,merge,group2bundle,bundle2graph,no2gnode);
@@ -4623,6 +4650,7 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 			int clear_rnode=0;
 			for(int j=0;j<rnode[r].Count();j++) {
 
+ 				// add node pattern
 				rpat[rnode[r][j]]=1;
 				if(j) { // add edge pattern
 					/*****************************
@@ -5413,7 +5441,7 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 	*/
 
 	/****************************************
-	 ** add all guide patterns to the set of transfrags so that I can have a "backbone" for each guide
+	 ** Step 1: add all guide patterns to the set of transfrags so that I can have a "backbone" for each guide
 	 ** I need this because there might be an incompatible transfrag connecting the nodes in the guide 
 	 ****************************************/
 	//fprintf(stderr,"There are %d guides\n",guidetrf.Count());
@@ -5520,7 +5548,7 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 
 	GPVec<CTransfrag> srfrag(false);
 	/****************************************
-	 ** eliminate transfrags below threshold (they represent noise) if they don't come from source
+	 ** Step 2: eliminate transfrags below threshold (they represent noise) if they don't come from source
 	 ****************************************/
 	if(!eliminate_transfrags_under_thr(gno,gpos,transfrag,tr2no,trthr,srfrag) && srfrag.Count()) { // long transfrags but only to source/sink
 		srfrag.Clear();
@@ -5542,6 +5570,9 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 
 	bool trsort=true;
 
+	/****************************************
+	 ** Step 3: add source/sink links but only if they need to be added to explain the traversals in the graph
+	 ****************************************/
 	if(longreads) { // add source/sink links but only if they need to be added to explain the traversals in the graph
 		transfrag.Sort(longtrCmp); // most abundant transfrag in the graph come first, then the ones with most nodes, then the ones more complete
 		trsort=false;
@@ -5915,10 +5946,16 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 					}
 					fprintf(stderr,"%d",srfrag[t1]->nodes[j]);
 				} fprintf(stderr,"\n");*/
+				/****************************************
+				 ** Node has source!!
+				 ****************************************/
 				if(!srfrag[t1]->nodes[0]) {
 					hassource[srfrag[t1]->nodes[1]]=t1;
 					//fprintf(stderr,"Node %d in t=%d with cov=%f has source\n",srfrag[t1]->nodes[1],t1,srfrag[t1]->abundance);
 				}
+				/****************************************
+				 ** Node has sink!!
+				 ****************************************/
 				else if(srfrag[t1]->nodes.Last()==gno-1) {
 					hassink[srfrag[t1]->nodes[0]]=t1;
 					//fprintf(stderr,"Node %d in t=%d with cov=%f has sink\n",srfrag[t1]->nodes[0],t1,srfrag[t1]->abundance);
@@ -6187,12 +6224,12 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 
 
 	/****************************************
-	 ** add edges between disconnected parent-child nodes
+	 ** Step 4: add edges between disconnected parent-child nodes
 	 ****************************************/
 	for(int t=0;t<transfrag.Count();t++) allpat=allpat | transfrag[t]->pattern;
 
 	/****************************************
-	 ** for all nodes check if there is a connection to child
+	 ** Step 5: for all nodes check if there is a connection to child
 	 ****************************************/
 	for(int i=1;i<gno-1;i++) { 
 		CGraphnode *n=no2gnode[i];
@@ -6214,7 +6251,7 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 	}
 
 	/****************************************
-	 ** sort transfrag with smallest being the one that has the most nodes, and ties are decided by the abundance (largest abundance first); last transfrags all have 1 node
+	 ** Step 6: sort transfrag with smallest being the one that has the most nodes, and ties are decided by the abundance (largest abundance first); last transfrags all have 1 node
 	 ****************************************/
 	if(trsort)
 		transfrag.Sort(trCmp);
@@ -6242,7 +6279,7 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 	GVec<int> incompletetrf; //remembers incomplete transfrags (the ones that don't have edges between two consecutive nodes
 
 	/****************************************
-	 ** create compatibilities
+	 ** Step 7: create compatibilities
 	 ****************************************/
 	for(int t1=0;t1<transfrag.Count();t1++) { // transfrags are processed in increasing order -> important for the later considerations
 
@@ -6269,7 +6306,7 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 					}
 				}
 				if(n && n<transfrag[t1]->nodes.Count()-1) {// not first or last node
-					// add t1 to in and out of node
+					// add t1 to in and out of node (trf store all transfrags that pass a node)
 					no2gnode[transfrag[t1]->nodes[n]]->trf.Add(t1);
 
 					if(transfrag[t1]->nodes[n-1] && transfrag[t1]->nodes[n]<gno-1) {
@@ -6317,7 +6354,7 @@ void process_transfrags(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GP
 
 
 	/****************************************
-	 **  set source-to-child transfrag abundances: optional in order not to keep these abundances too low:
+	 **  Step 8: set source-to-child transfrag abundances: optional in order not to keep these abundances too low:
 	 **  update the abundances of the transfrags coming in from source and going to a node that doesn't have other parents than source
 	 **  * this part was removed to improve performance
 	 ****************************************/
@@ -11823,7 +11860,6 @@ void parse_trf(int maxi,int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraphnode
 		 nodeflux.Clear();
 		 parse_trf(maxi,gno,edgeno,gpos,no2gnode,transfrag,geneno,first,strand,pred,nodecov,istranscript,usednode,maxcov,prevpath);
 	 }
-
 }
 
 
@@ -13724,7 +13760,7 @@ int build_graphs(BundleData* bdata) {
 	/*****************************
 	 ** Step 3: there are some reads that contain very bad junctions -> need to find better closest junctions
 	 *****************************/
-	if(higherr) { 
+	if(higherr) {
 		uint juncsupport=junctionsupport;
 		if(longreads)
 			juncsupport=sserror;
@@ -14339,17 +14375,19 @@ int build_graphs(BundleData* bdata) {
 	eqnegcol.Resize(equalcolor.Count(),-1);
 
 
-	// each unstranded group needs to remember what proportion of stranded group it overlaps so that it can distribute reads later on -> maybe I can do this in the following while?
+	// each unstranded group needs to remember what proportion of stranded group it overlaps so that it can distribute reads later on
 	/*****************************
 	 ** Step 7: 'set_strandcol' function
      ** 	set the color of strands
 	 *****************************/
+	// Iterate through all "- / . / +" group!
 	while(currgroup[0]!=NULL || currgroup[1]!=NULL || currgroup[2]!=NULL) { // there are still groups to process
 
-		int nextgr=get_min_start(currgroup); // gets the index of currgroup with the left most begining
+		//  left most group: - (-1) / . (0) / + (1)
+		int nextgr=get_min_start(currgroup);
 
-		int grcol = currgroup[nextgr]->color;    // set smallest color for currgroup[$nextgr]
-
+		int grcol = currgroup[nextgr]->color;
+		// set smallest color for "currgroup[$nextgr]"
 		while(equalcolor[grcol]!=grcol) {
 			grcol=equalcolor[grcol];
 		}
@@ -14357,21 +14395,29 @@ int build_graphs(BundleData* bdata) {
 
 		//fprintf(stderr,"group %d id=%d: %u-%u col=%d from col=%d\n",nextgr,currgroup[nextgr]->grid,currgroup[nextgr]->start,currgroup[nextgr]->end,grcol,prevcol);
 
-		if(nextgr == 1) { // unknown strand group
-
-			if(prevgroup[0]!=NULL && currgroup[nextgr]->start <= prevgroup[0]->end+bundledist) { // overlaps previous negative group ; this needs bundledist
+		// The next group is an unstranded group!!! (unknown strand group)
+		/*****************************
+		 ** The next group is an unstranded group!!! (unknown strand group)
+		 *****************************/
+		if(nextgr == 1) {
+			// Cond 1: it overlaps previous negative group ; bundledist (50) tolerance.
+			if(prevgroup[0]!=NULL && currgroup[nextgr]->start <= prevgroup[0]->end+bundledist) { // 
 				//fprintf(stderr,"\tovlp to neg group: %u-%u\n",prevgroup[0]->start,prevgroup[0]->end);
 				set_strandcol(currgroup[nextgr],prevgroup[0],prevgroup[0]->color,eqnegcol,equalcolor);
 				uint maxstart = currgroup[nextgr]->start > prevgroup[0]->start ? currgroup[nextgr]->start : prevgroup[0]->start;
 				uint minend = currgroup[nextgr]->end < prevgroup[0]->end ? currgroup[nextgr]->end : prevgroup[0]->end;
 				if(minend<maxstart) minend=maxstart; // this can only happen if bundledist >0
+
+				// increase the neg_prop => `cov_sum`*overlapping ratio.
 				currgroup[nextgr]->neg_prop+=prevgroup[0]->cov_sum*(minend-maxstart+1)/prevgroup[0]->len();
 			}
 
-			while(currgroup[0]!=NULL && currgroup[nextgr]->start <= currgroup[0]->end+bundledist && currgroup[0]->start <= currgroup[nextgr]->end +bundledist) { // overlaps current negative strand group
+			// Cond 2: it overlaps current negative strand group ; bundledist (50) tolerance.
+			while(currgroup[0]!=NULL && currgroup[nextgr]->start <= currgroup[0]->end+bundledist && currgroup[0]->start <= currgroup[nextgr]->end +bundledist) {
 				fprintf(stderr,"\tovlp to neg group: %u-%u\n",currgroup[0]->start,currgroup[0]->end);
 
-				int grcol = currgroup[0]->color;    // set smallest color for currgroup[$nextgr]
+				// set smallest color for currgroup[$nextgr]
+				int grcol = currgroup[0]->color;    
 				while(equalcolor[grcol]!=grcol) {
 					grcol=equalcolor[grcol];
 				}
@@ -14382,13 +14428,14 @@ int build_graphs(BundleData* bdata) {
 				uint maxstart = currgroup[nextgr]->start > currgroup[0]->start ? currgroup[nextgr]->start : currgroup[0]->start;
 				uint minend = currgroup[nextgr]->end < currgroup[0]->end ? currgroup[nextgr]->end : currgroup[0]->end;
 				if(minend<maxstart) minend=maxstart;
+				// increase the neg_prop => `cov_sum`*overlapping ratio.
 				currgroup[nextgr]->neg_prop+=currgroup[0]->cov_sum*(minend-maxstart+1)/currgroup[0]->len();
-
 
 				prevgroup[0]=currgroup[0];
 				currgroup[0]=currgroup[0]->next_gr;
 			}
 
+			// Cond 3: it overlaps previous positive group ; bundledist (50) tolerance.
 			float pos_prop=0;
 			if(prevgroup[2]!=NULL && currgroup[nextgr]->start <= prevgroup[2]->end + bundledist) { // overlaps positive strand group
 				fprintf(stderr,"\tovlp to pos group: %u-%u\n",prevgroup[2]->start,prevgroup[2]->end);
@@ -14401,6 +14448,7 @@ int build_graphs(BundleData* bdata) {
 				}
 			}
 
+			// Cond 4: it overlaps current positive group ; bundledist (50) tolerance.
 			while(currgroup[2]!=NULL && currgroup[nextgr]->start <= currgroup[2]->end +bundledist && currgroup[2]->start <= currgroup[nextgr]->end + bundledist) { // overlaps positive strand group
 				//fprintf(stderr,"\tovlp to pos group: %u-%u\n",currgroup[2]->start,currgroup[2]->end);
 
@@ -14422,18 +14470,28 @@ int build_graphs(BundleData* bdata) {
 				currgroup[2]=currgroup[2]->next_gr;
 			}
 
+			// Finally, calculate the neg_prop proportion.
 			if(pos_prop) {
 				currgroup[nextgr]->neg_prop/=(currgroup[nextgr]->neg_prop+pos_prop);
 			}
 			else if(currgroup[nextgr]->neg_prop) currgroup[nextgr]->neg_prop=1;
 			//fprintf(stderr,"neg_prop=%g pos_prop=%g\n",currgroup[nextgr]->neg_prop,pos_prop);
 		}
-		else if(nextgr == 0) { // negative strand group
+		/*****************************
+		 ** The next group is a negative strand group!!!
+		 *****************************/
+		else if(nextgr == 0) { 
 			currgroup[nextgr]->neg_prop=1;
 		}
 		prevgroup[nextgr]=currgroup[nextgr];
 		currgroup[nextgr]=currgroup[nextgr]->next_gr;
     }
+	/*****************************
+	 ** After the while loop, the `neg_prop` of each `group` is calculated!!!
+	 *****************************/
+
+
+
 
 	/*
     { // DEBUG ONLY
@@ -14510,9 +14568,9 @@ int build_graphs(BundleData* bdata) {
 		currgroup[nextgr]->color=grcol;
 
 		/*****************************
-		 * negative or positive strand bundle or unstranded bundle
+		 * negative (-) or positive strand (+) bundle or unstranded bundle (.)
 		 *****************************/
-		if(nextgr == 0 || nextgr ==2 || (nextgr==1 &&(eqnegcol[grcol]==-1) && (eqposcol[grcol]==-1))) { 
+		if(nextgr == 0 || nextgr ==2 || (nextgr==1 &&(eqnegcol[grcol]==-1) && (eqposcol[grcol]==-1))) {
 
 			int bno=bundlecol[grcol];
 
@@ -14530,7 +14588,8 @@ int build_graphs(BundleData* bdata) {
 
 		}
 		/*****************************
-		 * unknown strand : here is where I should compute positive and negative proportions
+		 * unstranded bundle, but get distributed into either negative or positive strand bundle
+		     * unknown strand : here is where I should compute positive and negative proportionss
 		 *****************************/
 		else { 
 
@@ -14651,7 +14710,6 @@ int build_graphs(BundleData* bdata) {
 	for(int b=0;b<bundle[1].Count();b++) { // these are neutral bundles that do not overlap any signed reads
 
 		// I need to address features here too -> TODO
-
 		bool guide_ovlp=false;
 		while(g<guides.Count() && (guides[g]->exons.Count()>1 || guides[g]->end<bnode[1][bundle[1][b]->startnode]->start)) {
 			g++;
@@ -14663,7 +14721,24 @@ int build_graphs(BundleData* bdata) {
     		// bundle might contain multiple fragments of a transcript but since we don't know the complete structure -> print only the pieces that are well represented
     		CBundlenode *currbnode=bnode[1][bundle[1][b]->startnode];
     		int t=1;
+			// fprintf(uinigraph_out,"strict digraph %d_%d_%d_%d {", refstart, refend, s, b);
     		while(currbnode!=NULL) {
+
+				/*****************************
+				 ** 3. Write out global splice graph in DOT format
+				*****************************/
+				// /****************
+				//  **  KH Adding 
+				// ****************/
+				// fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
+				// fprintf(stderr,"after traverse:\n");
+				// // graphno[s][b]: number of nodes in graph.
+
+				// fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",currbnode->bid,currbnode->start,currbnode->end,currbnode->cov);
+				// /****************
+				//  **  END KH Adding 
+				// ****************/
+
     			//int len=currbnode->end-currbnode->start+1;
     			//float cov=currbnode->cov/(currbnode->end-currbnode->start+1);
 
@@ -14765,14 +14840,15 @@ int build_graphs(BundleData* bdata) {
     			}
     			currbnode=currbnode->nextnode;
     		}
+			// fprintf(uinigraph_out,"}\n");			
     	}
     }
     //fprintf(stderr,"Done with unstranded bundles\n");
     if (bnodeguides) delete[] bnodeguides;
 
 	/*****************************
-	 ** Step 12: Defining parameters here!!!!
-	 ** 	build graphs for stranded bundles here
+	 ** Step 12: build graphs for stranded bundles here
+	 **    Defining parameters here!!!!
 	 *****************************/
     if(startgroup[0]!=NULL || startgroup[2]!=NULL) {  // Condition 1: there are stranded groups to process
 
@@ -14805,7 +14881,7 @@ int build_graphs(BundleData* bdata) {
     		int s=sno/2; // adjusted strand due to ignoring neutral strand
     		char strnd='-';
     		if(s) strnd='+';
-
+			// This is in the same hierarchy of BundleData
     		bundle2graph[s]=NULL;
     		if(bnode[sno].Count()) bundle2graph[s]=new GVec<CGraphinfo>[bnode[sno].Count()];
     		transfrag[s]=NULL;
@@ -14938,6 +15014,7 @@ int build_graphs(BundleData* bdata) {
     		}
     		else {*/
     			float single_count=readlist[n]->read_count;
+				fprintf(stderr, ">> single_count: %f\n", single_count);
     			for(int j=0; j<readlist[n]->pair_idx.Count();j++) {
     				int np=readlist[n]->pair_idx[j];
     				if(np>-1) {
@@ -14958,44 +15035,44 @@ int build_graphs(BundleData* bdata) {
 		/*****************************
 		 ** 3. Write out global splice graph in DOT format
 		*****************************/
-		/****************
-		 **  KH Adding 
-		****************/
-		if (universal_splice_graph) {
-			//  DOT file outut here 
-			//  not capacity and rate 
-			//  only edge weight
-			for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-				int s=sno/2; // adjusted strand due to ignoring neutral strand
-				int g_idx = 0;
-				for(int b=0;b<bundle[sno].Count();b++) {
-					fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
-					fprintf(stderr,"after traverse:\n");
-					// if(graphno[s][b]) {
-					fprintf(uinigraph_out,"strict digraph %d_%d_%d_%d {", refstart, refend, s, b);
-					// graphno[s][b]: number of nodes in graph.
-					if(graphno[s][b]) {
-						for(int nd=1;nd<graphno[s][b]-1;nd++)
-							fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov);
+		// /****************
+		//  **  KH Adding 
+		// ****************/
+		// if (universal_splice_graph) {
+		// 	//  DOT file outut here 
+		// 	//  not capacity and rate 
+		// 	//  only edge weight
+		// 	for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+		// 		int s=sno/2; // adjusted strand due to ignoring neutral strand
+		// 		int g_idx = 0;
+		// 		for(int b=0;b<bundle[sno].Count();b++) {
+		// 			fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
+		// 			fprintf(stderr,"after traverse:\n");
+		// 			// if(graphno[s][b]) {
+		// 			fprintf(uinigraph_out,"strict digraph %d_%d_%d_%d {", refstart, refend, s, b);
+		// 			// graphno[s][b]: number of nodes in graph.
+		// 			if(graphno[s][b]) {
+		// 				for(int nd=1;nd<graphno[s][b]-1;nd++)
+		// 					fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov);
 
-						for(int nd=0;nd<graphno[s][b];nd++) {
-							// fprintf(stderr,"Node %d with parents:",i);
-							for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
-								fprintf(uinigraph_out,"%d->",nd);			
-								fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
-							}
-						}
-					}
-					fprintf(uinigraph_out,"}\n");
-					g_idx += 1;
-					fprintf(stderr,"g_idx: %d\n", g_idx);
-					// }
-				}
-			}
-		}
-		/****************
-		 **  END KH Adding 
-		****************/
+		// 				for(int nd=0;nd<graphno[s][b];nd++) {
+		// 					// fprintf(stderr,"Node %d with parents:",i);
+		// 					for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
+		// 						fprintf(uinigraph_out,"%d->",nd);			
+		// 						fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
+		// 					}
+		// 				}
+		// 			}
+		// 			fprintf(uinigraph_out,"}\n");
+		// 			g_idx += 1;
+		// 			fprintf(stderr,"g_idx: %d\n", g_idx);
+		// 			// }
+		// 		}
+		// 	}
+		// }
+		// /****************
+		//  **  END KH Adding 
+		// ****************/
 
 
 		/*****************************

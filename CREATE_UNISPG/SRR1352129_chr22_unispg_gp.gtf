@@ -1,2 +1,0 @@
-# ./multistringtie -o SRR1352129_chr22_unispg_gp.gtf -v --rf --unispg ../results/Brain/chr22/tiebrush_chr22_universal_splice_graph.dot ../data/Brain/chr22/SRR1352129_chr22.bam
-# StringTie version 2.2.0

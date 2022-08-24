@@ -35,7 +35,10 @@
         "__functional_base": "cpp",
         "utility": "cpp",
         "__mutex_base": "cpp",
-        "mutex": "cpp"
+        "mutex": "cpp",
+        "iosfwd": "cpp",
+        "atomic": "cpp",
+        "system_error": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

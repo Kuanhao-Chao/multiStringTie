@@ -771,7 +771,7 @@ float get_cov(int s,uint start,uint end,GVec<float>* bpcov) {
 	// fprintf(stderr, "** bpcov[s][start]: %f\n", bpcov[s][start]) ;
 	// fprintf(stderr, "** bpcov[s][end+1] - bpcov[s][start]: %f\n", bpcov[s][end+1]-bpcov[s][start]) ;
 
-	if(cov<0) cov=0;
+	if(cov<=0) cov=0;
 	return(cov);
 
 }
@@ -803,7 +803,7 @@ float get_cov_sign(int s,uint start,uint end,GVec<float>* bpcov) {
 	// fprintf(stderr, "\t>> bpcov[%d][end+1]-bpcov[%d][start]: %f \n", s, s, bpcov[s][end+1]-bpcov[s][start]);
 
 	cov+=bpcov[1][end+1]-bpcov[1][start]-bpcov[o][end+1]+bpcov[o][start];
-	if(cov<0) cov=0;
+	if(cov<=0) cov=0;
 	return(cov);
 }
 

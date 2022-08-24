@@ -1,10 +1,8 @@
 //#define GFF_DEBUG 1 //debugging guides loading
 #include "rlink.h"
-#include "rlink_multi.h"
 #include "rlink_unispg.h"
 #include "tmerge.h"
 #include <vector> 
-#include "multist.h"
 #include "unispg.h" 
 #ifndef NOTHREADS
 #include "GThreads.h"
@@ -152,28 +150,16 @@ bool universal_splice_graph = false;
 FILE* uinigraph_out = NULL;
 GStr unigraphfname; 
 GStr plot_dir;
-FILE* node_cov_pos_bed = NULL;
-GStr nodecovposfname; 
-FILE* edge_cov_pos_bed = NULL;
-GStr edgecovposfname; 
-FILE* node_cov_neg_bed = NULL;
-GStr nodecovnegfname; 
-FILE* edge_cov_neg_bed = NULL;
-GStr edgecovnegfname; 
 
 GVec<FILE*> pos_dot_vec = NULL;
 GVec<GStr> pos_dotfname_vec; 
 GVec<FILE*> neg_dot_vec = NULL;
 GVec<GStr> neg_dotfname_vec; 
 
-
-
 FILE* dot = NULL;
 GStr dotfname; 
 GVec<FILE*>* dot_vec[2];
 GVec<GStr>* dotfname_vec[2]; 
-
-
 
 GVec<FILE*>* node_lclg_bed_vec[2];
 GVec<GStr>* nodelclgfname_vec[2]; 
@@ -190,37 +176,14 @@ GVec<GStr>* nodeunispgfname_vec[2];
 GVec<FILE*>* edge_unispg_bed_vec[2];
 GVec<GStr>* edgeunispgfname_vec[2]; 
 
+FILE* node_unispg_unstrand_bed; 
+GStr nodeunispgfname_unstrand; 
+
+// These are for temporary file holding
 FILE* node_cov_bed = NULL;
 GStr nodecovfname; 
 FILE* edge_cov_bed = NULL;
 GStr edgecovfname; 
-
-
-
-GVec<FILE*> node_cov_pos_bed_vec = NULL;
-GVec<GStr> nodecovposfname_vec; 
-GVec<FILE*> edge_cov_pos_bed_vec = NULL;
-GVec<GStr> edgecovposfname_vec; 
-GVec<FILE*> node_cov_neg_bed_vec = NULL;
-GVec<GStr> nodecovnegfname_vec; 
-GVec<FILE*> edge_cov_neg_bed_vec = NULL;
-GVec<GStr> edgecovnegfname_vec; 
-GVec<FILE*> node_cov_pos_novp_bed_vec = NULL;
-GVec<GStr> nodecovposnovp_fname_vec; 
-GVec<FILE*> edge_cov_pos_novp_bed_vec = NULL;
-GVec<GStr> edgecovposnovp_fname_vec; 
-GVec<FILE*> node_cov_neg_novp_bed_vec = NULL;
-GVec<GStr> nodecovnegnovp_fname_vec; 
-GVec<FILE*> edge_cov_neg_novp_bed_vec = NULL;
-GVec<GStr> edgecovnegnovp_fname_vec; 
-GVec<FILE*> node_cov_pos_bed_unispg_vec = NULL;
-GVec<GStr> nodecovposfname_unispg_vec; 
-GVec<FILE*> edge_cov_pos_bed_unispg_vec = NULL;
-GVec<GStr> edgecovposfname_unispg_vec; 
-GVec<FILE*> node_cov_neg_bed_unispg_vec = NULL;
-GVec<GStr> nodecovnegfname_unispg_vec; 
-GVec<FILE*> edge_cov_neg_bed_unispg_vec = NULL;
-GVec<GStr> edgecovnegfname_unispg_vec; 
 /****************
  **  END KH Adding 
  ****************/
@@ -350,12 +313,9 @@ int loadPtFeatures(FILE* f, GArray<GRefPtData>& refpts);
 
 char* sprintTime();
 
-void processBundle(BundleData* bundle, UniSpliceGraphGp* uni_splice_graphGp=NULL);
 void processBundleUnispg(BundleData* bundle, int fidx); //two-pass testing
 
 void writeUnbundledGuides(GVec<GRefData>& refdata, FILE* fout, FILE* gout=NULL);
-
-void unispg_readline(UniSpliceGraph* &drec, bool &new_uni_spg_gp, bool &more_graph, int pre_refstart, int pre_refend);
 
 #ifndef NOTHREADS
 
@@ -391,10 +351,6 @@ int waitForData(BundleData* bundles);
 #endif
 
 TInputFiles bamreader;
-DOTInputFile dotreader;
-
-
-
 
 int main(int argc, char* argv[]) {
 	/*******************************************
@@ -475,24 +431,7 @@ int main(int argc, char* argv[]) {
 		if (outfname.endsWith(".gtf")) {
 			outfname_prefix.chomp(".gtf");
 		}
-		// nodecovposfname = outfname_prefix + "_node_pos_cov.bed";
-		// edgecovposfname = outfname_prefix + "_edge_pos_cov.bed";	
-		// node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
-		// edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
-
-		// fprintf(node_cov_pos_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
-		// fprintf(edge_cov_pos_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
-
-		// nodecovnegfname = outfname_prefix + "_node_neg_cov.bed";
-		// edgecovnegfname = outfname_prefix + "_edge_neg_cov.bed";	
-		// node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
-		// edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
-
-		// fprintf(node_cov_neg_bed, "track name=nodes color=255,0,0 altColor=0,0,255\n");
-		// fprintf(edge_cov_neg_bed, "track name=junctions color=255,0,0 altColor=0,0,255\n");
-		// chr1    10071   85823   JUNC00000002    1       -
-		fprintf(stderr, "plot_dir: %s\n", plot_dir.chars());
-		uinigraph_out = fopen(unigraphfname.chars(), "w");
+		// uinigraph_out = fopen(unigraphfname.chars(), "w");
 	// } else if (unispgMode) {
 	// 	if (fileExists(unigraphfname.chars()) == 0) {
 	// 		GError("Error: universal splice graph file (%s) is not found.\n Please run stringtie first to get the universal dot file.\n", unigraphfname.chars());
@@ -680,14 +619,6 @@ int main(int argc, char* argv[]) {
 #else
 	BundleData bundles[1];
 	BundleData* bundle = &(bundles[0]);
-
-	// if (multiMode) {
-	// } else {
-	// 	UniSpliceGraphGp uni_splice_graphGps[1];
-	// 	UniSpliceGraphGp* uni_splice_graphGp = &(uni_splice_graphGps[0]);
-	// }
-	UniSpliceGraphGp uni_splice_graphGps[1];
-	UniSpliceGraphGp* uni_splice_graphGp = &(uni_splice_graphGps[0]);
 #endif
 	
 	GSamRecord* brec=NULL;	
@@ -695,8 +626,6 @@ int main(int argc, char* argv[]) {
 	TAlnInfo* tinfo=NULL; // for --merge
 	int prev_pos=0;
 	bool skipGseq=false;
-
-	UniSpliceGraph* drec=NULL;
 	// while ((brec=bamreader.next())!=NULL) {
 	// }
 
@@ -705,80 +634,12 @@ int main(int argc, char* argv[]) {
 			fprintf(stderr, "bamreader.files.Get(file_idx): %s\n", bamreader.files.Get(file_idx).chars());
 			unispg_gp->ProcessSample(bamreader.files.Get(file_idx));
 			unispg_gp->PrintGraphGp();
-
-			// nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+".bed";
-			// edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+".bed";	
-			// node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
-			// edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
-			// fprintf(node_cov_pos_bed, "track name=Sample_"+GStr(file_idx)+"_node_pos_cov color=255,0,0 altColor=0,0,255\n");
-			// fprintf(edge_cov_pos_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_pos_cov color=255,0,0 altColor=0,0,255\n");
-			// nodecovposfname_vec.Add(nodecovposfname);
-			// edgecovposfname_vec.Add(edgecovposfname);
-			// node_cov_pos_bed_vec.Add(node_cov_pos_bed);
-			// edge_cov_pos_bed_vec.Add(edge_cov_pos_bed);
-
-
-			// nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+"_nonovp.bed";
-			// edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+"_nonovp.bed";
-			// node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
-			// edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
-			// fprintf(node_cov_pos_bed, "track name=Sample_"+GStr(file_idx)+"_node_pos_cov_nonovp color=255,0,0 altColor=0,0,255\n");
-			// fprintf(edge_cov_pos_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_pos_cov_nonovp color=255,0,0 altColor=0,0,255\n");
-			// nodecovposnovp_fname_vec.Add(nodecovposfname);
-			// edgecovposnovp_fname_vec.Add(edgecovposfname);
-			// node_cov_pos_novp_bed_vec.Add(node_cov_pos_bed);
-			// edge_cov_pos_novp_bed_vec.Add(edge_cov_pos_bed);
-
-			// nodecovposfname = outfname_prefix + "_node_pos_cov"+GStr(file_idx)+"_unispg.bed";
-			// edgecovposfname = outfname_prefix + "_edge_pos_cov"+GStr(file_idx)+"_unispg.bed";	
-			// node_cov_pos_bed = fopen(nodecovposfname.chars(), "w");
-			// edge_cov_pos_bed = fopen(edgecovposfname.chars(), "w");
-			// fprintf(node_cov_pos_bed, "track name=Sample_"+GStr(file_idx)+"_node_pos_cov_unispg color=255,0,0 altColor=0,0,255\n");
-			// fprintf(edge_cov_pos_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_pos_cov_unispg color=255,0,0 altColor=0,0,255\n");
-			// nodecovposfname_unispg_vec.Add(nodecovposfname);
-			// edgecovposfname_unispg_vec.Add(edgecovposfname);
-			// node_cov_pos_bed_unispg_vec.Add(node_cov_pos_bed);
-			// edge_cov_pos_bed_unispg_vec.Add(edge_cov_pos_bed);
-
-
-
-			// nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+".bed";
-			// edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+".bed";	
-			// node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
-			// edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
-			// fprintf(node_cov_neg_bed, "track name=Sample_"+GStr(file_idx)+"_node_neg_cov color=255,0,0 altColor=0,0,255\n");
-			// fprintf(edge_cov_neg_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_neg_cov color=255,0,0 altColor=0,0,255\n");
-			// nodecovnegfname_vec.Add(nodecovnegfname);
-			// edgecovnegfname_vec.Add(edgecovnegfname);
-			// node_cov_neg_bed_vec.Add(node_cov_neg_bed);
-			// edge_cov_neg_bed_vec.Add(edge_cov_neg_bed);
-
-
-			// nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+"_nonovp.bed";
-			// edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+"_nonovp.bed";
-			// node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
-			// edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
-			// fprintf(node_cov_neg_bed, "track name=Sample_"+GStr(file_idx)+"_node_neg_cov_nonovp color=255,0,0 altColor=0,0,255\n");
-			// fprintf(edge_cov_neg_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_neg_cov_nonovp color=255,0,0 altColor=0,0,255\n");
-			// nodecovnegnovp_fname_vec.Add(nodecovnegfname);
-			// edgecovnegnovp_fname_vec.Add(edgecovnegfname);
-			// node_cov_neg_novp_bed_vec.Add(node_cov_neg_bed);
-			// edge_cov_neg_novp_bed_vec.Add(edge_cov_neg_bed);
-			
-
-			// nodecovnegfname = outfname_prefix + "_node_neg_cov"+GStr(file_idx)+"_unispg.bed";
-			// edgecovnegfname = outfname_prefix + "_edge_neg_cov"+GStr(file_idx)+"_unispg.bed";	
-			// node_cov_neg_bed = fopen(nodecovnegfname.chars(), "w");
-			// edge_cov_neg_bed = fopen(edgecovnegfname.chars(), "w");
-			// fprintf(node_cov_neg_bed, "track name=Sample_"+GStr(file_idx)+"_node_neg_cov_unispg color=255,0,0 altColor=0,0,255\n");
-			// fprintf(edge_cov_neg_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_neg_cov_unispg color=255,0,0 altColor=0,0,255\n");
-			// nodecovnegfname_unispg_vec.Add(nodecovnegfname);
-			// edgecovnegfname_unispg_vec.Add(edgecovnegfname);
-			// node_cov_neg_bed_unispg_vec.Add(node_cov_neg_bed);
-			// edge_cov_neg_bed_unispg_vec.Add(edge_cov_neg_bed);
-			// // chr1    10071   85823   JUNC00000002    1       -
-
 			GStr direction("");
+
+			nodeunispgfname_unstrand = outfname_prefix + "_node_unstranded_unispg.bed";
+			node_unispg_unstrand_bed = fopen(nodeunispgfname_unstrand.chars(), "w");		
+			fprintf(node_unispg_unstrand_bed, "track name=Sample_"+GStr(file_idx)+"_node_unstranded_cov color=0,0,0 altColor=0,0,0\n");		
+
 			for (int s=0; s<2; s++) {
 				if (s == 0) {
 					direction = "neg";
@@ -819,7 +680,6 @@ int main(int argc, char* argv[]) {
 				edge_novp_bed_vec[s]->Add(edge_cov_bed);
 
 
-
 				nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_unispg_"+GStr(file_idx)+".bed";
 				edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_unispg_"+GStr(file_idx)+".bed";				
 				node_cov_bed = fopen(nodecovfname.chars(), "w");				
@@ -833,70 +693,6 @@ int main(int argc, char* argv[]) {
 				node_unispg_bed_vec[s]->Add(node_cov_bed);
 				edge_unispg_bed_vec[s]->Add(edge_cov_bed);
 			}
-
-
-			// GStr direction("");
-			// for (int s=0; s<2; s++) {
-			// 	int s = 1;
-			// 	if (s == 0) {
-			// 		direction = "neg";
-			// 	} else if (s == 1) {
-			// 		direction = "pos";
-			// 	}
-			// 	FILE* node_cov_bed = NULL;
-			// 	GStr nodecovfname; 
-			// 	FILE* edge_cov_bed = NULL;
-			// 	GStr edgecovfname; 
-
-			// 	nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_cov"+GStr(file_idx)+".bed";
-			// 	edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_cov"+GStr(file_idx)+".bed";
-
-			// 	node_cov_bed = fopen(nodecovfname.chars(), "w");				
-			// 	edge_cov_bed = fopen(edgecovfname.chars(), "w");
-			// 	fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-			// 	fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-
-			// 	fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-			// 	fprintf(edge_cov_bed, "TEST!!!!\n");
-
-			// 	fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-
-			// 	nodecovfname_vec[s]->Add(&nodecovfname);
-			// 	edgecovfname_vec[s]->Add(&edgecovfname);
-			// 	node_cov_bed_vec[s]->Add(&node_cov_bed);
-			// 	edge_cov_bed_vec[s]->Add(&edge_cov_bed);
-
-
-			// 	// nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_cov"+GStr(file_idx)+"_nonovp.bed";
-			// 	// edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_cov"+GStr(file_idx)+"_nonovp.bed";
-			// 	// node_cov_bed = fopen(nodecovfname.chars(), "w");
-			// 	// edge_cov_bed = fopen(edgecovfname.chars(), "w");
-			// 	// fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov_nonovp color=255,0,0 altColor=0,0,255\n");
-			// 	// fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov_nonovp color=255,0,0 altColor=0,0,255\n");
-			// 	// nodecovnovp_fname_vec[s].Add(nodecovfname);
-			// 	// edgecovnovp_fname_vec[s].Add(edgecovfname);
-			// 	// node_cov_novp_bed_vec[s].Add(node_cov_bed);
-			// 	// edge_cov_novp_bed_vec[s].Add(edge_cov_bed);
-
-			// 	// nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_cov"+GStr(file_idx)+"_unispg.bed";
-			// 	// edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_cov"+GStr(file_idx)+"_unispg.bed";	
-			// 	// node_cov_bed = fopen(nodecovfname.chars(), "w");
-			// 	// edge_cov_bed = fopen(edgecovfname.chars(), "w");
-			// 	// fprintf(node_cov_pos_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov_unispg color=255,0,0 altColor=0,0,255\n");
-			// 	// fprintf(edge_cov_pos_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov_unispg color=255,0,0 altColor=0,0,255\n");
-			// 	// nodecovfname_unispg_vec[s].Add(nodecovfname);
-			// 	// edgecovfname_unispg_vec[s].Add(edgecovfname);
-			// 	// node_cov_bed_unispg_vec[s].Add(node_cov_bed);
-			// 	// edge_cov_bed_unispg_vec[s].Add(edge_cov_bed);
-			// }
-
-
-
-
-
-
-
-
 
 			bundle->Clear();
 			brec=NULL;	
@@ -1268,344 +1064,6 @@ int main(int argc, char* argv[]) {
 			fprintf(stderr, "** file_idx: %d\n", file_idx);
 			bamreader.start_fidx(file_idx);
 		}
-
-		/*****************************
-		 * Processing alignment: main algorithm
-		 *****************************/
-		while (more_alns) {
-			bool chr_changed=false;
-			int pos=0;
-			const char* refseqName=NULL;
-			char xstrand=0;
-			int nh=1;
-			int hi=0;
-			int gseq_id=lastref_id;  //current chr id
-			bool new_bundle=false;
-			//delete brec;
-			if ((brec=bamreader.next())!=NULL) {
-				if (brec->isUnmapped()) continue;
-				if (brec->start<1 || brec->mapped_len<10) {
-					if (verbose) GMessage("Warning: invalid mapping found for read %s (position=%d, mapped length=%d)\n",
-							brec->name(), brec->start, brec->mapped_len);
-					continue;
-				}
-	#ifdef DBG_ALN_DATA
-				dbg_waln(brec);
-	#endif
-				refseqName=brec->refName();
-				xstrand=brec->spliceStrand(); // tagged strand gets priority
-				if(xstrand=='.' && (fr_strand || rf_strand)) { // set strand if stranded library
-					if(brec->isPaired()) { // read is paired
-						if(brec->pairOrder()==1) { // first read in pair
-							if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='+';
-							else xstrand='-';
-						}
-						else {
-							if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='-';
-							else xstrand='+';
-						}
-					}
-					else {
-						if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='+';
-						else xstrand='-';
-					}
-				}
-
-				/*
-				if (xstrand=='.' && brec->exons.Count()>1) {
-					no_xs++;
-					continue; //skip spliced alignments lacking XS tag (e.g. HISAT alignments)
-				}
-				// I might still infer strand later */
-
-				if (refseqName==NULL) GError("Error: cannot retrieve target seq name from BAM record!\n");
-				pos=brec->start; //BAM is 0 based, but GBamRecord makes it 1-based
-				chr_changed=(lastref.is_empty() || lastref!=refseqName);
-				if (chr_changed) {
-					skipGseq=excludeGseqs.hasKey(refseqName);
-					gseq_id=gseqNames->gseqs.addName(refseqName);
-					if (guided) {
-						if (gseq_id>=refseqCount) {
-							if (verbose)
-								GMessage("WARNING: no reference transcripts found for genomic sequence \"%s\"! (mismatched reference names?)\n",
-									refseqName);
-						}
-						else no_ref_used=false;
-					}
-
-					if (alncounts.Count()<=gseq_id) {
-						alncounts.Resize(gseq_id+1);
-					}
-					else if (alncounts[gseq_id]>0)
-							GError("%s\nAlignments (%d) already found for %s !\n",
-								ERR_BAM_SORT, alncounts[gseq_id], refseqName);
-					prev_pos=0;
-				}
-				if (pos<prev_pos) GError("%s\nread %s (start %d) found at position %d on %s when prev_pos=%d\n",
-					ERR_BAM_SORT, brec->name(), brec->start,  pos, refseqName, prev_pos);
-				prev_pos=pos;
-				if (skipGseq) continue;
-				alncounts[gseq_id]++;
-				nh=brec->tag_int("NH");
-				if (nh==0) nh=1;
-				hi=brec->tag_int("HI");
-				if (mergeMode) {
-					//tinfo=new TAlnInfo(brec->name(), brec->tag_int("ZF"));
-						tinfo=new TAlnInfo(brec->name(), brec->uval);
-					GStr score(brec->tag_str("ZS"));
-					if (!score.is_empty()) {
-						GStr srest=score.split('|');
-						if (!score.is_empty())
-							tinfo->cov=score.asDouble();
-						score=srest.split('|');
-						if (!srest.is_empty())
-							tinfo->fpkm=srest.asDouble();
-						srest=score.split('|');
-						if (!score.is_empty())
-							tinfo->tpm=score.asDouble();
-					}
-				}
-
-				if (!chr_changed && currentend>0 && pos>currentend+(int)runoffdist) {
-					new_bundle=true;
-				}
-			}
-			else { //no more alignments
-				more_alns=false;
-				new_bundle=true; //fake a new start (end of last bundle)
-			}
-
-			/*****************************
-			 * Condition to start processing reads in the previous bundle
-			 *****************************/
-			if (new_bundle || chr_changed) {
-				hashread.Clear();
-				if (bundle->readlist.Count()>0) { // process reads in previous bundle
-					// (readthr, junctionthr, mintranscriptlen are globals)
-					/*****************************
-					 * point-features defined for this reference
-					 *****************************/
-					if (refptfs) { //point-features defined for this reference
-						while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<currentstart)
-							ptf_idx++;
-						//TODO: what if a PtFeature is nearby, just outside the bundle?
-						while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<=currentend) {
-							bundle->ptfs.Add(refptfs->Get(ptf_idx)); //keep this PtFeature
-							ptf_idx++;
-						}
-					}
-					bundle->getReady(currentstart, currentend);
-					/*****************************
-					 * genomic sequence data requested
-					 *****************************/
-					if (gfasta!=NULL) { //genomic sequence data requested
-						GFaSeqGet* faseq=gfasta->fetch(bundle->refseq.chars());
-						if (faseq==NULL) {
-							GError("Error: could not retrieve sequence data for %s!\n", bundle->refseq.chars());
-						}
-						bundle->gseq=faseq->copyRange(bundle->start, bundle->end, false, true);
-					}
-		#ifndef NOTHREADS
-					//push this in the bundle queue where it'll be picked up by the threads
-					DBGPRINT2("##> Locking queueMutex to push loaded bundle into the queue (bundle.start=%d)\n", bundle->start);
-					int qCount=0;
-					queueMutex.lock();
-					bundleQueue.Push(bundle);
-					bundleWork |= 0x02; //set bit 1
-					qCount=bundleQueue.Count();
-					queueMutex.unlock();
-					DBGPRINT2("##> bundleQueue.Count()=%d)\n", qCount);
-					//wait for a thread to pop this bundle from the queue
-					waitMutex.lock();
-					DBGPRINT("##> waiting for a thread to become available..\n");
-					while (threadsWaiting==0) {
-						haveThreads.wait(waitMutex);
-					}
-					waitMutex.unlock();
-					haveBundles.notify_one();
-					DBGPRINT("##> waitMutex unlocked, haveBundles notified, current thread yielding\n");
-					current_thread::yield();
-					queueMutex.lock();
-					DBGPRINT("##> queueMutex locked until bundleQueue.Count()==qCount\n");
-					while (bundleQueue.Count()==qCount) {
-						queueMutex.unlock();
-						DBGPRINT2("##> queueMutex unlocked as bundleQueue.Count()==%d\n", qCount);
-						haveBundles.notify_one();
-						current_thread::yield();
-						queueMutex.lock();
-						DBGPRINT("##> queueMutex locked again within while loop\n");
-					}
-					queueMutex.unlock();
-
-		#else //no threads
-					//Num_Fragments+=bundle->num_fragments;
-					//Frag_Len+=bundle->frag_len;
-					processBundle(bundle);
-		#endif
-					// ncluster++; used it for debug purposes only
-				} //have alignments to process
-				else { //no read alignments in this bundle?
-	#ifndef NOTHREADS
-				dataMutex.lock();
-				DBGPRINT2("##> dataMutex locked for bundle #%d clearing..\n", bundle->idx);
-	#endif
-				bundle->Clear();
-	#ifndef NOTHREADS
-				dataClear.Push(bundle->idx);
-				DBGPRINT2("##> dataMutex unlocking as dataClear got pushed idx #%d\n", bundle->idx);
-				dataMutex.unlock();
-	#endif
-				} //nothing to do with this bundle
-
-				if (chr_changed) {
-					if (guided) {
-						ng=0;
-						guides=NULL;
-						ng_start=0;
-						ng_end=-1;
-						if (refguides.Count()>gseq_id && refguides[gseq_id].rnas.Count()>0) {
-							guides=&(refguides[gseq_id].rnas);
-							ng=guides->Count();
-						}
-					}
-					if (havePtFeatures) {
-						ptf_idx=-1;
-						//setup refptf
-						refptfs=NULL;
-						GRefPtData rd(gseq_id);
-						int ridx=refpts.IndexOf(rd);
-						if (ridx>=0) {
-						refptfs=&(refpts[ridx].pfs);
-						ptf_idx=0;
-						}
-					}
-					lastref=refseqName;
-					lastref_id=gseq_id;
-					currentend=0;
-				}
-
-				if (!more_alns) {
-					if (verbose) {
-		#ifndef NOTHREADS
-						GLockGuard<GFastMutex> lock(logMutex);
-		#endif
-						if (Num_Fragments) {
-							printTime(stderr);
-							GMessage(" %g aligned fragments found.\n", Num_Fragments);
-						}
-						//GMessage(" Done reading alignments.\n");
-					}
-					noMoreBundles();
-					break;
-				}
-	#ifndef NOTHREADS
-
-				int new_bidx=waitForData(bundles);
-				if (new_bidx<0) {
-					//should never happen!
-					GError("Error: waitForData() returned invalid bundle index(%d)!\n",new_bidx);
-					break;
-				}
-				bundle=&(bundles[new_bidx]);
-	#endif
-				currentstart=pos;
-				currentend=brec->end;
-				if (guides) { //guided and guides!=NULL
-					ng_start=ng_end+1;
-					while (ng_start<ng && (int)(*guides)[ng_start]->end < pos) {
-						// for now, skip guides which have no overlap with current read
-						ng_start++;
-					}
-					int ng_ovl=ng_start;
-					//add all guides overlapping the current read and other guides that overlap them
-					while (ng_ovl<ng && (int)(*guides)[ng_ovl]->start<=currentend) { //while guide overlap
-						if (currentstart>(int)(*guides)[ng_ovl]->start)
-							currentstart=(*guides)[ng_ovl]->start;
-						if (currentend<(int)(*guides)[ng_ovl]->end)
-							currentend=(*guides)[ng_ovl]->end;
-						if (ng_ovl==ng_start && ng_ovl>0) { //first time only, we have to check back all possible transitive guide overlaps
-							//char* geneid=(*guides)[ng_ovlstart]->getGeneID();
-							//if (geneid==NULL) geneid=(*guides)[ng_ovlstart]->getGeneName();
-							//if (geneid && !bgeneids.hasKey(geneid))
-							//  bgeneids.shkAdd(geneid, &ng); //whatever pointer to int
-							int g_back=ng_ovl; //start from the overlapping guide, going backwards
-							int g_ovl_start=ng_ovl;
-							while (g_back>ng_end+1) {
-								--g_back;
-								//if overlap, set g_back_start=g_back and update currentstart
-								if (currentstart<=(int)(*guides)[g_back]->end) {
-									g_ovl_start=g_back;
-									if (currentstart>(int)(*guides)[g_back]->start)
-										currentstart=(int)(*guides)[g_back]->start;
-								}
-							} //while checking previous guides that could be pulled in this bundle
-							for (int gb=g_ovl_start;gb<=ng_ovl;++gb) {
-								bundle->keepGuide((*guides)[gb],
-										&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
-							}
-						} //needed to check previous guides for overlaps
-						else
-						bundle->keepGuide((*guides)[ng_ovl],
-								&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
-						ng_ovl++;
-					} //while guide overlap
-					ng_end=ng_ovl-1; //MUST update ng_end here, even if no overlaps were found
-				} //guides present on the current chromosome
-				bundle->refseq=lastref;
-				bundle->start=currentstart;
-				bundle->end=currentend;
-			} //<---- new bundle started
-
-			/*****************************
-			 * current read extends the bundle
-			 * 	this might not happen if a longer guide had already been added to the bundle
-			 *****************************/
-			if (currentend<(int)brec->end) {
-				currentend=brec->end;
-				if (guides) { //add any newly overlapping guides to bundle
-					bool cend_changed;
-					do {
-						cend_changed=false;
-						while (ng_end+1<ng && (int)(*guides)[ng_end+1]->start<=currentend) {
-							++ng_end;
-							//more transcripts overlapping this bundle?
-							if ((int)(*guides)[ng_end]->end>=currentstart) {
-								//it should really overlap the bundle
-								bundle->keepGuide((*guides)[ng_end],
-										&guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
-								if(currentend<(int)(*guides)[ng_end]->end) {
-									currentend=(*guides)[ng_end]->end;
-									cend_changed=true;
-								}
-							}
-						}
-					} while (cend_changed);
-				}
-			} //adjusted currentend and checked for overlapping reference transcripts
-			
-			GReadAlnData alndata(brec, 0, nh, hi, tinfo);
-			fprintf(stderr, ">>> before evalReadAln xstrand: %c\n", xstrand);
-			bool ovlpguide=bundle->evalReadAln(alndata, xstrand);
-			fprintf(stderr, ">>> after evalReadAln xstrand: %c\n", xstrand);
-
-			/*****************************
-			 * in eonly case consider read only if it overlaps guide
-			 * 	check for overlaps with ref transcripts which may set xstrand
-			 *****************************/
-			// eonly: for mergeMode includes estimated coverage sum in the merged transcripts
-			if(!eonly || ovlpguide) {
-				/*****************************
-				 * If it is not in the MergeMode or it does not overlap the reference.
-				 *****************************/
-				if (xstrand=='+') alndata.strand=1;
-				else if (xstrand=='-') alndata.strand=-1;
-				//GMessage("%s\t%c\t%d\thi=%d\n",brec->name(), xstrand, alndata.strand,hi);
-				//countFragment(*bundle, *brec, hi,nh); // we count this in build_graphs to only include mapped fragments that we consider correctly mapped
-				//fprintf(stderr,"fragno=%d fraglen=%lu\n",bundle->num_fragments,bundle->frag_len);if(bundle->num_fragments==100) exit(0);
-				processRead(currentstart, currentend, *bundle, hashread, alndata);
-			}
-		} //for each read alignment
-	
 	}
 
 
@@ -1619,9 +1077,6 @@ int main(int argc, char* argv[]) {
 	if (multiMode) {
 		delete brec;
 		bamreader.stop(); //close all BAM files
-	} else if (unispgMode) {
-		delete drec;
-		dotreader.stop(); //close all DOT files
 	} else {
 		// normalMode
 		delete brec;
@@ -1787,10 +1242,10 @@ int main(int argc, char* argv[]) {
  ****************/
 	if (multiMode) {
 		fclose(uinigraph_out);
-		fclose(node_cov_pos_bed);
-		fclose(edge_cov_pos_bed);
-		fclose(node_cov_neg_bed);
-		fclose(edge_cov_neg_bed);
+		// fclose(node_cov_pos_bed);
+		// fclose(edge_cov_pos_bed);
+		// fclose(node_cov_neg_bed);
+		// fclose(edge_cov_neg_bed);
 	} else {
 	}
 /****************
@@ -2122,10 +1577,10 @@ void processOptions(GArgs& args) {
 	 //}
 	int numbam=args.startNonOpt();
 #ifndef GFF_DEBUG
-	// if (numbam < 1 ) {
-	//  	 GMessage("%s\nError: no input file provided!\n",USAGE);
-	//  	 exit(1);
-	// }
+	if (numbam < 1 ) {
+	 	 GMessage("%s\nError: no input file provided!\n",USAGE);
+	 	 exit(1);
+	}
 	if (args.startNonOpt()==0) {
         GMessage(USAGE);
         GMessage("\nError: no input file provided!\n");
@@ -2274,108 +1729,6 @@ void noMoreBundles() {
 #endif
 }
 
-void processBundle(BundleData* bundle, UniSpliceGraphGp* uni_splice_graphGp) {
-	if (verbose) {
-#ifndef NOTHREADS
-		GLockGuard<GFastMutex> lock(logMutex);
-#endif
-		printTime(stderr);
-		GMessage(">bundle %s:%d-%d [%lu alignments (%d distinct), %d junctions, %d guides] begins processing...\n",
-				bundle->refseq.chars(), bundle->start, bundle->end, bundle->numreads, bundle->readlist.Count(), bundle->junction.Count(),
-                bundle->keepguides.Count());
-#ifdef GMEMTRACE
-			double vm,rsm;
-			get_mem_usage(vm, rsm);
-			GMessage("\t\tstart memory usage: %6.1fMB\n",rsm/1024);
-			if (rsm>maxMemRS) {
-				maxMemRS=rsm;
-				maxMemVM=vm;
-				maxMemBundle.format("%s:%d-%d(%d)", bundle->refseq.chars(), bundle->start, bundle->end, bundle->readlist.Count());
-			}
-#endif
-	}
-#ifdef B_DEBUG
-	for (int i=0;i<bundle->keepguides.Count();++i) {
-		GffObj& t=*(bundle->keepguides[i]);
-		RC_TData* tdata=(RC_TData*)(t.uptr);
-		fprintf(dbg_out, ">%s (t_id=%d) %s%c %d %d\n", t.getID(), tdata->t_id, t.getGSeqName(), t.strand, t.start, t.end );
-		for (int fe=0;fe < tdata->t_exons.Count(); ++fe) {
-			RC_Feature& exoninfo = *(tdata->t_exons[fe]);
-			fprintf(dbg_out, "%d\texon\t%d\t%d\t%c\t%d\t%d\n", exoninfo.id, exoninfo.l, exoninfo.r,
-					    exoninfo.strand, exoninfo.rcount, exoninfo.ucount);
-			if (! (exoninfo==*(bundle->rc_data->guides_RC_exons->Get(exoninfo.id-1))))
-				 GError("exoninfo with id (%d) not matching!\n", exoninfo.id);
-		}
-		for (int fi=0;fi < tdata->t_introns.Count(); ++fi) {
-			RC_Feature& introninfo = *(tdata->t_introns[fi]);
-			fprintf(dbg_out, "%d\tintron\t%d\t%d\t%c\t%d\t%d\n", introninfo.id, introninfo.l, introninfo.r,
-					introninfo.strand, introninfo.rcount, introninfo.ucount);
-			if (! (introninfo==*(bundle->rc_data->guides_RC_introns->Get(introninfo.id-1))))
-				 GError("introninfo with id (%d) not matching!\n", introninfo.id);
-		}
-		//check that IDs are properly assigned
-		if (tdata->t_id!=(uint)t.udata) GError("tdata->t_id(%d) not matching t.udata(%d)!\n",tdata->t_id, t.udata);
-		if (tdata->t_id!=bundle->rc_data->guides_RC_tdata->Get(tdata->t_id-1)->t_id)
-			 GError("tdata->t_id(%d) not matching rc_data[t_id-1]->t_id (%d)\n", tdata->t_id, bundle->rc_data->g_tdata[tdata->t_id-1]->t_id);
-
-	}
-#endif
-
-	infer_transcripts_multi(bundle, uni_splice_graphGp);
-
-	if (ballgown && bundle->rc_data) {
-		rc_update_exons(*(bundle->rc_data));
-	}
-	if (bundle->pred.Count()>0 || ((eonly || geneabundance) && bundle->keepguides.Count()>0)) {
-#ifndef NOTHREADS
-		GLockGuard<GFastMutex> lock(printMutex);
-#endif
-		if(mergeMode) GeneNo=printMergeResults(bundle, GeneNo,bundle->refseq);
-		else GeneNo=printResults(bundle, GeneNo, bundle->refseq);
-	}
-
-	if (bundle->num_fragments) {
-		#ifndef NOTHREADS
-				GLockGuard<GFastMutex> lock(countMutex);
-		#endif
-		Num_Fragments+=bundle->num_fragments;
-		Frag_Len+=bundle->frag_len;
-		Cov_Sum+=bundle->sum_cov;
-	}
-
-	if (verbose) {
-#ifndef NOTHREADS
-		GLockGuard<GFastMutex> lock(logMutex);
-#endif
-	  /*
-	  SumReads+=bundle->sumreads;
-	  SumFrag+=bundle->sumfrag;
-	  NumCov+=bundle->num_cov;
-	  NumReads+=bundle->num_reads;
-	  NumFrag+=bundle->num_frag;
-	  NumFrag3+=bundle->num_fragments3;
-	  SumFrag3+=bundle->sum_fragments3;
-	  fprintf(stderr,"Number of fragments in bundle: %g with length %g\n",bundle->num_fragments,bundle->frag_len);
-	  fprintf(stderr,"Number of fragments in bundle: %g with sum %g\n",bundle->num_fragments,bundle->frag_len);
-	  */
-		printTime(stderr);
-		GMessage("^bundle %s:%d-%d done (%d processed potential transcripts).\n",bundle->refseq.chars(),
-				bundle->start, bundle->end, bundle->pred.Count());
-#ifdef GMEMTRACE
-		double vm,rsm;
-		get_mem_usage(vm, rsm);
-		GMessage("\t\tfinal memory usage: %6.1fMB\n",rsm/1024);
-		if (rsm>maxMemRS) {
-			maxMemRS=rsm;
-			maxMemVM=vm;
-			maxMemBundle.format("%s:%d-%d(%d)", bundle->refseq.chars(), bundle->start, bundle->end, bundle->readlist.Count());
-		}
-#endif
-	}
-	bundle->Clear();
-}
-
-
 void processBundleUnispg(BundleData* bundle, int fidx) {
 	if (verbose) {
 #ifndef NOTHREADS
@@ -2519,7 +1872,8 @@ void workerThread(GThreadData& td) {
 				queueMutex.unlock();
 
 				//  I need to fix this (passing UniSpliceGraphGp* uni_splice_graphGp to here )
-				processBundle(readyBundle);
+				// Need to switch to processBundleUnispg
+				// processBundle(readyBundle);
 				DBGPRINT3("---->> Thread%d processed bundle #%d, now locking back dataMutex and queueMutex\n",
 						td.thread->get_id(), readyBundle->idx);
 				dataMutex.lock();
@@ -2559,7 +1913,6 @@ int waitForData(BundleData* bundles) {
 	dataMutex.unlock();
 	return bidx;
 }
-
 #endif
 
 void addPtFeature(const char* refname, GPtFeature* pf, GArray<GRefPtData>& refpts) {
@@ -2710,37 +2063,3 @@ void writeUnbundledGuides(GVec<GRefData>& refdata, FILE* fout, FILE* gout) {
 		}
 	}
 }
-
-void unispg_readline(UniSpliceGraph* &drec, bool &new_uni_spg_gp, bool &more_graph, int pre_refstart, int pre_refend) {
-	if ((drec=dotreader.next())!=NULL) {
-		if (pre_refstart != drec->get_refstart() && pre_refend != drec->get_refend()) {
-			/*****************************************
-			 ** It is a new universal splice graph group.
-				*****************************************/
-			new_uni_spg_gp = true;
-		} 
-		// fprintf(stderr, "Keep reading %d (pre: %d - %d ;  now: %d - %d)!!!\n", new_uni_spg_gp, pre_refstart, pre_refend, drec->get_refstart(), drec->get_refend());
-
-
-		// int uni_refstart = drec->get_refstart();
-		// int uni_refend = drec->get_refend();
-		// int uni_s = drec->get_s();
-		// int uni_g = drec->get_g_idx();
-		// int uni_graphno = drec->get_graphno();
-		// int uni_edgeno = drec->get_edgeno();
-		// GPVec<CGraphnode>* uni_no2gnode = drec->get_no2gnode(); 
-
-		// for (int i = 1; i < uni_graphno-1; i++) {
-		// 	fprintf(stderr, "uni_no2gnode[s][g][i]: %d  start: %d   end: %d \n", uni_no2gnode[0][i]->nodeid, uni_no2gnode[0][i]->start, uni_no2gnode[0][i]->end);
-		// }
-
-
-	} else {
-		// fprintf(stderr, "No more dot graph!!!\n");
-		more_graph=false;
-		new_uni_spg_gp = true; //fake a new start (end of the last universal splice graph.)
-	}
-}
-
-
-

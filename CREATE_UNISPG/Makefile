@@ -174,7 +174,7 @@ endif
 	${CXX} ${CXXFLAGS} -c $< -o $@
 
 OBJS += rlink.o tablemaker.o tmerge.o
-OBJS_MULTI += rlink.o tablemaker.o tmerge.o multist.o rlink_multi.o visualization.o unispg.o rlink_unispg.o rlink_unispg_help.o
+OBJS_MULTI += rlink.o tablemaker.o tmerge.o visualization.o unispg.o rlink_unispg.o rlink_unispg_help.o
 
 
 
@@ -189,24 +189,21 @@ OBJS_MULTI += rlink.o tablemaker.o tmerge.o multist.o rlink_multi.o visualizatio
 
 ############################
 ## KH ADD: compiling multistringtie
-all release static static-cpp debug: stringtie${EXE} multistringtie${EXE}
-memcheck memdebug tsan tcheck thrcheck: stringtie${EXE} multistringtie${EXE}
-memuse memusage memtrace: stringtie${EXE} multistringtie${EXE}
-prof profile: stringtie${EXE} multistringtie${EXE}
-nothreads: stringtie${EXE} multistringtie${EXE}
+all release static static-cpp debug: multistringtie${EXE}
+memcheck memdebug tsan tcheck thrcheck: multistringtie${EXE}
+memuse memusage memtrace: multistringtie${EXE}
+prof profile: multistringtie${EXE}
+nothreads: multistringtie${EXE}
 
 multi: multistringtie${EXE}
 multistringtie.o : $(GDIR)/GBitVec.h $(GDIR)/GHashMap.hh $(GDIR)/GSam.h
 ## END of KH ADD
 ############################
 
-stringtie.o : $(GDIR)/GBitVec.h $(GDIR)/GHashMap.hh $(GDIR)/GSam.h
-rlink.o : rlink.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
 tmerge.o : rlink.h tmerge.h
 tablemaker.o : tablemaker.h rlink.h
-multist.o : multist.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
+# multist.o : multist.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
 unispg.o : unispg.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
-rlink_multi.o : rlink_multi.h 
 rlink_unispg.o : rlink_unispg.h 
 rlink_unispg_help.o : rlink_unispg_help.h 
 visualization.o : visualization.h 
@@ -227,21 +224,11 @@ multistringtie${EXE}: ${HTSLIB}/libhts.a $(OBJS_MULTI) multistringtie.o
 ############################
 # ${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS} ${PYTHONFLAGS}
 
-stringtie${EXE}: ${HTSLIB}/libhts.a $(OBJS) stringtie.o
-	${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
-	@echo
-	${DBG_WARN}
-test demo tests: stringtie${EXE}
-	@./run_tests.sh
-.PHONY : clean cleanall cleanAll allclean
-
-# target for removing all object files
 
 #	echo $(PATH)
 ############################
 ## KH ADD
 clean:
-	${RM} stringtie${EXE} stringtie.o*  $(OBJS) $(OBJS_MULTI)
 	${RM} core.*  multistringtie${EXE} multistringtie.o*
 
 # pr: rm -rf multistringtie.o unispg.o
