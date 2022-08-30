@@ -746,3 +746,50 @@ void calculate_ovp_coverage(int pos_start, int pos_end, int neg_start, int neg_e
     // }
     fprintf(stderr, "\n");
 }
+
+void redistribute_unstranded_rcov(float* rprop, GVec<float>* bpcov, int refstart, int refend, int rstart, int rend) {
+
+    float read_coverage_neg = get_cov(0, rstart-refstart+1, rend-refstart+1, bpcov);
+	float read_coverage_uns = get_cov(1, rstart-refstart+1, rend-refstart+1, bpcov);
+	float read_coverage_pos = get_cov(2, rstart-refstart+1, rend-refstart+1, bpcov);
+	read_coverage_uns = read_coverage_uns - read_coverage_neg - read_coverage_pos;
+
+    if (read_coverage_neg == 0.0 && read_coverage_pos == 0.0) {
+        rprop[0] = 0.5;
+        rprop[1] = 0.5;
+    } else if (read_coverage_neg == 0.0 && read_coverage_pos != 0.0) {
+        rprop[0] = 0.0;
+        rprop[1] = 1.0;
+    } else if (read_coverage_neg != 0.0 && read_coverage_pos == 0.0) {
+        rprop[0] = 1.0;
+        rprop[1] = 0.0;
+    } else {
+        rprop[0] = read_coverage_neg/(read_coverage_neg+read_coverage_pos);
+        rprop[1] = 1.0 - rprop[0];
+    }
+
+	// fprintf(stderr, ">> Ref  (%d - %d)\n", refstart, refend);
+	// fprintf(stderr, ">> read (%u - %u)\n", rstart, rend);
+
+	// fprintf(stderr, ">> read_coverage_neg: %f \n", read_coverage_neg);
+
+	// fprintf(stderr, ">> read_coverage_uns: %f \n", read_coverage_uns);
+
+	// fprintf(stderr, ">> read_coverage_pos: %f \n", read_coverage_pos);
+
+	// if(bundle->readlist[n]->strand != 1 && bundle->readlist[n]->strand != -1) {
+	// 	fprintf(stderr, "UNSTRANDED!!!\n");
+	// }
+}
+
+int overlapLen(uint rstart, uint rend, uint start, uint end) {
+    if (rstart>rend) { Gswap(rstart,rend); }
+    if (start<rstart) {
+    if (rstart>end) return 0;
+    return (rend>end) ? end-rstart+1 : rend-rstart+1;
+    }
+    else { //rstart<=start
+    if (start>rend) return 0;
+    return (rend<end)? rend-start+1 : end-start+1;
+    }
+}

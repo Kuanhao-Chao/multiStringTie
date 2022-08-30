@@ -3750,7 +3750,6 @@ int build_graphs_unispg(BundleData* bdata, int fidx) {
 		 **    'process_refguides' & 'process_transfrags' & 'find_transcripts' & 'free_treepat'
 		 *****************************/
     	for(int s=0;s<2;s++) {
-
     		for(int b=0;b<bno[s];b++) {
     			// fprintf(stderr,"Process graph[%d][%d] with %d nodes\n",s,b,graphno[s][b]);
     			if(graphno[s][b]) {

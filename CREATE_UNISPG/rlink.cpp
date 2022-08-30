@@ -4311,7 +4311,6 @@ CTransfrag *findtrf_in_treepat(int gno,GIntHash<int>& gpos,GVec<int>& node,GBitV
 	return(tree->tr);
 }*/
 
-
 CTransfrag *update_abundance(int s,int g,int gno,GIntHash<int>&gpos,GBitVec& pattern,float abundance,GVec<int>& node,
 		GPVec<CTransfrag> **transfrag,CTreePat ***tr2no, GPVec<CGraphnode>& no2gnode,uint rstart,uint rend,bool is_sr=false,bool is_lr=false){
 
@@ -4496,6 +4495,7 @@ CTransfrag *update_abundance(int s,int g,int gno,GIntHash<int>&gpos,GBitVec& pat
 
 	/*****************************
 	 * Step 4: Setting the abundance (superread or normal read)
+	 * 	collaps transfragment having the same pattern.
 	 *****************************/
 	if(is_sr) t->srabund+=abundance;
 	else t->abundance+=abundance;
@@ -4530,12 +4530,12 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 	// compute proportions of unstranded read associated to strands
 
 	/*****************************
-	 * Step 1: Calculatingt the redistribution ratio.
-	 *  both reads are unstranded
+	 * Step 1: Calculatingt the redistribution ratio (for each read).
+	 *   both reads are unstranded
 	 *****************************/
+	// nh => number of reported alignments that contain the query in the current record.
 	if(readlist[n]->nh && !readlist[n]->strand && np>-1 && readlist[np]->nh && !readlist[np]->strand) {
 		int ngroup=0; // due to errors read might not belong to any groups
-
 		for(int i=0;i<readgroup[n].Count();i++) {
 			ngroup++;
 			int gr=readgroup[n][i]; // read is unstranded => it should belong to one group only -> not necessarily see above
@@ -4640,9 +4640,14 @@ void get_fragment_pattern(GList<CReadAln>& readlist,int n, int np,float readcov,
 		// Paired pattern
 		GBitVec ppat;
 		int usedp=0;
-
+		/*****************************
+		 * After running update_abundance:
+		 *   1. create the correct transfrag pattern
+		 *   2. create transfrag (or retrieve from the treepat)
+		 *   3. Setting the abundance (collapse transfrag with same pattern)
+		 *   4. Some modification for long reads.
+		 *****************************/
 		for(int r=0;r<rgno.Count();r++) {
-
 			// set read pattern
 			rpat.clear();
 			rpat.resize(graphno[s][rgno[r]]+edgeno[s][rgno[r]]);
@@ -14395,7 +14400,6 @@ int build_graphs(BundleData* bdata) {
 
 		//fprintf(stderr,"group %d id=%d: %u-%u col=%d from col=%d\n",nextgr,currgroup[nextgr]->grid,currgroup[nextgr]->start,currgroup[nextgr]->end,grcol,prevcol);
 
-		// The next group is an unstranded group!!! (unknown strand group)
 		/*****************************
 		 ** The next group is an unstranded group!!! (unknown strand group)
 		 *****************************/
@@ -15030,53 +15034,8 @@ int build_graphs(BundleData* bdata) {
 				// Get the read count for each node 
 			//}
     	}
-
-
 		/*****************************
-		 ** 3. Write out global splice graph in DOT format
-		*****************************/
-		// /****************
-		//  **  KH Adding 
-		// ****************/
-		// if (universal_splice_graph) {
-		// 	//  DOT file outut here 
-		// 	//  not capacity and rate 
-		// 	//  only edge weight
-		// 	for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-		// 		int s=sno/2; // adjusted strand due to ignoring neutral strand
-		// 		int g_idx = 0;
-		// 		for(int b=0;b<bundle[sno].Count();b++) {
-		// 			fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
-		// 			fprintf(stderr,"after traverse:\n");
-		// 			// if(graphno[s][b]) {
-		// 			fprintf(uinigraph_out,"strict digraph %d_%d_%d_%d {", refstart, refend, s, b);
-		// 			// graphno[s][b]: number of nodes in graph.
-		// 			if(graphno[s][b]) {
-		// 				for(int nd=1;nd<graphno[s][b]-1;nd++)
-		// 					fprintf(uinigraph_out,"%d[start=%d end=%d cov=%f];",nd,no2gnode[s][b][nd]->start,no2gnode[s][b][nd]->end,no2gnode[s][b][nd]->cov);
-
-		// 				for(int nd=0;nd<graphno[s][b];nd++) {
-		// 					// fprintf(stderr,"Node %d with parents:",i);
-		// 					for(int c=0;c<no2gnode[s][b][nd]->child.Count();c++) {
-		// 						fprintf(uinigraph_out,"%d->",nd);			
-		// 						fprintf(uinigraph_out,"%d;",no2gnode[s][b][nd]->child[c]);
-		// 					}
-		// 				}
-		// 			}
-		// 			fprintf(uinigraph_out,"}\n");
-		// 			g_idx += 1;
-		// 			fprintf(stderr,"g_idx: %d\n", g_idx);
-		// 			// }
-		// 		}
-		// 	}
-		// }
-		// /****************
-		//  **  END KH Adding 
-		// ****************/
-
-
-		/*****************************
-		 ** 4. I can clean up some data here:
+		 ** 3. I can clean up some data here:
 		*****************************/
     	for(int sno=0;sno<3;sno++) {
     		int n=bnode[sno].Count();
@@ -15100,7 +15059,7 @@ int build_graphs(BundleData* bdata) {
 
 
 		/*****************************
-		 ** 5. parse graph
+		 ** 4. parse graph
 		 **    'process_refguides' & 'process_transfrags' & 'find_transcripts' & 'free_treepat'
 		 *****************************/
     	for(int s=0;s<2;s++) {

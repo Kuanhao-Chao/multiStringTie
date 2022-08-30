@@ -104,6 +104,8 @@ int sample_num = 1;
 
 ofstream ratio_file;
 
+int skip_counter = 0;
+
 int main(int argc, char*argv[]) {
 	std::cout << "This is the multiStringTie program.\n" << std::endl;
 
@@ -159,9 +161,9 @@ int main(int argc, char*argv[]) {
 
 		/*******************************************
 		 *******************************************
-		** input processing
-		*******************************************
-		*******************************************/
+		 ** input processing
+		 *******************************************
+		 *******************************************/
 		GHash<int> hashread;      //read_name:pos:hit_index => readlist index
 		GList<GffObj>* guides=NULL; //list of transcripts on a specific reference
 		GList<GPtFeature>* refptfs=NULL; //list of point-features on a specific reference
@@ -362,72 +364,85 @@ int main(int argc, char*argv[]) {
 				// This is for beginning condition.
 				fprintf(stderr, ">> This is for beginning condition.\n");
 				fprintf(stderr, ">> Both `prev_drec_neg` and `prev_drec_pos` are NULL.\n");
-				fprintf(stderr, ">> drec_pos->get_refstart(): %u \n>> drec_neg->get_refstart(): %u \n", drec_pos->get_refstart(), drec_neg->get_refstart());
-				process_graphs_vec = false;
-				if (drec_pos->get_refstart() <= drec_neg->get_refstart()) {
-					fprintf(stderr, "Adding `drec_pos`!!!!\n");
+				if (more_graph_pos && more_graph_neg) {
+					fprintf(stderr, ">> drec_pos->get_refstart(): %u \n>> drec_neg->get_refstart(): %u \n", drec_pos->get_refstart(), drec_neg->get_refstart());
+					process_graphs_vec = false;
+					if (drec_pos->get_refstart() <= drec_neg->get_refstart()) {
+						fprintf(stderr, "Adding `drec_pos`!!!!\n");
 
-					// UnispgGp* copy_drec_pos = new UnispgGp(drec_pos);
-					graphs_vec[1]->Add(drec_pos);
-					prev_drec_pos_start = drec_pos->get_refstart();
-					prev_drec_pos_end = drec_pos->get_refend();
+						// UnispgGp* copy_drec_pos = new UnispgGp(drec_pos);
+						graphs_vec[1]->Add(drec_pos);
+						prev_drec_pos_start = drec_pos->get_refstart();
+						prev_drec_pos_end = drec_pos->get_refend();
 
-					next_graph_pos = true;
-					next_graph_neg = false;
-				} else if (drec_pos->get_refstart() > drec_neg->get_refstart()) {
-					fprintf(stderr, "Adding `drec_neg`!!!!\n");
-					
-					// UnispgGp* copy_drec_neg = new UnispgGp(drec_neg);
-					graphs_vec[0]->Add(drec_neg);
-					prev_drec_neg_start = drec_neg->get_refstart();
-					prev_drec_neg_end = drec_neg->get_refend();
+						next_graph_pos = true;
+						next_graph_neg = false;
+					} else if (drec_pos->get_refstart() > drec_neg->get_refstart()) {
+						fprintf(stderr, "Adding `drec_neg`!!!!\n");
+						
+						// UnispgGp* copy_drec_neg = new UnispgGp(drec_neg);
+						graphs_vec[0]->Add(drec_neg);
+						prev_drec_neg_start = drec_neg->get_refstart();
+						prev_drec_neg_end = drec_neg->get_refend();
 
-					next_graph_pos = false;
-					next_graph_neg = true;
+						next_graph_pos = false;
+						next_graph_neg = true;
+					}
+				} else {
+					process_graphs_vec = false;
+					break;
 				}
 			} else {
 				// graphs_vec is not empty in the beginning => start chaning now!
 				if (prev_drec_neg_start != NULL && prev_drec_neg_end != NULL) {
 					fprintf(stderr, ">> pre_neg, cur_pos\n");
-					bool overlap = segs_overlap(prev_drec_neg_start, prev_drec_neg_end, drec_pos->get_refstart(), drec_pos->get_refend());
-					if (overlap) {
-						process_graphs_vec = false;
-						next_graph_pos = true;
-						fprintf(stderr, ">> Adding `drec_pos`: %d - %d \n", drec_pos->get_refstart(), drec_pos->get_refend());
-						fprintf(stderr, "\t\t>> `prev_drec_neg`: %d - %d \n", prev_drec_neg_start, prev_drec_neg_end);
-						// UnispgGp* copy_drec_pos = new UnispgGp(drec_pos);
-						graphs_vec[1]->Add(drec_pos);
-						prev_drec_pos_start = drec_pos->get_refstart();
-						prev_drec_pos_end = drec_pos->get_refend();
-						next_graph_pos = true;
-						next_graph_neg = false;
-						continue;
-					} else {
-						process_graphs_vec = true;
-						next_graph_pos = false;
-						next_graph_neg = false;
+					fprintf(stderr, ">> prev_drec_neg_start: %d; prev_drec_neg_end: %d\n", prev_drec_neg_start, prev_drec_neg_end);
+					if (more_graph_pos) {
+						bool overlap = segs_overlap(prev_drec_neg_start, prev_drec_neg_end, drec_pos->get_refstart(), drec_pos->get_refend());
+						fprintf(stderr, ">> overlap: %d", overlap);
+
+						if (overlap) {
+							process_graphs_vec = false;
+							next_graph_pos = true;
+							fprintf(stderr, ">> Adding `drec_pos`: %d - %d \n", drec_pos->get_refstart(), drec_pos->get_refend());
+							fprintf(stderr, "\t\t>> `prev_drec_neg`: %d - %d \n", prev_drec_neg_start, prev_drec_neg_end);
+							// UnispgGp* copy_drec_pos = new UnispgGp(drec_pos);
+							graphs_vec[1]->Add(drec_pos);
+							prev_drec_pos_start = drec_pos->get_refstart();
+							prev_drec_pos_end = drec_pos->get_refend();
+							next_graph_pos = true;
+							next_graph_neg = false;
+							continue;
+						} else {
+							process_graphs_vec = true;
+							next_graph_pos = false;
+							next_graph_neg = false;
+						}
 					}
+					fprintf(stderr, ">> process_graphs_vec: %d", process_graphs_vec);
 				}
 
 				if (prev_drec_pos_start != NULL && prev_drec_pos_end != NULL) {
 					fprintf(stderr, ">> pre_pos, cur_neg\n");
-					bool overlap = segs_overlap(prev_drec_pos_start, prev_drec_pos_end, drec_neg->get_refstart(), drec_neg->get_refend());
-					if (overlap) {
-						process_graphs_vec = false;
-						next_graph_neg = true;
-						fprintf(stderr, ">> Adding `drec_neg`: %d - %d \n", drec_neg->get_refstart(), drec_neg->get_refend());
-						fprintf(stderr, "\t\t>> `prev_drec_pos`: %d - %d \n", prev_drec_pos_start, prev_drec_pos_end);
-						// UnispgGp* copy_drec_neg = new UnispgGp(drec_neg);
-						graphs_vec[0]->Add(drec_neg);
-						prev_drec_neg_start = drec_neg->get_refstart();
-						prev_drec_neg_end = drec_neg->get_refend();
-						next_graph_pos = false;
-						next_graph_neg = true;
-						continue;
-					} else {
-						process_graphs_vec = true;
-						next_graph_pos = false;
-						next_graph_neg = false;
+					if (more_graph_neg) {
+						bool overlap = segs_overlap(prev_drec_pos_start, prev_drec_pos_end, drec_neg->get_refstart(), drec_neg->get_refend());
+						if (overlap) {
+							process_graphs_vec = false;
+							next_graph_neg = true;
+							fprintf(stderr, ">> Adding `drec_neg`: %d - %d \n", drec_neg->get_refstart(), drec_neg->get_refend());
+							fprintf(stderr, "\t\t>> `prev_drec_pos`: %d - %d \n", prev_drec_pos_start, prev_drec_pos_end);
+							// UnispgGp* copy_drec_neg = new UnispgGp(drec_neg);
+							graphs_vec[0]->Add(drec_neg);
+							prev_drec_neg_start = drec_neg->get_refstart();
+							prev_drec_neg_end = drec_neg->get_refend();
+							next_graph_pos = false;
+							next_graph_neg = true;
+							continue;
+						} else {
+							process_graphs_vec = true;
+							next_graph_pos = false;
+							next_graph_neg = false;
+						}
 					}
 				}
 			}
@@ -494,7 +509,7 @@ int main(int argc, char*argv[]) {
 						xstrand=brec->spliceStrand(); // tagged strand gets priority
 
 						// fprintf(stderr, "** refseqName：%s\n", refseqName);
-
+						processed_read += 1;
 						/*****************************
 						 * set strand if stranded library
 						 *****************************/
@@ -528,6 +543,7 @@ int main(int argc, char*argv[]) {
 							neg_strand += 1;
 						} else if (xstrand=='.') {
 							unstrand += 1;
+							fprintf(stderr, "Add new unstrand read!!\n");
 						}
 						/*****************************
 						 ** Step 1-2: Check whether reads are in the range of the graph.
@@ -598,11 +614,6 @@ int main(int argc, char*argv[]) {
 							new_bundle = true;
 							process_read = false;
 						}
-						// } else if (xstrand == '-' || xstrand == '.') {
-						// } else if (xstrand == '-') {
-						// 	neg_strand += 1;
-						// 	continue;
-						// }
 					} else { //no more alignments
 						more_alns=false;
 						new_bundle=true; //fake a new start (end of last bundle)
@@ -1210,6 +1221,7 @@ int main(int argc, char*argv[]) {
 		fprintf(stderr, "positve read num: %d\n", pos_strand);
 		fprintf(stderr, "negative read num: %d\n", neg_strand);
 		fprintf(stderr, "unstranded read num: %d\n", unstrand);
+		fprintf(stderr, "skip_counter: %d\n", skip_counter);
 		delete brec;
 		bamreader.stop(); //close all BAM files
 		delete drec;

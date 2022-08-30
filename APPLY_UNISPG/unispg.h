@@ -249,6 +249,9 @@ struct CGraphnodeUnispg:public GSeg {
 	GVec<int> child;
 	GVec<int> parent;
 
+	// Node coverage for each sample
+    GVec<float>* cov_unispg_s;
+
 	/*****************************
 	 ** To-do 
 	 *****************************/
@@ -278,6 +281,10 @@ struct CGraphnodeUnispg:public GSeg {
 
 	void set_nodeid(int new_node_id) {
 		nodeid = new_node_id;
+	}
+
+	void add_cov_unispg_s(float cov) {
+		cov_unispg_s->cAdd(cov);
 	}
 };
 

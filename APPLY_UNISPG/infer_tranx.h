@@ -4,5 +4,6 @@
 #include "parse_reads.h"
 
 extern ofstream ratio_file;
+extern int skip_counter;
 
 void infer_transcripts_unispg(BundleData* bundle, GPVec<UnispgGp>** graphs_vec);
