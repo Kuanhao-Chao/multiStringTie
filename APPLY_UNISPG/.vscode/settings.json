@@ -38,7 +38,11 @@
         "mutex": "cpp",
         "iosfwd": "cpp",
         "atomic": "cpp",
-        "system_error": "cpp"
+        "system_error": "cpp",
+        "assert.h": "c",
+        "ctime": "cpp",
+        "queue": "cpp",
+        "stack": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

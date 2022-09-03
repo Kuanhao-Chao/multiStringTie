@@ -379,17 +379,17 @@ void cov_edge_add(GVec<float> *bpcov, int sno, int start, int end, float v) {
 	bool neutral=false;
 	if(sno!=1) neutral=true; // why is neutral true here: because if the sno is -/+ than I want to add their counts to bpcov[1] too
 
-	fprintf(stderr, ">> v: %f\n", v);
-	fprintf(stderr, "sno: %d; start: %d\n", sno, start);
-	fprintf(stderr, "	before start => bpcov[sno][start+1]: %f\n", bpcov[sno][start+1]);
+	// fprintf(stderr, ">> v: %f\n", v);
+	// fprintf(stderr, "sno: %d; start: %d\n", sno, start);
+	// fprintf(stderr, "	before start => bpcov[sno][start+1]: %f\n", bpcov[sno][start+1]);
 	bpcov[sno][start+1]+=v; // if sno==1 then I add v to it here
-	fprintf(stderr, "	after start => bpcov[sno][start+1]: %f\n", bpcov[sno][start+1]);
+	// fprintf(stderr, "	after start => bpcov[sno][start+1]: %f\n", bpcov[sno][start+1]);
 
-	fprintf(stderr, "sno: %d; end: %d\n", sno, end);
-	fprintf(stderr, "	before end => bpcov[sno][end+1]: %f\n", bpcov[sno][end+1]);
+	// fprintf(stderr, "sno: %d; end: %d\n", sno, end);
+	// fprintf(stderr, "	before end => bpcov[sno][end+1]: %f\n", bpcov[sno][end+1]);
 	// bpcov[sno][start+1]+=v; // if sno==1 then I add v to it here
 	bpcov[sno][end+1]-=v;
-	fprintf(stderr, "	after end => bpcov[sno][end+1]: %f\n", bpcov[sno][end+1]);
+	// fprintf(stderr, "	after end => bpcov[sno][end+1]: %f\n", bpcov[sno][end+1]);
 
 	if(neutral) { // if neutral (i.e. stranded) gets added to bpcov[1] here too => bpcov[1]=all coverage
 		bpcov[1][start+1]+=v;

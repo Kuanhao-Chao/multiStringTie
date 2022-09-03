@@ -250,7 +250,10 @@ struct CGraphnodeUnispg:public GSeg {
 	GVec<int> parent;
 
 	// Node coverage for each sample
-    GVec<float>* cov_unispg_s;
+    // GPVec<float> cov_unispg_s;
+	float* cov_unispg_s;
+	// [2] = {0};  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
+
 
 	/*****************************
 	 ** To-do 
@@ -273,6 +276,9 @@ struct CGraphnodeUnispg:public GSeg {
 		is_passed_s->cAdd(is_passed);
 		cov_s->cAdd(cov);
 		capacity_s->cAdd(capacity);
+        // cov_unispg_s = GPVec<float>(sample_num, 0.0f);
+		cov_unispg_s = new float[sample_num];
+
 		if (set_g_n_idx) {
 			old_graph_id = g_idx;
 			old_node_id = n_idx;
@@ -283,8 +289,23 @@ struct CGraphnodeUnispg:public GSeg {
 		nodeid = new_node_id;
 	}
 
-	void add_cov_unispg_s(float cov) {
-		cov_unispg_s->cAdd(cov);
+	// void add_cov_unispg_s(float cov) {
+	// 	cov_unispg_s->cAdd(cov);
+	// }
+
+	int calOverlapLen(uint rstart, uint rend) {
+		// fprintf(stderr, ">>>> Inside calOverlapLen:!!!\n");
+		// fprintf(stderr, ">> (%u - %u); (%u - %u)!!!\n", rstart, rend, start, end);
+
+		if (rstart>rend) { Gswap(rstart,rend); }
+		if (start<rstart) {
+			if (rstart>end) return 0;
+			return (rend>end) ? end-rstart+1 : rend-rstart+1;
+		}
+		else { //rstart<=start
+			if (start>rend) return 0;
+			return (rend<end)? rend-start+1 : end-start+1;
+		}
 	}
 };
 

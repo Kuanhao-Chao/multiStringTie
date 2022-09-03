@@ -1,6 +1,6 @@
 #include "parse_reads.h"
 
-void get_fragment_pattern(BundleData* bundle, GList<CReadAln>& readlist, int n, int np, float readcov, GPVec<UnispgGp>** graphs_vec) {
+void get_fragment_pattern(BundleData* bundle, GList<CReadAln>& readlist, int n, int np, float readcov, GPVec<UnispgGp>** graphs_vec, int* global_gidx) {
     fprintf(stderr, "get_fragment_pattern is called. \n");
 
 	int refstart = bundle->start;
@@ -70,7 +70,7 @@ void get_fragment_pattern(BundleData* bundle, GList<CReadAln>& readlist, int n, 
 		GVec<int> *rnode=new GVec<int>[readlist[n]->segs.Count()];
 
 		if(readlist[n]->nh) {
-			get_read_pattern(s, readcov, rprop[s], readlist, n, rgno, rnode, graphs_vec);
+			get_read_pattern(s, readcov, rprop[s], readlist, n, rgno, rnode, graphs_vec, global_gidx);
         }
 
     	// pgno: It stores the paired bundle<->graph indices in a BundleData that a read belongs to.
@@ -80,7 +80,7 @@ void get_fragment_pattern(BundleData* bundle, GList<CReadAln>& readlist, int n, 
 
         if(np>-1 && readlist[np]->nh) {
 			pnode=new GVec<int>[readlist[np]->segs.Count()];
-			get_read_pattern(s, readcov, rprop[s], readlist, n, rgno, rnode, graphs_vec);
+			get_read_pattern(s, readcov, rprop[s], readlist, np, rgno, rnode, graphs_vec, global_gidx);
 		}
 
 
@@ -107,11 +107,12 @@ void get_fragment_pattern(BundleData* bundle, GList<CReadAln>& readlist, int n, 
  * (1) confirm each read belongs to which nodes
  * (2) the node coverage gonna be updated
  *****************************/
-void get_read_pattern(int s, float readcov, float rprop, GList<CReadAln>& readlist, int n,GVec<int> &rgno, GVec<int> *rnode, GPVec<UnispgGp>** graphs_vec) {
+void get_read_pattern(int s, float readcov, float rprop, GList<CReadAln>& readlist, int n,GVec<int> &rgno, GVec<int> *rnode, GPVec<UnispgGp>** graphs_vec, int* global_gidx) {
 
 	// rgno: It stores the bundle<->graph indices in a BundleData that a read belongs to.
 	// rnode: It stores the node indices in the bundle<->graph indices in a BundleData that a read belongs to.
 
+	fprintf(stderr, ">> Inside 'get_read_pattern'\n");
 	int lastgnode=-1;
 	int lastngraph=-1;
 	int ncoord=readlist[n]->segs.Count();
@@ -130,85 +131,89 @@ void get_read_pattern(int s, float readcov, float rprop, GList<CReadAln>& readli
 	 *****************************/
 	uint r_start = readlist[n]->start;
 	uint r_end = readlist[n]->end;
-
-	int gidx = 0;
-	// if () {
-	// 	// |(g)-------(g)|  .......
-	// }
+	fprintf(stderr, ">> Read (%d - %d)\n", r_start, r_end);
 
 	for (int k=0; k<ncoord; k++) {
+    	fprintf(stderr, ">> s: %d; n: %d; global_gidx[0]: %d; global_gidx[1]: %d; k: %d\n", s, n, global_gidx[0], global_gidx[1], k);
+
+
 		uint rseg_start = readlist[n]->segs[k].start;
 		uint rseg_end = readlist[n]->segs[k].end;
-		for (int g=gidx; g<graphs_vec[s]->Count(); g++) {
+		for (int g=global_gidx[s]; g<graphs_vec[s]->Count(); g++) {
+		// for (int g=0; g<graphs_vec[s]->Count(); g++) {
+			fprintf(stderr, ">> g_local: %d\n", g);
 			int g_start = graphs_vec[s]->Get(g)->get_refstart();
 			int g_end = graphs_vec[s]->Get(g)->get_refend();
 
+
+			if (g_end < r_start) {
+				fprintf(stderr, "|(g)-------(g)|   (r).......(r)\n");
+				global_gidx[s] += 1;
+				fprintf(stderr, ">> s: %d; global_gidx[s]: %d; g_local: %d\n", s, global_gidx[s], g);
+				continue;
+			}
+
             bool g_rseq_overlap = segs_overlap(g_start, g_end, rseg_start, rseg_end);
+
 			if (g_rseq_overlap) {
 
 
 				// Iterating through nodes in the graph
-				for (int nidx=0; nidx<graphs_vec[s]->Get(g)->no2gnode_unispg[s][0].Count(); nidx++) {
+				for (int nidx=1; nidx<graphs_vec[s]->Get(g)->no2gnode_unispg[s][0].Count()-1; nidx++) {
 					// fprintf(stderr, ">> graphs_vec[s]->Get(g)->no2gnode_unispg[s][0].Count(): %d\n", graphs_vec[s]->Get(g)->no2gnode_unispg[s][0].Count());
-					// CGraphnodeUnispg *node = graphs_vec[s]->Get(g)->no2gnode_unispg[s][0][nidx];
-					int n_start = graphs_vec[s]->Get(g)->no2gnode_unispg[s][0][nidx]->start;
-					int n_end = graphs_vec[s]->Get(g)->no2gnode_unispg[s][0][nidx]->end;
-					fprintf(stderr, ">> graphs_vec[s]->Get(g)->no2gnode_unispg[s][0]: %d - %d\n: %d\n", n_start, n_end);
 
-					// int bp = readlist[n]->segs[k].overlapLen(node);
-					// int bp = overlapLen(n_start, n_end, rseg_start, rseg_end);
-					// fprintf(stderr, ">> bp: %d \n", bp);
-					// if(bp) {
-					// 	// intersect=true;
-					// 	/*****************************
-					// 	 ** Update the realist if it is not a unitig.
-					// 	 *****************************/
-					// 	// node->cov_s[0]+=rprop*bp*readcov;
-					// 	fprintf(stderr, ">> node->cov_s[0]: %f\n", graphs_vec[s]->Get(g)->no2gnode_unispg[s][0][nidx]->cov_s->Get(0));
-					// 	if(readlist[n]->segs[k].end<=n_end) k++;
-					// 	else break;
-					// }
-					// else break;
+					CGraphnodeUnispg *node = graphs_vec[s]->Get(g)->no2gnode_unispg[s][0][nidx];
+					// fprintf(stderr, ">> node: %p\n", node);
+					// fprintf(stderr, ">> node: %u - %u\n", node->start, node->end);
 
+					uint n_start = node->start;
+					uint n_end = node->end;
+					// fprintf(stderr, ">> graphs_vec[s]->Get(g)->no2gnode_unispg[s][0]: %u - %u\n", n_start, n_end);
 
+					// int bp = readlist[n]->segs[k].overlapLen(n_start, n_end);
+					int bp = node->calOverlapLen(rseg_start, rseg_end);
 
-            		bool n_rseq_overlap = segs_overlap(n_start, n_end, rseg_start, rseg_end);
-					if (n_rseq_overlap) {
-						int bp = overlapLen(n_start, n_end, rseg_start, rseg_end);
+					// int bp = calOverlapLen(n_start, n_end, rseg_start, rseg_end);
+					// // // int bp = readlist[n]->segs[k].overlapLen();
+					// // // int bp = overlapLen(n_start, n_end, rseg_start, rseg_end);
+					if(bp) {
+						// intersect=true;
 						fprintf(stderr, ">> bp: %d \n", bp);
-						if(bp) {
-							// intersect=true;
-							/*****************************
-							 ** Update the realist if it is not a unitig.
-							*****************************/
-							// node->cov_s[0]+=
-							fprintf(stderr, "rprop*bp*readcov: %f\n", rprop*bp*readcov);
-							// graphs_vec[s]->Get(g)->no2gnode_unispg[s][0][nidx]->add_cov_unispg_s(10.0);
-							// fprintf(stderr, ">> node->cov_s[0]: %f\n", graphs_vec[s]->Get(g)->no2gnode_unispg[s][0][nidx]->cov_unispg_s->Get(0));
-							if(readlist[n]->segs[k].end<=n_end) k++;
-							else break;
-						}
-						else break;
+						/*****************************
+						 ** Update the realist if it is not a unitig.
+						 *****************************/
+						// node->cov_s[0]+=rprop*bp*readcov;
+						
+						graphs_vec[s]->Get(g)->no2gnode_unispg[s][0][nidx]->cov_unispg_s[0] += rprop*bp*readcov;
 
-					// } else if (rseg_end <= n_end) {
-					// 	// (rseg).......(rseg)  |(n)-------(n)|
-					// 	break;
-					// } else if (n_end < rseg_start) {
-					// 	// |(n)-------(n)|  (rseg).......(rseg)
-					// 	continue;
+						fprintf(stderr, ">> node->cov_s[0]: %f\n", graphs_vec[s]->Get(g)->no2gnode_unispg[s][0][nidx]->cov_unispg_s[0]);
+
+						// fprintf(stderr, ">> node->cov_s[0]: %f; (rprop: %f; bp: %d; readcov: %f) \n", rprop*bp*readcov, rprop, bp, readcov);
+
+
+						// if(readlist[n]->segs[k].end<=n_end) ;
+						// else break;
+
+						// else if (n_end < rseg_start) {
+						// 	// |(n)-------(n)|  (rseg).......(rseg)
+						// 	continue;
+						// }
 					}
+					if (rseg_end <= n_end) {
+						// (rseg).......(rseg)  |(n)-------(n)|
+						break;
+					} 
 				}
 
 			} else if (rseg_end < g_start) {
 				// (rseg).......(rseg)  |(g)-------(g)|
+				fprintf(stderr, "(rseg).......(rseg)  |(g)-------(g)|\n");
 				break;
 			} else if (g_end < rseg_start) {
 				// |(g)-------(g)|  (rseg).......(rseg)
-				gidx += 1;
+				fprintf(stderr, "|(g)-------(g)|  (rseg).......(rseg)\n");
 				continue;
 			}
 		}
 	}
-	// while(j<nbnode && k<ncoord) {
-	// }
 }

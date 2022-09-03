@@ -3,37 +3,37 @@
 bool segs_overlap(int s1_start, int s1_end, int s2_start, int s2_end) {
     // fprintf(stderr, "Inside `segs_overlap`\n");
     bool ovp =true;
-    fprintf(stderr, "Process two segments (pre: %d - %d ;  now: %d - %d)!!!\n", s1_start, s1_end, s2_start, s2_end);
+    // fprintf(stderr, "Process two segments (pre: %d - %d ;  now: %d - %d)!!!\n", s1_start, s1_end, s2_start, s2_end);
     // fprintf(stderr, "\t>>>>> brec: %d - %d\n", s1_start, s1_end);
     if (s1_end <  s2_start) {
-        fprintf(stderr, "\t** Bundle: ----------   |(s).................(e)|\n");
+        // fprintf(stderr, "\t** Bundle: ----------   |(s).................(e)|\n");
         ovp = false;
     } else if (s1_start < s2_start && s1_end == s2_start) {
-        fprintf(stderr, "\t** Bundle: ----------|(s).................(e)|\n");
+        // fprintf(stderr, "\t** Bundle: ----------|(s).................(e)|\n");
         ovp = false;
     } else if (s1_start < s2_start && s1_end > s2_start && s1_end < s2_end) {
-        fprintf(stderr, "\t** Bundle: -----|(s)-----............(e)|\n");
+        // fprintf(stderr, "\t** Bundle: -----|(s)-----............(e)|\n");
     } else if (s1_start < s2_start && s1_end > s2_start && s1_end == s2_end) {
-        fprintf(stderr, "\t** Bundle: -----|(s)-------(e)|\n");
+        // fprintf(stderr, "\t** Bundle: -----|(s)-------(e)|\n");
     } else if (s1_start < s2_start && s1_end > s2_start && s1_end > s2_end) {
-        fprintf(stderr, "\t** Bundle: -----|(s)----------(e)|------\n");
+        // fprintf(stderr, "\t** Bundle: -----|(s)----------(e)|------\n");
     } else if (s1_start == s2_start && s1_start < s2_end && s1_end < s2_end) {
-        fprintf(stderr, "\t** Bundle: |(s)----------.................(e)| \n");
+        // fprintf(stderr, "\t** Bundle: |(s)----------.................(e)| \n");
     } else if (s1_start == s2_start && s1_start < s2_end && s1_end == s2_end) {
-        fprintf(stderr, "\t** Bundle: |(s)----------(e)|\n");
+        // fprintf(stderr, "\t** Bundle: |(s)----------(e)|\n");
     } else if (s1_start == s2_start && s1_start < s2_end && s1_end > s2_end) {
-        fprintf(stderr, "\t** Bundle: |(s)----------(e)|----\n");
+        // fprintf(stderr, "\t** Bundle: |(s)----------(e)|----\n");
     } else if (s1_start > s2_start && s1_start < s2_end && s1_end > s2_start && s1_end < s2_end) {
-        fprintf(stderr, "\t** Bundle: |(s)....----------........(e)|\n");
+        // fprintf(stderr, "\t** Bundle: |(s)....----------........(e)|\n");
     } else if (s1_start > s2_start && s1_start < s2_end && s1_end == s2_end) {
-        fprintf(stderr, "\t** Bundle: |(s)....----------(e)|\n");
+        // fprintf(stderr, "\t** Bundle: |(s)....----------(e)|\n");
     } else if (s1_start > s2_start && s1_start < s2_end && s1_end > s2_end) {
-        fprintf(stderr, "\t** Bundle: |(s)....----------(e)|-----\n");
+        // fprintf(stderr, "\t** Bundle: |(s)....----------(e)|-----\n");
     } else if (s1_start > s2_start && s1_start == s2_end && s1_end > s2_end) {
-        fprintf(stderr, "\t** Bundle: |(s).................(e)|----------\n");
+        // fprintf(stderr, "\t** Bundle: |(s).................(e)|----------\n");
         ovp = false;
     } else if (s1_start > s2_end) {
-        fprintf(stderr, "\t** Bundle: |(s).................(e)|   ----------\n");
+        // fprintf(stderr, "\t** Bundle: |(s).................(e)|   ----------\n");
         ovp = false;
     }
     return ovp;
@@ -768,28 +768,33 @@ void redistribute_unstranded_rcov(float* rprop, GVec<float>* bpcov, int refstart
         rprop[1] = 1.0 - rprop[0];
     }
 
-	// fprintf(stderr, ">> Ref  (%d - %d)\n", refstart, refend);
-	// fprintf(stderr, ">> read (%u - %u)\n", rstart, rend);
+	fprintf(stderr, ">> Ref  (%d - %d)\n", refstart, refend);
+	fprintf(stderr, ">> read (%u - %u)\n", rstart, rend);
+    if (read_coverage_neg != 0.0 && read_coverage_pos != 0.0) {
+        fprintf(stderr, ">> read_coverage_neg: %f \n", read_coverage_neg);
 
-	// fprintf(stderr, ">> read_coverage_neg: %f \n", read_coverage_neg);
+        fprintf(stderr, ">> read_coverage_uns: %f \n", read_coverage_uns);
 
-	// fprintf(stderr, ">> read_coverage_uns: %f \n", read_coverage_uns);
+        fprintf(stderr, ">> read_coverage_pos: %f \n", read_coverage_pos);         
+    }
 
-	// fprintf(stderr, ">> read_coverage_pos: %f \n", read_coverage_pos);
 
-	// if(bundle->readlist[n]->strand != 1 && bundle->readlist[n]->strand != -1) {
+	// if(readlist[n]->strand != 1 && readlist[n]->strand != -1) {
 	// 	fprintf(stderr, "UNSTRANDED!!!\n");
 	// }
 }
 
-int overlapLen(uint rstart, uint rend, uint start, uint end) {
+int calOverlapLen(uint rstart, uint rend, uint start, uint end) {
+    fprintf(stderr, ">> Inside calOverlapLen:!!!\n");
+    fprintf(stderr, ">> (%u - %u); (%u - %u)!!!\n", rstart, rend, start, end);
+
     if (rstart>rend) { Gswap(rstart,rend); }
     if (start<rstart) {
-    if (rstart>end) return 0;
-    return (rend>end) ? end-rstart+1 : rend-rstart+1;
+        if (rstart>end) return 0;
+        return (rend>end) ? end-rstart+1 : rend-rstart+1;
     }
     else { //rstart<=start
-    if (start>rend) return 0;
-    return (rend<end)? rend-start+1 : end-start+1;
+        if (start>rend) return 0;
+        return (rend<end)? rend-start+1 : end-start+1;
     }
 }

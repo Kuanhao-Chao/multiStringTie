@@ -80,6 +80,7 @@ template <class OBJ> class GVec {
           TEST_INDEX(idx);
           return fArray[idx];
           }
+    // inline OBJ* operator[](int i) { return this->Get(i); }
     inline OBJ& operator[](int i) {
           TEST_INDEX(i);
           return fArray[i];

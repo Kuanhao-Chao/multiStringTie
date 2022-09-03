@@ -1,69 +1,80 @@
-#include <vector> 
 #ifndef NOTHREADS
 #include "GThreads.h"
+#endif
+
 #include "GArgs.h"
 #include "GStr.h"
 #include "gff.h"
 #include "GSam.h"
 #include "GBitVec.h"
+#include "GHashMap.hh"
+
 #include "tmerge.h"
 #include "multist.h"
 #include "unispg.h"
-#include "infer_tranx.h"
 #include "helper.h"
-// #include "unispg.h"
+#include "processOptions.h"
+#include "processBundle.h"
+#include "definitions.h"
 
 // Include fstream to quickly write out the ratio!!!
 #include <fstream>
-
-
-
+#include <vector> 
 #include "time.h"
-#include "GHashMap.hh"
-#include "mode.hpp"
-#endif
-
-// Let's test single thread first!! 
-#define NOTHREADS
-
-//#define GMEMTRACE 1 
-#ifdef GMEMTRACE
-#include "proc_mem.h"
-#endif
-
-#define VERSION "0.1.0"
 #include <iostream>
 
-#define USAGE "multiStringTie v" VERSION " usage:\n\n\
-multiStringTie [CREATE_UNISPG / APPLY_UNISPG] <in.DOT ..> <in.bam ..> \
- [--mix] [--conservative] [--rf] [--fr]\n\
-Assemble RNA-Seq alignments into potential transcripts with universal splice graph.\n\
-Options:\n\
-* Transcript CREATE_UNISPG mode: \n\
-   multistringtie CREATE_UNISPG --multi [Options] { bam_list | sample1.bam ...}\n\
-    --version : print just the version at stdout and exit\n\
- 	-o output path/file name for the assembled transcripts GTF (default: stdout)\n\n\
-* APPLY_UNISPG mode: \n\
-   multistringtie APPLY_UNISPG [Options] { bam_list | sample1.bam ...}\n\
-"
+/*******************************************
+ ** Argument parsing parameters.
+ *******************************************/
+bool debugMode=false; // "debug" or "D" tag.
+bool verbose=false; // "v" tag.
+bool keepTempFiles; // "keeptmp" tag.
+bool fr_strand=false; // "fr" tag.
+bool rf_strand=false; // "rf" tag.
+bool guided=false; // "G" tag.
+bool viral=false; // "viral" tag.
+bool eonly=false; // "e" tag. for mergeMode includes estimated coverage sum in the merged transcripts
+bool longreads=false; // "L" tag.
+GStrSet<> excludeGseqs; // "x" tag. hash of chromosomes/contigs to exclude (e.g. chrM)
+uint bundledist=50;  // "g" tag. reads at what distance should be considered part of separate bundles
+uint runoffdist=200; // threshold for 'bundledist'
+float readthr=1; // "c" tag. read coverage per bundle bp to accept it; // paper uses 3
+float tpm_thr=1; // "T" tag.
+float fpkm_thr=1; // "F" tag.
+bool isunitig=true; // "U" tag.
+uint junctionsupport=10; // "a" tag. anchor length for junction to be considered well supported <- consider shorter??
+uint sserror=25; // "E" tag. window arround splice sites that we use to generate consensus in case of long read data
+int junctionthr=1; // "j" tag. number of reads needed to support a particular junction
+float mcov=1; // "M" tag. fraction of bundle allowed to be covered by multi-hit reads paper uses 1
+int mintranscriptlen=200; // "m" tag. minimum length for a transcript to be printed
+float singlethr=4.75; // "s" tag. coverage saturation no longer used after version 1.0.4; left here for compatibility with previous versions
+bool mixedMode=false; // "mix" tag. both short and long read data alignments are provided
+float isofrac=0.01; // "f" tag. 
+bool trim=true; // "t" tag. 
+bool includesource=true; // "z" tag.
+bool nomulti=false; // "u" tag.
+bool multiMode=false; // "multi" tag.
+bool mergeMode = false; // "merge" tag. 
+GFastaDb* gfasta=NULL; // "rseq" or "S" tag.
+int num_cpus=1; // "p" tag.
+bool rawreads=false; // "R" tag.
+GStr label("STRG"); // "l" tag.
+bool retained_intron=false; // "i" tag. set by parameter -i for merge option
+bool geneabundance=false; // "A" tag.
+GStr guidegff; // "G" tag
+GStr ptff; // "ptf" tag. (point features)
+FILE* f_out=NULL; // get from "outfname" param.
+FILE* c_out=NULL; // "C" tag.
 
-void processApplyOptions(GArgs& args);
-char* sprintTime();
-void unispg_readline(UnispgGp* &drec, bool &new_uni_spg_gp, bool &more_graph, int pre_refstart, int pre_refend);
-void processBundleUnispg(BundleData* bundle, GPVec<UnispgGp>** graphs_vec);
 
-bool NoMoreBundles=false;
-bool moreBundles(); //thread-safe retrieves NoMoreBundles
-void noMoreBundles(); //sets NoMoreBundles to true
-
-multiStringTieMode mode;
-bool debugMode=false;
-bool verbose=false;
+/*******************************************
+ ** File-related parameters.
+ *******************************************/
+// Dot file => for reading in DOT format.
 GStr unispgdotfname_root; 
 GStr unispgdotfname_pos; 
 GStr unispgdotfname_neg; 
-
-
+// Annotation file => outputing in GFF format.
 GStr outfname;
 GStr out_dir;
 GStr tmp_path;
@@ -71,44 +82,72 @@ GStr cram_ref; //reference genome FASTA for CRAM input
 GStr tmpfname;
 GStr genefname;
 GStr traindir; // training directory for CDS option
-bool keepTempFiles;
-bool fr_strand=false;
-bool rf_strand=false;
-GStrSet<> excludeGseqs; //hash of chromosomes/contigs to exclude (e.g. chrM)
+// Ratio file => for coverage comparison & visualization.
+ofstream ratio_file_pos;
+ofstream ratio_file_neg;
+
+/*******************************************
+ ** Program-defined global parameter.
+ *******************************************/
+multiStringTieMode mode;
+bool NoMoreBundles=false;
 GffNames* gseqNames=NULL; //used as a dictionary for reference sequence names and ids
-bool guided=false;
 int refseqCount=0; // number of reference sequences found in the guides file
-uint runoffdist=200;
+bool includecov=false;
+// Global counter variable.
+int sample_num = 1;
 double Num_Fragments=0; //global fragment counter (aligned pairs)
 double Frag_Len=0;
 double Cov_Sum=0;
 int GeneNo=0; //-- global "gene" counter
-float readthr=1;     // read coverage per bundle bp to accept it; // paper uses 3
-float tpm_thr=1;
-float fpkm_thr=1;
-bool isunitig=true;
-bool nomulti=false;
-uint junctionsupport=10; // anchor length for junction to be considered well supported <- consider shorter??
-uint sserror=25; // window arround splice sites that we use to generate consensus in case of long read data
-int junctionthr=1; // number of reads needed to support a particular junction
-float mcov=1; // fraction of bundle allowed to be covered by multi-hit reads paper uses 1
-int mintranscriptlen=200; // minimum length for a transcript to be printed
+// For multistringtie applyUNISPG only. Counting how many reads are skipped (not processed).
+int skip_counter = 0;
 
+/*******************************************
+ ** Reader parameters.
+ *******************************************/
 TInputFiles bamreader;
 DOTInputFile dotreader;
 DOTInputFile dotreader_pos;
 DOTInputFile dotreader_neg;
 
-int sample_num = 1;
 
 
-ofstream ratio_file;
 
-int skip_counter = 0;
+
+#ifndef NOTHREADS
+//single producer, multiple consumers
+//main thread/program is always loading the producer
+GMutex dataMutex; //manage availability of data records ready to be loaded by main thread
+GVec<int> dataClear; //indexes of data bundles cleared for loading by main thread (clear data pool)
+GConditionVar haveBundles; //will notify a thread that a bundle was loaded in the ready queue
+                           //(or that no more bundles are coming)
+int bundleWork=1; // bit 0 set if bundles are still being prepared (BAM file not exhausted yet)
+                  // bit 1 set if there are Bundles ready in the queue
+
+//GFastMutex waitMutex;
+GMutex waitMutex; // controls threadsWaiting (idle threads counter)
+
+int threadsWaiting; // idle worker threads
+GConditionVar haveThreads; //will notify the bundle loader when a thread
+                          //is available to process the currently loaded bundle
+
+GConditionVar haveClear; //will notify when bundle buf space available
+
+GMutex queueMutex; //controls bundleQueue and bundles access
+
+GFastMutex printMutex; //for writing the output to file
+
+GFastMutex logMutex; //only when verbose - to avoid mangling the log output
+
+GFastMutex bamReadingMutex;
+
+GFastMutex countMutex;
+
+#endif
 
 int main(int argc, char*argv[]) {
 	std::cout << "This is the multiStringTie program.\n" << std::endl;
-
 
 	fprintf(stderr, "%d  %s  %s  %s  %s\n", argc, argv[0], argv[1], argv[2], argv[3]);
 	if (strcmp(argv[1], "CREATE_UNISPG") || strcmp(argv[1], "APPLY_UNISPG")) {
@@ -129,6 +168,11 @@ int main(int argc, char*argv[]) {
    
    
 	if (mode == CREATE_UNISPG) {
+		GArgs args(argc, argv,
+		"debug;help;version;viral;conservative;mix;unispg=;ref=;cram-ref=cds=;keeptmp;rseq=;ptf=;bam;fr;rf;merge;multi;"
+		"exclude=zihvteuLRx:n:j:s:D:G:C:S:l:m:o:a:j:c:f:p:g:P:M:Bb:A:E:F:T:");
+		args.printError(USAGE, true);
+		processCreateOptions(args);
 
 
 	} else if (mode == APPLY_UNISPG) {
@@ -155,7 +199,6 @@ int main(int argc, char*argv[]) {
 		verbose=true;
 	#endif
 		const char* ERR_BAM_SORT="\nError: the input alignment file is not sorted!\n";
-
 
 
 
@@ -330,7 +373,8 @@ int main(int argc, char*argv[]) {
 		bool process_graphs_vec = false;
 
 
-  		ratio_file.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/ratio.txt");
+  		ratio_file_pos.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/ratio_pos.txt");
+  		ratio_file_neg.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/ratio_neg.txt");
 
 
 
@@ -619,7 +663,6 @@ int main(int argc, char*argv[]) {
 						new_bundle=true; //fake a new start (end of last bundle)
 					}
 
-
 					/*****************************
 					 * Process the new bundle
 					 *****************************/
@@ -768,453 +811,6 @@ int main(int argc, char*argv[]) {
 				}
 			}
 		}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		/*******************************************
-		 ** Template version
-		 *******************************************/
-		// while (more_graph) {
-		// 	if ((drec=dotreader.next())!=NULL) {
-		// 		while (more_alns) {
-		// 			if ((brec=bamreader.next())!=NULL) {
-		// 				prev_brec= brec;
-		// 			} else {
-		// 				more_alns=false;
-		// 				new_bundle=true; //fake a new start (end of last bundle)
-		// 			}
-		// 			//  If reads overlap with the previous unispg
-		// 			//    skip if it does not overlap
-
-
-		// 			// Process the previous unispg bundle.
-		// 		}
-		// 		prev_drec = drec;
-		// 	} else {
-		// 		more_graph=false;
-		// 	}
-		// }
-
-
-
-
-
-
-
-
-
-
-		/*******************************************
-		 ** Old version
-		 *******************************************/
-// 		while (more_graph) {
-// 			// unispg_readline(drec, new_uni_spg_gp, more_graph, pre_refstart, pre_refend) {}
-
-// 			if ((drec=dotreader.next())!=NULL) {
-// 				fprintf(stderr, "***** drec: %d - %d\n", drec->get_refstart(), drec->get_refend());
-
-// 				// drec->get_no2gnode();
-// 				// GVec<bool>* is_passed_source = new GVec<bool>(sample_num-1, false);
-// 				// GVec<float>* cov_source = new GVec<float>(sample_num-1, 0.0f);
-// 				// GVec<float>* capacity_source = new GVec<float>(sample_num-1, 0.0f);
-// 				// CGraphnodeUnispg* source = new CGraphnodeUnispg(sample_num, 0, 0, new_unispg_nodeid, is_passed_source, cov_source, capacity_source, true, 0, 0, 0, true, 0, 0);
-
-
-// 				// Move on to the next graph.
-// 				if (r_start > drec->get_refend()) {
-// 					fprintf(stderr, "** Prev read start is bigger than graph coordinate\n");
-// 					continue;
-// 				}
-
-// 				bool read_in_unispg = true;
-// 				while (more_alns && read_in_unispg) {
-// 					total_read += 1;
-// 					bool chr_changed=false;
-// 					int pos=0;
-// 					const char* refseqName=NULL;
-// 					char xstrand=0;
-// 					int nh=1;
-// 					int hi=0;
-// 					int gseq_id=lastref_id;  //current chr id
-// 					bool new_bundle=false;
-// 					bool process_read=true;
-// 					//delete brec;
-// 					if ((brec=bamreader.next())!=NULL) {
-// 						if (brec->isUnmapped()) continue;
-// 						if (brec->start<1 || brec->mapped_len<10) {
-// 							if (verbose) GMessage("Warning: invalid mapping found for read %s (position=%d, mapped length=%d)\n",
-// 									brec->name(), brec->start, brec->mapped_len);
-// 							continue;
-// 						}
-// #ifdef DBG_ALN_DATA
-// 						dbg_waln(brec);
-// #endif
-
-// 						r_start = brec->start; //start<end always!
-// 						r_end = brec->end;
-
-// 						refseqName=brec->refName();
-// 						xstrand=brec->spliceStrand(); // tagged strand gets priority
-
-// 						// fprintf(stderr, "** refseqName：%s\n", refseqName);
-
-// 						/*****************************
-// 						 * set strand if stranded library
-// 						 *****************************/
-// 						if(xstrand=='.' && (fr_strand || rf_strand)) {
-// 							if(brec->isPaired()) { // read is paired
-// 								if(brec->pairOrder()==1) { // first read in pair
-// 									if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='+';
-// 									else xstrand='-';
-// 								}
-// 								else {
-// 									if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='-';
-// 									else xstrand='+';
-// 								}
-// 							}
-// 							else {
-// 								if((rf_strand && brec->revStrand())||(fr_strand && !brec->revStrand())) xstrand='+';
-// 								else xstrand='-';
-// 							}
-// 						}
-
-
-// 						/*****************************
-// 						 * Found the overlapping between a read & the unispg
-// 						 *****************************/
-// 						if (xstrand == '+' || xstrand=='.') {
-// 							if (xstrand == '+') {
-// 								pos_strand += 1;
-// 							} else if (xstrand=='.') {
-// 								unstrand += 1;
-// 							}
-// 							/*****************************
-// 							 ** Step 1-2: Check whether reads are in the range of the graph.
-// 							*****************************/
-// 							// fprintf(stderr, "Process read (pre: %d - %d ;  now: %d - %d)!!!\n", pre_refstart, pre_refend, brec->start, brec->end);
-// 							fprintf(stderr, "\t>>>>> brec: %d - %d\n", brec->start, brec->end);
-// 							if (brec->end <  drec->get_refstart()) {
-// 								// ----------   |(s).................(e)|
-// 								// The read is outside the current bundle => skipped!
-// 								fprintf(stderr, "\t** Bundle: ----------   |(s).................(e)|\n");
-// 								process_read = false;
-// 								// read_in_unispg = false;
-// 								// new_bundle = true;
-// 							}
-// 							if (brec->start < drec->get_refstart() && brec->end == drec->get_refstart()) {
-// 								// ----------|(s).................(e)|   or   -----|(s)-----............(e)|
-// 								fprintf(stderr, "\t** Bundle: ----------|(s).................(e)|\n");
-// 							} else if (brec->start < drec->get_refstart() && brec->end > drec->get_refstart()) {
-// 								// ----------|(s).................(e)|   or   -----|(s)-----............(e)|
-// 								fprintf(stderr, "\t** Bundle: -----|(s)-----............(e)|\n");
-// 							} else if (brec->start < drec->get_refstart() && brec->end == drec->get_refstart()) {
-// 								// -----|(s)---------(e)|
-// 								fprintf(stderr, "\t** Bundle: -----|(s)-------(e)|\n");
-// 							} else if (brec->start == drec->get_refstart() && brec->start < drec->get_refend() && brec->end < drec->get_refend()) {
-// 								// |(s)----------.................(e)|   or   |(s)....----------........(e)|
-// 								fprintf(stderr, "\t** Bundle: |(s)----------.................(e)| \n");
-// 							} else if (brec->start == drec->get_refstart() && brec->start < drec->get_refend() && brec->end == drec->get_refend()) {
-// 								// |(s)----------.................(e)|   or   |(s)....----------........(e)|
-// 								fprintf(stderr, "\t** Bundle: |(s)----------(e)|\n");
-// 							} else if (brec->start == drec->get_refstart() && brec->start < drec->get_refend() && brec->end > drec->get_refend()) {
-// 								// |(s)----------.................(e)|   or   |(s)....----------........(e)|
-// 								fprintf(stderr, "\t** Bundle: |(s)----------(e)|----\n");
-// 							} else if (brec->start > drec->get_refstart() && brec->start < drec->get_refend() && brec->end < drec->get_refend()) {
-// 								// |(s)----------.................(e)|   or   |(s)....----------........(e)|
-// 								fprintf(stderr, "\t** Bundle: |(s)....----------........(e)|\n");
-// 							} else if (brec->start > drec->get_refstart() && brec->start < drec->get_refend() && brec->end == drec->get_refend()) {
-// 								// |(s)----------.................(e)|   or   |(s)....----------........(e)|
-// 								fprintf(stderr, "\t** Bundle: |(s)....----------(e)|\n");
-// 							} else if (brec->start > drec->get_refstart() && brec->start < drec->get_refend() && brec->end > drec->get_refend()) {
-// 								// |(s)----------.................(e)|   or   |(s)....----------........(e)|
-// 								fprintf(stderr, "\t** Bundle: |(s)....----------(e)|-----\n");
-// 							} else if (brec->start > drec->get_refstart() && brec->start < drec->get_refend() && brec->end > drec->get_refend()) {
-// 								// |(s)...............------(e)|-----    or   |(s).................(e)|----------   
-// 								// The overlapping with the current processing bundle.
-// 								fprintf(stderr, "\t** Bundle: |(s)...............------(e)|-----\n");
-// 							} else if (brec->start > drec->get_refstart() && brec->start == drec->get_refend() && brec->end > drec->get_refend()) {
-// 								// |(s)...............------(e)|-----    or   |(s).................(e)|----------   
-// 								// The overlapping with the current processing bundle.
-// 								fprintf(stderr, "\t** Bundle: |(s).................(e)|----------\n");
-// 								// int overlap_current = 0;
-// 								// overlap_current = drec->get_refend() - brec->start + 1;
-
-// 								// int overlap_next = 0;
-// 								// overlap_next = brec->end - drec->get_refend() + 1;
-
-// 								// if (overlap_current > overlap_next) {
-// 								// 	// The read belongs to the current processing bundle.
-// 								// } else {
-// 								// 	// The read belongs to the next bundle or not belongs to any bundles.
-// 								// 	read_in_unispg = false;
-// 								// }
-// 							} else if (brec->start > drec->get_refend()) {
-// 								fprintf(stderr, "\t** Bundle: |(s).................(e)|   ----------\n");
-// 								read_in_unispg = false;
-// 								new_bundle = true;
-// 								process_read = false;
-// 							}
-// 						// } else if (xstrand == '-' || xstrand == '.') {
-// 						} else if (xstrand == '-') {
-// 							neg_strand += 1;
-// 							continue;
-// 						}
-
-
-
-
-
-
-
-
-// 					} else { //no more alignments
-// 						more_alns=false;
-// 						new_bundle=true; //fake a new start (end of last bundle)
-// 					}
-
-
-
-
-
-
-
-
-
-
-// 					/*****************************
-// 					 * Condition to start processing reads in the previous bundle
-// 					 *****************************/
-// 					// if (new_bundle || chr_changed) {
-// 					if (new_bundle) {
-// 						fprintf(stderr, "This is a new bundle\n");
-// 						fprintf(stderr, "bundle->readlist.Count(): %d\n", bundle->readlist.Count());
-// 						hashread.Clear();
-				
-				
-				
-// 						if (bundle->readlist.Count()>0) { // process reads in previous bundle
-// 							// (readthr, junctionthr, mintranscriptlen are globals)
-// 							bundle->getReady(drec->get_refstart(), drec->get_refend());
-
-// #ifndef NOTHREADS
-// 							//push this in the bundle queue where it'll be picked up by the threads
-// 							DBGPRINT2("##> Locking queueMutex to push loaded bundle into the queue (bundle.start=%d)\n", bundle->start);
-// 							int qCount=0;
-// 							queueMutex.lock();
-// 							bundleQueue.Push(bundle);
-// 							bundleWork |= 0x02; //set bit 1
-// 							qCount=bundleQueue.Count();
-// 							queueMutex.unlock();
-// 							DBGPRINT2("##> bundleQueue.Count()=%d)\n", qCount);
-// 							//wait for a thread to pop this bundle from the queue
-// 							waitMutex.lock();
-// 							DBGPRINT("##> waiting for a thread to become available..\n");
-// 							while (threadsWaiting==0) {
-// 								haveThreads.wait(waitMutex);
-// 							}
-// 							waitMutex.unlock();
-// 							haveBundles.notify_one();
-// 							DBGPRINT("##> waitMutex unlocked, haveBundles notified, current thread yielding\n");
-// 							current_thread::yield();
-// 							queueMutex.lock();
-// 							DBGPRINT("##> queueMutex locked until bundleQueue.Count()==qCount\n");
-// 							while (bundleQueue.Count()==qCount) {
-// 								queueMutex.unlock();
-// 								DBGPRINT2("##> queueMutex unlocked as bundleQueue.Count()==%d\n", qCount);
-// 								haveBundles.notify_one();
-// 								current_thread::yield();
-// 								queueMutex.lock();
-// 								DBGPRINT("##> queueMutex locked again within while loop\n");
-// 							}
-// 							queueMutex.unlock();
-
-// #else //no threads
-// 							//Num_Fragments+=bundle->num_fragments;
-// 							//Frag_Len+=bundle->frag_len;
-// 							processBundleUnispg(bundle, drec);
-// #endif
-// 							// ncluster++; used it for debug purposes only
-// 						} //have alignments to process
-// 						else { //no read alignments in this bundle?
-// #ifndef NOTHREADS
-// 							dataMutex.lock();
-// 							DBGPRINT2("##> dataMutex locked for bundle #%d clearing..\n", bundle->idx);
-// #endif
-// 							bundle->Clear();
-// #ifndef NOTHREADS
-// 							dataClear.Push(bundle->idx);
-// 							DBGPRINT2("##> dataMutex unlocking as dataClear got pushed idx #%d\n", bundle->idx);
-// 							dataMutex.unlock();
-// #endif
-// 						} //nothing to do with this bundle
-
-
-
-// 						// if (chr_changed) {
-// 						// 	lastref=refseqName;
-// 						// 	lastref_id=gseq_id;
-// 						// 	// currentend=0;
-// 						// }
-
-// 						if (!more_alns) {
-// 							if (verbose) {
-// 				#ifndef NOTHREADS
-// 								GLockGuard<GFastMutex> lock(logMutex);
-// 				#endif
-// 								if (Num_Fragments) {
-// 									// printTime(stderr);
-// 									GMessage(" %g aligned fragments found.\n", Num_Fragments);
-// 								}
-// 								//GMessage(" Done reading alignments.\n");
-// 							}
-// 							noMoreBundles();
-// 							break;
-// 						}
-// #ifndef NOTHREADS
-
-// 						int new_bidx=waitForData(bundles);
-// 						if (new_bidx<0) {
-// 							//should never happen!
-// 							GError("Error: waitForData() returned invalid bundle index(%d)!\n",new_bidx);
-// 							break;
-// 						}
-// 						bundle=&(bundles[new_bidx]);
-// #endif
-// 						// currentstart=brec->start;
-// 						// currentend=brec->end;
-// 						bundle->refseq=lastref;
-// 						bundle->start=brec->start;
-// 						bundle->end=brec->end;
-// 						break;
-// 					} //<---- new bundle started
-				
-				
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// 					if (process_read && brec!=NULL) {
-// 						/*****************************
-// 						 * Actually start processing reads.
-// 						 *****************************/
-// 						// if (refseqName==NULL) GError("Error: cannot retrieve target seq name from BAM record!\n");
-// 						pos=brec->start; //BAM is 0 based, but GBamRecord makes it 1-based
-// 						// chr_changed=(lastref.is_empty() || lastref!=refseqName);
-// 						// if (chr_changed) {
-// 						// 	skipGseq=excludeGseqs.hasKey(refseqName);
-// 						// 	gseq_id=gseqNames->gseqs.addName(refseqName);
-// 						// 	if (guided) {
-// 						// 		if (gseq_id>=refseqCount) {
-// 						// 			if (verbose)
-// 						// 				GMessage("WARNING: no reference transcripts found for genomic sequence \"%s\"! (mismatched reference names?)\n",
-// 						// 					refseqName);
-// 						// 		}
-// 						// 		else no_ref_used=false;
-// 						// 	}
-// 						// 	if (alncounts.Count()<=gseq_id) {
-// 						// 		alncounts.Resize(gseq_id+1);
-// 						// 	}
-// 						// 	else if (alncounts[gseq_id]>0)
-// 						// 			GError("%s\nAlignments (%d) already found for %s !\n",
-// 						// 				ERR_BAM_SORT, alncounts[gseq_id], refseqName);
-// 						// 	prev_pos=0;
-// 						// }
-
-// 						if (pos<prev_pos) GError("%s\nread %s (start %d) found at position %d on %s when prev_pos=%d\n",
-// 							ERR_BAM_SORT, brec->name(), brec->start,  pos, refseqName, prev_pos);
-// 						prev_pos=pos;
-// 						// if (skipGseq) continue;
-// 						alncounts[gseq_id]++;
-// 						nh=brec->tag_int("NH");
-// 						if (nh==0) nh=1;
-// 						hi=brec->tag_int("HI");
-
-// 						// Old conditions to stop adding reads into a bundle
-// 						// if (!chr_changed && currentend>0 && pos>currentend+(int)runoffdist) {
-// 						// 	new_bundle=true;
-// 						// }
-// 						// fprintf(stderr, "brec: %d\n", brec->mapped_len);
-// 						// if (brec->start > drec->get_refend()) {
-// 						// 	// fprintf(stderr, "brec: %d - %d\n", brec->start, brec->end);
-// 						// 	new_bundle=true;
-// 						// }
-
-
-// 						GReadAlnData alndata(brec, 0, nh, hi, tinfo);
-// 						// bool ovlpguide=bundle->evalReadAln(alndata, xstrand);
-
-// 						/*****************************
-// 						** Step 4: in eonly case consider read only if it overlaps guide
-// 						**     check for overlaps with ref transcripts which may set xstrand
-// 						*****************************/
-// 						// eonly: for mergeMode includes estimated coverage sum in the merged transcripts
-// 						// fprintf(stderr, "ovlpguide: %d\n", ovlpguide);
-// 						// if(ovlpguide) {
-// 						if (xstrand=='+') {
-// 							alndata.strand=1;
-// 							// pos_strand += 1;
-// 						} else if (xstrand=='-') {
-// 							alndata.strand=-1;
-// 							// neg_strand += 1;
-// 						} else if (xstrand=='.') {
-// 							// unstrand += 1;
-// 						}
-// 						fprintf(stderr, "alndata.strand: %d\n", alndata.strand);
-
-// 						//GMessage("%s\t%c\t%d\thi=%d\n",brec->name(), xstrand, alndata.strand,hi);
-// 						//countFragment(*bundle, *brec, hi,nh); // we count this in build_graphs to only include mapped fragments that we consider correctly mapped
-// 						//fprintf(stderr,"fragno=%d fraglen=%lu\n",bundle->num_fragments,bundle->frag_len);if(bundle->num_fragments==100) exit(0);
-
-// 						if (xstrand=='+' || xstrand=='.') {
-// 							fprintf(stderr, ">> xstrand: %c\n", xstrand);
-// 							processRead(brec->start, brec->end, *bundle, hashread, alndata);
-// 							processed_read += 1;
-// 						}
-// 						// }
-
-// 						// if (new_bundle && bundle->readlist.Count() == 1) {
-// 						// 	break;
-// 						// }	
-// 					}
-
-// 					prev_brec= brec;
-// 				} //for each read alignment
-// 				prev_drec = drec;
-// 			} else {
-// 				// fprintf(stderr, "No more dot graph!!!\n");
-// 				more_graph=false;
-// 				// new_uni_spg_gp = true; //fake a new start (end of the last universal splice graph.)
-// 			}
-// 		}
-
-
-
-
-
 		
 		fprintf(stderr, "total read num: %d\n", total_read);
 		fprintf(stderr, "processed read num: %d\n", processed_read);
@@ -1229,284 +825,8 @@ int main(int argc, char*argv[]) {
 		// dotreader_pos.stop(); //close all DOT files
 		// dotreader_neg.stop(); //close all DOT files
 
-  		ratio_file.close();
+  		ratio_file_pos.close();
+  		ratio_file_neg.close();
 	}
     return 0;
-}
-
-
-
-
-
-void processApplyOptions(GArgs& args) {
-
-   fprintf(stderr, "Inside 'processApplyOptions'\n");
-	if (args.getOpt('h') || args.getOpt("help")) {
-		fprintf(stdout,"%s",USAGE);
-	    exit(0);
-	}
-	if (args.getOpt("version")) {
-	   fprintf(stdout,"%s\n",VERSION);
-	   exit(0);
-	}	
-
-	tmpfname=args.getOpt('o');
-	GStr s=args.getOpt("dot");
-	// if (s.is_empty()) {
-	//    s=args.getOpt("d");
-	//    fprintf(stderr, "It's empty%s \n", s.chars());
-	// }
-	if (!s.is_empty()) {
-		unispgdotfname_root=s;
-	}
-
-	if (args.getOpt("fr")) {
-		fr_strand=true;
-	}
-	if (args.getOpt("rf")) {
-		rf_strand=true;
-		if(fr_strand) GError("Error: --fr and --rf options are incompatible.\n");
-	}
-
-
-   fprintf(stderr, "%s \n", unispgdotfname_root.chars());
-
-
-
-
-	const char* ifn=NULL;
-	while ( (ifn=args.nextNonOpt())!=NULL) {
-		//input alignment files
-		bamreader.Add(ifn);
-	}
-	//deferred creation of output path
-	outfname="stdout";
-	out_dir="./";
-	if (!tmpfname.is_empty() && tmpfname!="-") {
-		if (tmpfname[0]=='.' && tmpfname[1]=='/')
-			tmpfname.cut(0,2);
-		outfname=tmpfname;
-		int pidx=outfname.rindex('/');
-		if (pidx>=0) {//path given
-			out_dir=outfname.substr(0,pidx+1);
-			tmpfname=outfname.substr(pidx+1);
-		}
-	} else { // stdout
-		tmpfname=outfname;
-		char *stime=sprintTime();
-		tmpfname.tr(":","-");
-		tmpfname+='.';
-		tmpfname+=stime;
-	}
-	if (out_dir!="./") {
-		if (fileExists(out_dir.chars())==0) {
-			//directory does not exist, create it
-			if (Gmkdir(out_dir.chars()) && !fileExists(out_dir.chars())) {
-				GError("Error: cannot create directory %s!\n", out_dir.chars());
-			}
-		}
-	}
-
-	if (!genefname.is_empty()) {
-		if (genefname[0]=='.' && genefname[1]=='/')
-			genefname.cut(0,2);
-		//attempt to create the gene abundance path
-		GStr genefdir("./");
-		int pidx=genefname.rindex('/');
-		if (pidx>=0) { //get the path part
-			genefdir=genefname.substr(0,pidx+1);
-			//genefname=genefname.substr(pidx+1);
-		}
-		if (genefdir!="./") {
-			if (fileExists(genefdir.chars())==0) {
-				//directory does not exist, create it
-				if (Gmkdir(genefdir.chars()) || !fileExists(genefdir.chars())) {
-					GError("Error: cannot create directory %s!\n", genefdir.chars());
-				}
-			}
-		}
-
-	}
-
-	{ //prepare temp path
-		GStr stempl(out_dir);
-		stempl.chomp('/');
-		stempl+="/tmp_XXXXXX";
-		char* ctempl=Gstrdup(stempl.chars());
-		Gmktempdir(ctempl);
-		tmp_path=ctempl;
-		tmp_path+='/';
-		GFREE(ctempl);
-	}
-
-	tmpfname=tmp_path+tmpfname;
-   	fprintf(stderr, "%s \n", tmpfname.chars());
-}
-
-//----------------------------------------
-char* sprintTime() {
-	static char sbuf[32];
-	time_t ltime; /* calendar time */
-	ltime=time(NULL);
-	struct tm *t=localtime(&ltime);
-	sprintf(sbuf, "%02d_%02d_%02d:%02d:%02d",t->tm_mon+1, t->tm_mday,
-			t->tm_hour, t->tm_min, t->tm_sec);
-	return(sbuf);
-}
-
-// void unispg_readline(UnispgGp* &drec, bool &new_uni_spg_gp, bool &more_graph, int pre_refstart, int pre_refend) {
-// 	if ((drec=dotreader.next())!=NULL) {
-// 		if (pre_refstart != drec->get_refstart() && pre_refend != drec->get_refend()) {
-// 			/*****************************************
-// 			 ** It is a new universal splice graph group.
-// 			 *****************************************/
-// 			new_uni_spg_gp = true;
-// 		} 
-// 		// fprintf(stderr, "Keep reading %d (pre: %d - %d ;  now: %d - %d)!!!\n", new_uni_spg_gp, pre_refstart, pre_refend, drec->get_refstart(), drec->get_refend());
-
-
-// 		// int uni_refstart = drec->get_refstart();
-// 		// int uni_refend = drec->get_refend();
-// 		// int uni_s = drec->get_s();
-// 		// int uni_g = drec->get_g_idx();
-// 		// int uni_graphno = drec->get_graphno();
-// 		// int uni_edgeno = drec->get_edgeno();
-// 		// GPVec<CGraphnode>* uni_no2gnode = drec->get_no2gnode(); 
-
-// 		// for (int i = 1; i < uni_graphno-1; i++) {
-// 		// 	fprintf(stderr, "uni_no2gnode[s][g][i]: %d  start: %d   end: %d \n", uni_no2gnode[0][i]->nodeid, uni_no2gnode[0][i]->start, uni_no2gnode[0][i]->end);
-// 		// }
-
-
-// 	} else {
-// 		// fprintf(stderr, "No more dot graph!!!\n");
-// 		more_graph=false;
-// 		new_uni_spg_gp = true; //fake a new start (end of the last universal splice graph.)
-// 	}
-// }
-
-void processBundleUnispg(BundleData* bundle, GPVec<UnispgGp>** graphs_vec) {
-	fprintf(stderr, "Inside processBundleUnispg!\n");
-	// if (verbose) {
-#ifndef NOTHREADS
-		GLockGuard<GFastMutex> lock(logMutex);
-#endif
-		// printTime(stderr);
-		GMessage(">bundle %s:%d-%d [%lu alignments (%d distinct), %d junctions, %d guides] begins processing...\n",
-				bundle->refseq.chars(), bundle->start, bundle->end, bundle->numreads, bundle->readlist.Count(), bundle->junction.Count(),
-                bundle->keepguides.Count());
-#ifdef GMEMTRACE
-			double vm,rsm;
-			get_mem_usage(vm, rsm);
-			GMessage("\t\tstart memory usage: %6.1fMB\n",rsm/1024);
-			if (rsm>maxMemRS) {
-				maxMemRS=rsm;
-				maxMemVM=vm;
-				maxMemBundle.format("%s:%d-%d(%d)", bundle->refseq.chars(), bundle->start, bundle->end, bundle->readlist.Count());
-			}
-#endif
-	// }
-#ifdef B_DEBUG
-	for (int i=0;i<bundle->keepguides.Count();++i) {
-		GffObj& t=*(bundle->keepguides[i]);
-		RC_TData* tdata=(RC_TData*)(t.uptr);
-		fprintf(dbg_out, ">%s (t_id=%d) %s%c %d %d\n", t.getID(), tdata->t_id, t.getGSeqName(), t.strand, t.start, t.end );
-		for (int fe=0;fe < tdata->t_exons.Count(); ++fe) {
-			RC_Feature& exoninfo = *(tdata->t_exons[fe]);
-			fprintf(dbg_out, "%d\texon\t%d\t%d\t%c\t%d\t%d\n", exoninfo.id, exoninfo.l, exoninfo.r,
-					    exoninfo.strand, exoninfo.rcount, exoninfo.ucount);
-			if (! (exoninfo==*(bundle->rc_data->guides_RC_exons->Get(exoninfo.id-1))))
-				 GError("exoninfo with id (%d) not matching!\n", exoninfo.id);
-		}
-		for (int fi=0;fi < tdata->t_introns.Count(); ++fi) {
-			RC_Feature& introninfo = *(tdata->t_introns[fi]);
-			fprintf(dbg_out, "%d\tintron\t%d\t%d\t%c\t%d\t%d\n", introninfo.id, introninfo.l, introninfo.r,
-					introninfo.strand, introninfo.rcount, introninfo.ucount);
-			if (! (introninfo==*(bundle->rc_data->guides_RC_introns->Get(introninfo.id-1))))
-				 GError("introninfo with id (%d) not matching!\n", introninfo.id);
-		}
-		//check that IDs are properly assigned
-		if (tdata->t_id!=(uint)t.udata) GError("tdata->t_id(%d) not matching t.udata(%d)!\n",tdata->t_id, t.udata);
-		if (tdata->t_id!=bundle->rc_data->guides_RC_tdata->Get(tdata->t_id-1)->t_id)
-			 GError("tdata->t_id(%d) not matching rc_data[t_id-1]->t_id (%d)\n", tdata->t_id, bundle->rc_data->g_tdata[tdata->t_id-1]->t_id);
-
-	}
-#endif
-
-	infer_transcripts_unispg(bundle, graphs_vec);
-
-	if (bundle->pred.Count()>0) {
-#ifndef NOTHREADS
-		GLockGuard<GFastMutex> lock(printMutex);
-#endif
-		// GeneNo=printResults(bundle, GeneNo, bundle->refseq);
-	}
-
-	if (bundle->num_fragments) {
-		#ifndef NOTHREADS
-				GLockGuard<GFastMutex> lock(countMutex);
-		#endif
-		Num_Fragments+=bundle->num_fragments;
-		Frag_Len+=bundle->frag_len;
-		Cov_Sum+=bundle->sum_cov;
-	}
-
-	if (verbose) {
-#ifndef NOTHREADS
-		GLockGuard<GFastMutex> lock(logMutex);
-#endif
-	  /*
-	  SumReads+=bundle->sumreads;
-	  SumFrag+=bundle->sumfrag;
-	  NumCov+=bundle->num_cov;
-	  NumReads+=bundle->num_reads;
-	  NumFrag+=bundle->num_frag;
-	  NumFrag3+=bundle->num_fragments3;
-	  SumFrag3+=bundle->sum_fragments3;
-	  fprintf(stderr,"Number of fragments in bundle: %g with length %g\n",bundle->num_fragments,bundle->frag_len);
-	  fprintf(stderr,"Number of fragments in bundle: %g with sum %g\n",bundle->num_fragments,bundle->frag_len);
-	  */
-		// printTime(stderr);
-		GMessage("^bundle %s:%d-%d done (%d processed potential transcripts).\n",bundle->refseq.chars(),
-				bundle->start, bundle->end, bundle->pred.Count());
-#ifdef GMEMTRACE
-		double vm,rsm;
-		get_mem_usage(vm, rsm);
-		GMessage("\t\tfinal memory usage: %6.1fMB\n",rsm/1024);
-		if (rsm>maxMemRS) {
-			maxMemRS=rsm;
-			maxMemVM=vm;
-			maxMemBundle.format("%s:%d-%d(%d)", bundle->refseq.chars(), bundle->start, bundle->end, bundle->readlist.Count());
-		}
-#endif
-	}
-	bundle->Clear();
-}
-
-void noMoreBundles() {
-#ifndef NOTHREADS
-		bamReadingMutex.lock();
-		NoMoreBundles=true;
-		bamReadingMutex.unlock();
-		queueMutex.lock();
-		bundleWork &= ~(int)0x01; //clear bit 0;
-		queueMutex.unlock();
-		bool areThreadsWaiting=true;
-		do {
-		  waitMutex.lock();
-		   areThreadsWaiting=(threadsWaiting>0);
-		  waitMutex.unlock();
-		  if (areThreadsWaiting) {
-		    DBGPRINT("##> NOTIFY ALL workers: no more data!\n");
-		    haveBundles.notify_all();
-		    current_thread::sleep_for(1);
-		    waitMutex.lock();
-		     areThreadsWaiting=(threadsWaiting>0);
-		    waitMutex.unlock();
-		    current_thread::sleep_for(1);
-		  }
-		} while (areThreadsWaiting); //paranoid check that all threads stopped waiting
-#else
-	  NoMoreBundles=true;
-#endif
 }

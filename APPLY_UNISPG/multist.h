@@ -451,6 +451,9 @@ class DOTReader {
                   GVec<bool>* is_passed_s_source = new GVec<bool>(sample_num-1, false);
                   GVec<float>* cov_s_source = new GVec<float>(sample_num-1, 0.0f);
                   GVec<float>* capacity_s_source = new GVec<float>(sample_num-1, 0.0f);
+
+                  GVec<float>* capacity_s_unispg_source = new GVec<float>(sample_num-1, 0.0f);
+
                   // delete source_gp[s];
                   CGraphnodeUnispg* source = new CGraphnodeUnispg(sample_num, 0, 0, 0, is_passed_s_source, cov_s_source, capacity_s_source, true, 0, 0, 0);
                   uni_splice_graph->no2gnode_unispg[s][g_idx].Add(source);

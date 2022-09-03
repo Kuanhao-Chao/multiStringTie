@@ -12,4 +12,4 @@ void calculate_ovp_coverage(int pos_start, int pos_end, int neg_start, int neg_e
 
 void redistribute_unstranded_rcov(float* rprop, GVec<float>* bpcov, int refstart, int refend, int rstart, int rend);
 
-int overlapLen(uint rstart, uint rend, uint start, uint end);
+int calOverlapLen(uint rstart, uint rend, uint start, uint end);

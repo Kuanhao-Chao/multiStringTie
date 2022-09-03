@@ -165,7 +165,7 @@ endif
 	${CXX} ${CXXFLAGS} -c $< -o $@
 
 # OBJS += rlink.o tablemaker.o tmerge.o
-OBJS += tmerge.o multist.o rlink.o tablemaker.o unispg.o infer_tranx.o helper.o parse_reads.o
+OBJS += tmerge.o multist.o rlink.o tablemaker.o unispg.o infer_tranx.o helper.o parse_reads.o processOptions.o processBundle.o
 
 
 all release static static-cpp debug: multistringtie${EXE}
@@ -176,6 +176,8 @@ nothreads: multistringtie${EXE}
 
 multistringtie.o : $(GDIR)/GBitVec.h $(GDIR)/GHashMap.hh $(GDIR)/GSam.h
 
+processOptions.o: processOptions.h
+processBundle.o: processBundle.h
 rlink.o : rlink.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
 tmerge.o : rlink.h tmerge.h
 tablemaker.o : tablemaker.h rlink.h
