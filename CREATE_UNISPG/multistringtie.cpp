@@ -1532,7 +1532,7 @@ void processOptions(GArgs& args) {
 	             ptff.chars());
 	 }
 
-	 //enableNames=(args.getOpt('E')!=NULL);
+	 enableNames=(args.getOpt('E')!=NULL);
 
 	 retained_intron=(args.getOpt('i')!=NULL);
 
@@ -1785,8 +1785,8 @@ void processBundleUnispg(BundleData* bundle, int fidx) {
 #ifndef NOTHREADS
 		GLockGuard<GFastMutex> lock(printMutex);
 #endif
-		if(mergeMode) GeneNo=printMergeResults(bundle, GeneNo,bundle->refseq);
-		else GeneNo=printResults(bundle, GeneNo, bundle->refseq);
+		// if(mergeMode) GeneNo=printMergeResults(bundle, GeneNo,bundle->refseq);
+		// else GeneNo=printResults(bundle, GeneNo, bundle->refseq);
 	}
 
 	if (bundle->num_fragments) {

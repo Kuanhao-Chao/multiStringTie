@@ -9,12 +9,14 @@
 extern bool viral;
 extern bool eonly; // parameter -e ; for mergeMode includes estimated coverage sum in the merged transcripts
 extern bool longreads;
+extern bool geneabundance; // "A" tag.
 
 // int refseqCount=0; // number of reference sequences found in the guides file
 // uint runoffdist=200;
 extern double Num_Fragments; //global fragment counter (aligned pairs)
 extern double Frag_Len;
 extern double Cov_Sum;
+extern int GeneNo; //-- global "gene" counter
 
 extern bool NoMoreBundles;
 
@@ -49,6 +51,7 @@ extern GFastMutex bamReadingMutex;
 extern GFastMutex countMutex;
 #endif
 
+void processBundle_CREATE_UNISPG(BundleData* bundle, int fidx);
 
 void processBundleUnispg(BundleData* bundle, GPVec<UnispgGp>** graphs_vec);
 

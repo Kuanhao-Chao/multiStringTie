@@ -176,8 +176,8 @@ nothreads: multistringtie${EXE}
 
 multistringtie.o : $(GDIR)/GBitVec.h $(GDIR)/GHashMap.hh $(GDIR)/GSam.h
 
-processOptions.o: processOptions.h
-processBundle.o: processBundle.h
+processOptions.o: processOptions.h definitions.h global_params.h
+processBundle.o: processBundle.h definitions.h unispg.h rlink.h infer_tranx.h
 rlink.o : rlink.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
 tmerge.o : rlink.h tmerge.h
 tablemaker.o : tablemaker.h rlink.h

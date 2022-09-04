@@ -6,6 +6,8 @@
 extern GStr tmp_path;
 extern GStr cram_ref;
 extern bool keepTempFiles;
+extern bool debugMode; // "debug" or "D" tag.
+extern bool verbose; // "v" tag.
 
 struct TInputRecord {
 	GSamRecord* brec;

@@ -1,21 +1,7 @@
-#include "GArgs.h"
-#include "GStr.h"
-#include "definitions.h"
-#include "stdlib.h"
-#include "time.h"
-// #include "global_params.h"
-
-#include "gff.h"
-#include "GSam.h"
-#include "GBitVec.h"
+#include "mode.hpp"
 #include "GHashMap.hh"
-
-#include "rlink.h"
-#include "tmerge.h"
-#include "multist.h"
-#include "unispg.h"
-#include "helper.h"
-#include "definitions.h"
+#include "GFaSeqGet.h"
+// #include "tmerge.h"
 
 /*******************************************
  ** Argument parsing parameters.
@@ -100,17 +86,7 @@ extern int skip_counter;
 /*******************************************
  ** Reader parameters.
  *******************************************/
-extern TInputFiles bamreader;
-extern DOTInputFile dotreader;
-extern DOTInputFile dotreader_pos;
-extern DOTInputFile dotreader_neg;
-
-void processCreateOptions(GArgs& args);
-
-void processApplyOptions(GArgs& args);
-
-void addPtFeature(const char* refname, GPtFeature* pf, GArray<GRefPtData>& refpts);
-
-int loadPtFeatures(FILE* f, GArray<GRefPtData>& refpts);
-
-char* sprintTime();
+// extern TInputFiles bamreader;
+// extern DOTInputFile dotreader;
+// extern DOTInputFile dotreader_pos;
+// extern DOTInputFile dotreader_neg;
