@@ -164,9 +164,8 @@ endif
 %.o : %.cpp
 	${CXX} ${CXXFLAGS} -c $< -o $@
 
-# OBJS += rlink.o tablemaker.o tmerge.o
-OBJS += tmerge.o multist.o rlink.o tablemaker.o unispg.o infer_tranx.o helper.o parse_reads.o processOptions.o processBundle.o
-
+# OBJS += rlink.o tablemaker.o t_record.o
+OBJS += t_record.o dot_record.o rlink.o tablemaker.o unispg.o APPLY_UNISPG/unispg_A.o CREATE_UNISPG/unispg_C.o APPLY_UNISPG/infer_tranx_A.o CREATE_UNISPG/infer_tranx_C.o helper.o APPLY_UNISPG/parse_reads_A.o APPLY_UNISPG/processOptions_A.o CREATE_UNISPG/processOptions_C.o APPLY_UNISPG/processBundle_A.o CREATE_UNISPG/processBundle_C.o CREATE_UNISPG/build_graphs_C.o CREATE_UNISPG/rlink_C.o APPLY_UNISPG/rlink_A.o CREATE_UNISPG/rlink_C_help.o
 
 all release static static-cpp debug: multistringtie${EXE}
 memcheck memdebug tsan tcheck thrcheck: multistringtie${EXE}
@@ -176,15 +175,34 @@ nothreads: multistringtie${EXE}
 
 multistringtie.o : $(GDIR)/GBitVec.h $(GDIR)/GHashMap.hh $(GDIR)/GSam.h
 
-processOptions.o: processOptions.h definitions.h global_params.h
-processBundle.o: processBundle.h definitions.h unispg.h rlink.h infer_tranx.h
+APPLY_UNISPG/processOptions_A.o: APPLY_UNISPG/processOptions_A.h definitions.h global_params.h
+CREATE_UNISPG/processOptions_C.o: CREATE_UNISPG/processOptions_C.h definitions.h global_params.h
+
+APPLY_UNISPG/processBundle_A.o: APPLY_UNISPG/processBundle_A.h definitions.h unispg.h rlink.h
+CREATE_UNISPG/processBundle_C.o: CREATE_UNISPG/processBundle_C.h definitions.h unispg.h rlink.h
+
+
 rlink.o : rlink.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
-tmerge.o : rlink.h tmerge.h
+CREATE_UNISPG/rlink_C.o : CREATE_UNISPG/rlink_C.h 
+CREATE_UNISPG/rlink_C_help.o : CREATE_UNISPG/rlink_C_help.h 
+
+APPLY_UNISPG/rlink_A.o : APPLY_UNISPG/rlink_A.h 
+
+t_record.o : rlink.h t_record.h
 tablemaker.o : tablemaker.h rlink.h
-multist.o : tablemaker.h rlink.h
+dot_record.o : tablemaker.h rlink.h
+
 unispg.o : tablemaker.h
-infer_tranx.o: rlink.h
-parse_reads.o:
+APPLY_UNISPG/unispg_A.o : tablemaker.h
+CREATE_UNISPG/unispg_C.o : tablemaker.h
+
+
+APPLY_UNISPG/infer_tranx_A.o: APPLY_UNISPG/infer_tranx_A.h rlink.h
+CREATE_UNISPG/infer_tranx_C.o: CREATE_UNISPG/infer_tranx_C.h rlink.h
+
+APPLY_UNISPG/parse_reads_A.o:
+CREATE_UNISPG/build_graphs_C.o:
+
 helper.o:
 
 ##${BAM}/libbam.a: 

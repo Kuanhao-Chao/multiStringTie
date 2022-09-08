@@ -1,73 +1,76 @@
+#pragma once
 #ifndef NOTHREADS
 #include "GThreads.h"
 #endif
 
-#include "GArgs.h"
-#include "GStr.h"
-#include "gff.h"
-#include "GSam.h"
-#include "GBitVec.h"
-#include "GHashMap.hh"
-
 #include "rlink.h"
-#include "tmerge.h"
-#include "multist.h"
+#include "t_record.h"
+#include "dot_record.h"
 #include "unispg.h"
 #include "helper.h"
-#include "processOptions.h"
-#include "processBundle.h"
 #include "definitions.h"
 
+#include "APPLY_UNISPG/processOptions_A.h"
+#include "CREATE_UNISPG/processOptions_C.h"
+
+#include "APPLY_UNISPG/processBundle_A.h"
+#include "CREATE_UNISPG/processBundle_C.h"
+
+#include "APPLY_UNISPG/unispg_A.h"
+#include "CREATE_UNISPG/unispg_C.h"
+
 // Include fstream to quickly write out the ratio!!!
+#include <iostream>
 #include <fstream>
 #include <vector> 
 #include "time.h"
-#include <iostream>
 
 /*******************************************
  ** Argument parsing parameters.
  *******************************************/
 bool debugMode=false; // "debug" or "D" tag.
-bool verbose=false; // "v" tag.
-bool ballgown=false; // "b" tag.
+bool verbose=false; // "verbose" / "v" tag.
+bool ballgown=false; // "B" tag.
+GStr ballgown_dir; // "b" tag.
+bool viral=false; // "viral" tag.
+bool mixedMode=false; // "mix" tag. both short and long read data alignments are provided
+bool mergeMode = false; // "merge" tag. For running StringTie Merge.
+bool multiMode=false; // "multi" tag.
+bool graph_bed=false; // "graph_bed" tag.
 bool keepTempFiles; // "keeptmp" tag.
+GFastaDb* gfasta=NULL; // "rseq" or "S" tag.
+GStr ptff; // "ptf" tag. (point features)
 bool fr_strand=false; // "fr" tag.
 bool rf_strand=false; // "rf" tag.
-bool guided=false; // "G" tag.
-bool viral=false; // "viral" tag.
+bool includesource=true; // "z" tag.
+bool retained_intron=false; // "i" tag. set by parameter -i for merge option
+bool trim=true; // "t" tag. 
 bool eonly=false; // "e" tag. for mergeMode includes estimated coverage sum in the merged transcripts
+bool nomulti=false; // "u" tag.
 bool longreads=false; // "L" tag.
+bool rawreads=false; // "R" tag.
 GStrSet<> excludeGseqs; // "x" tag. hash of chromosomes/contigs to exclude (e.g. chrM)
+bool guided=false; // "G" tag.
+GStr guidegff; // "G" tag
+GStr label("STRG"); // "l" tag.
+int mintranscriptlen=200; // "m" tag. minimum length for a transcript to be printed
+uint junctionsupport=10; // "a" tag. anchor length for junction to be considered well supported <- consider shorter??
+int junctionthr=1; // "j" tag. number of reads needed to support a particular junction
+float singlethr=4.75; // "s" tag. coverage saturation no longer used after version 1.0.4; left here for compatibility with previous versions
+float readthr=1; // "c" tag. read coverage per bundle bp to accept it; // paper uses 3
+float isofrac=0.01; // "f" tag. 
+int num_cpus=1; // "p" tag.
 uint bundledist=50;  // "g" tag. reads at what distance should be considered part of separate bundles
 uint runoffdist=200; // threshold for 'bundledist'
-float readthr=1; // "c" tag. read coverage per bundle bp to accept it; // paper uses 3
-float tpm_thr=1; // "T" tag.
-float fpkm_thr=1; // "F" tag.
-bool isunitig=true; // "U" tag.
-uint junctionsupport=10; // "a" tag. anchor length for junction to be considered well supported <- consider shorter??
-uint sserror=25; // "E" tag. window arround splice sites that we use to generate consensus in case of long read data
-int junctionthr=1; // "j" tag. number of reads needed to support a particular junction
 float mcov=1; // "M" tag. fraction of bundle allowed to be covered by multi-hit reads paper uses 1
-int mintranscriptlen=200; // "m" tag. minimum length for a transcript to be printed
-float singlethr=4.75; // "s" tag. coverage saturation no longer used after version 1.0.4; left here for compatibility with previous versions
-bool mixedMode=false; // "mix" tag. both short and long read data alignments are provided
-float isofrac=0.01; // "f" tag. 
-bool trim=true; // "t" tag. 
-bool includesource=true; // "z" tag.
-bool nomulti=false; // "u" tag.
-bool multiMode=false; // "multi" tag.
-bool mergeMode = false; // "merge" tag. 
-GFastaDb* gfasta=NULL; // "rseq" or "S" tag.
-int num_cpus=1; // "p" tag.
-bool rawreads=false; // "R" tag.
-bool enableNames=false; // "E" tag
-GStr label("STRG"); // "l" tag.
-bool retained_intron=false; // "i" tag. set by parameter -i for merge option
 bool geneabundance=false; // "A" tag.
-GStr guidegff; // "G" tag
-GStr ptff; // "ptf" tag. (point features)
-FILE* f_out=NULL; // get from "outfname" param.
+uint sserror=25; // "E" tag. window arround splice sites that we use to generate consensus in case of long read data
+float fpkm_thr=1; // "F" tag.
+float tpm_thr=1; // "T" tag.
+bool isunitig=true; // "U" tag.
+bool enableNames=false; // "E" tag (removed)
 FILE* c_out=NULL; // "C" tag.
+FILE* f_out=NULL; // get from "outfname" param.
 
 
 /*******************************************
@@ -79,15 +82,18 @@ GStr unispgdotfname_pos;
 GStr unispgdotfname_neg; 
 // Annotation file => outputing in GFF format.
 GStr outfname;
+GStr outfname_prefix;
 GStr out_dir;
 GStr tmp_path;
-GStr cram_ref; //reference genome FASTA for CRAM input
-GStr tmpfname;
+GStr cram_ref; //"ref" / "cram-ref" tag. Reference genome FASTA for CRAM input
+GStr tmpfname; // "o" tag.
 GStr genefname;
-GStr traindir; // training directory for CDS option
+GStr traindir; // "cds" tag. training directory for CDS option (removed)
 // Ratio file => for coverage comparison & visualization.
-ofstream ratio_file_pos;
-ofstream ratio_file_neg;
+ofstream cov_file_pos;
+ofstream cov_file_neg;
+ofstream cov_file_pos_norm;
+ofstream cov_file_neg_norm;
 
 /*******************************************
  ** Program-defined global parameter.
@@ -114,6 +120,69 @@ TInputFiles bamreader;
 DOTInputFile dotreader;
 DOTInputFile dotreader_pos;
 DOTInputFile dotreader_neg;
+
+
+
+/*******************************************
+ ** CREATE_UNISPG specific parameters.
+ *******************************************/
+UnispgGp_CREATE* unispg_gp;
+bool universal_splice_graph = false;
+FILE* uinigraph_out = NULL;
+GStr unigraphfname; 
+GStr plot_dir;
+
+/*****************************
+ * Declaring DOT file.
+ *****************************/
+GVec<FILE*> pos_dot_vec = NULL;
+GVec<GStr> pos_dotfname_vec; 
+GVec<FILE*> neg_dot_vec = NULL;
+GVec<GStr> neg_dotfname_vec; 
+FILE* dot = NULL;
+GStr dotfname; 
+GVec<FILE*>* dot_vec[2];
+GVec<GStr>* dotfname_vec[2]; 
+
+/*****************************
+ * Declaring BED file.
+ *****************************/
+GVec<FILE*>* node_lclg_bed_vec[2];
+GVec<GStr>* nodelclgfname_vec[2]; 
+GVec<FILE*>* edge_lclg_bed_vec[2];
+GVec<GStr>* edgelclgfname_vec[2]; 
+
+GVec<FILE*>* node_novp_bed_vec[2];
+GVec<GStr>* nodenovpfname_vec[2]; 
+GVec<FILE*>* edge_novp_bed_vec[2];
+GVec<GStr>* edgenovpfname_vec[2]; 
+
+GVec<FILE*>* node_unispg_bed_vec[2];
+GVec<GStr>* nodeunispgfname_vec[2]; 
+GVec<FILE*>* edge_unispg_bed_vec[2];
+GVec<GStr>* edgeunispgfname_vec[2]; 
+
+FILE* node_unispg_unstrand_bed; 
+GStr nodeunispgfname_unstrand; 
+// These are for temporary file holding
+FILE* node_cov_bed = NULL;
+GStr nodecovfname; 
+FILE* edge_cov_bed = NULL;
+GStr edgecovfname; 
+
+/*****************************
+ * Declaring reference related data structure
+ *****************************/
+GVec<GRefData> refguides; // plain vector with transcripts for each chromosome
+GArray<GRefPtData> refpts(true, true); // sorted,unique array of refseq point-features data
+
+/*****************************
+ * Declaring Ballgown related data structure
+ *   table indexes for Ballgown Raw Counts data (-B/-b option)
+ *****************************/
+GPVec<RC_TData> guides_RC_tdata(true); //raw count data or other info for all guide transcripts
+GPVec<RC_Feature> guides_RC_exons(true); //raw count data for all guide exons
+GPVec<RC_Feature> guides_RC_introns(true);//raw count data for all guide introns
 
 
 
@@ -169,62 +238,10 @@ int main(int argc, char*argv[]) {
 		 ** Process arguments.
 		 *******************************************/
 		GArgs args(argc, argv,
-		"debug;help;version;viral;conservative;mix;unispg=;ref=;cram-ref=cds=;keeptmp;rseq=;ptf=;bam;fr;rf;merge;multi;"
-		"exclude=zihvteuLRx:n:j:s:D:G:C:S:l:m:o:a:j:c:f:p:g:P:M:Bb:A:E:F:T:");
+		"debug;help;version;ballgown;viral;conservative;mix;merge;multi;graph_bed;ref=;cram-ref=cds=;keeptmp;rseq=;ptf=;fr;rf;"
+		"exclude=zihvteuLRx:n:j:s:D:G:C:S:l:m:o:a:c:f:p:g:M:Bb:A:E:F:T:");
 		args.printError(USAGE, true);
 		processCreateOptions(args);
-
-		/*******************************************
-		 ** CREATE_UNISPG specific parameters.
-		 *******************************************/
-		GStr outfname_prefix;
-		UnispgGp* unispg_gp;
-		bool universal_splice_graph = false;
-		FILE* uinigraph_out = NULL;
-		GStr unigraphfname; 
-		GStr plot_dir;
-
-		GVec<FILE*> pos_dot_vec = NULL;
-		GVec<GStr> pos_dotfname_vec; 
-		GVec<FILE*> neg_dot_vec = NULL;
-		GVec<GStr> neg_dotfname_vec; 
-
-		FILE* dot = NULL;
-		GStr dotfname; 
-		GVec<FILE*>* dot_vec[2];
-		GVec<GStr>* dotfname_vec[2]; 
-
-		GVec<FILE*>* node_lclg_bed_vec[2];
-		GVec<GStr>* nodelclgfname_vec[2]; 
-		GVec<FILE*>* edge_lclg_bed_vec[2];
-		GVec<GStr>* edgelclgfname_vec[2]; 
-
-		GVec<FILE*>* node_novp_bed_vec[2];
-		GVec<GStr>* nodenovpfname_vec[2]; 
-		GVec<FILE*>* edge_novp_bed_vec[2];
-		GVec<GStr>* edgenovpfname_vec[2]; 
-
-		GVec<FILE*>* node_unispg_bed_vec[2];
-		GVec<GStr>* nodeunispgfname_vec[2]; 
-		GVec<FILE*>* edge_unispg_bed_vec[2];
-		GVec<GStr>* edgeunispgfname_vec[2]; 
-
-		FILE* node_unispg_unstrand_bed; 
-		GStr nodeunispgfname_unstrand; 
-
-		// These are for temporary file holding
-		FILE* node_cov_bed = NULL;
-		GStr nodecovfname; 
-		FILE* edge_cov_bed = NULL;
-		GStr edgecovfname; 
-
-		GVec<GRefData> refguides; // plain vector with transcripts for each chromosome
-		GArray<GRefPtData> refpts(true, true); // sorted,unique array of refseq point-features data
-		
-		//table indexes for Ballgown Raw Counts data (-B/-b option)
-		GPVec<RC_TData> guides_RC_tdata(true); //raw count data or other info for all guide transcripts
-		GPVec<RC_Feature> guides_RC_exons(true); //raw count data for all guide exons
-		GPVec<RC_Feature> guides_RC_introns(true);//raw count data for all guide introns
 
 		GVec<int> alncounts(30); //keep track of the number of read alignments per chromosome [gseq_id]
 
@@ -237,21 +254,23 @@ int main(int argc, char*argv[]) {
 		for(int s=0;s<2;s++) { // skip neutral bundles -> those shouldn't have junctions
 			dot_vec[s] = new GVec<FILE*>[bamcount];
 			dotfname_vec[s] = new GVec<GStr>[bamcount];
-			// Local graph (lclg)
-			node_lclg_bed_vec[s] = new GVec<FILE*>[bamcount];
-			nodelclgfname_vec[s] = new GVec<GStr>[bamcount];
-			edge_lclg_bed_vec[s] = new GVec<FILE*>[bamcount];
-			edgelclgfname_vec[s] = new GVec<GStr>[bamcount];
-			// Nonoverlap graph (novp)
-			node_novp_bed_vec[s] = new GVec<FILE*>[bamcount];
-			nodenovpfname_vec[s] = new GVec<GStr>[bamcount];
-			edge_novp_bed_vec[s] = new GVec<FILE*>[bamcount];
-			edgenovpfname_vec[s] = new GVec<GStr>[bamcount];
-			// Universal splice graph (unispg)
-			node_unispg_bed_vec[s] = new GVec<FILE*>[bamcount];
-			nodeunispgfname_vec[s] = new GVec<GStr>[bamcount];
-			edge_unispg_bed_vec[s] = new GVec<FILE*>[bamcount];
-			edgeunispgfname_vec[s] = new GVec<GStr>[bamcount];
+			if (graph_bed) {
+				// Local graph (lclg)
+				node_lclg_bed_vec[s] = new GVec<FILE*>[bamcount];
+				nodelclgfname_vec[s] = new GVec<GStr>[bamcount];
+				edge_lclg_bed_vec[s] = new GVec<FILE*>[bamcount];
+				edgelclgfname_vec[s] = new GVec<GStr>[bamcount];
+				// Nonoverlap graph (novp)
+				node_novp_bed_vec[s] = new GVec<FILE*>[bamcount];
+				nodenovpfname_vec[s] = new GVec<GStr>[bamcount];
+				edge_novp_bed_vec[s] = new GVec<FILE*>[bamcount];
+				edgenovpfname_vec[s] = new GVec<GStr>[bamcount];
+				// Universal splice graph (unispg)
+				node_unispg_bed_vec[s] = new GVec<FILE*>[bamcount];
+				nodeunispgfname_vec[s] = new GVec<GStr>[bamcount];
+				edge_unispg_bed_vec[s] = new GVec<FILE*>[bamcount];
+				edgeunispgfname_vec[s] = new GVec<GStr>[bamcount];
+			}
 		}
 
 	#ifndef GFF_DEBUG
@@ -264,7 +283,7 @@ int main(int argc, char*argv[]) {
 	#endif
 		const char* ERR_BAM_SORT="\nError: the input alignment file is not sorted!\n";
 
-		unispg_gp = new UnispgGp();
+		unispg_gp = new UnispgGp_CREATE();
 		plot_dir = outfname.copy();		
 		if (outfname.endsWith(".gtf")) {
 			plot_dir.chomp(".gtf");
@@ -452,15 +471,22 @@ int main(int argc, char*argv[]) {
 		 ** Processing BAM files one by one.
 		 *******************************************/
 		for (int file_idx = 0; file_idx < bamcount; file_idx++) {
-			fprintf(stderr, "bamreader.files.Get(file_idx): %s\n", bamreader.files.Get(file_idx).chars());
+			/*
+			{ //DEBUG ONLY
+				fprintf(stderr, "bamreader.files.Get(file_idx): %s\n", bamreader.files.Get(file_idx).chars());
+			}
+			*/
 			unispg_gp->ProcessSample(bamreader.files.Get(file_idx));
-			// unispg_gp->PrintGraphGp();
 			GStr direction("");
 
-			nodeunispgfname_unstrand = outfname_prefix + "_node_unstranded_unispg.bed";
-			node_unispg_unstrand_bed = fopen(nodeunispgfname_unstrand.chars(), "w");		
-			fprintf(node_unispg_unstrand_bed, "track name=Sample_"+GStr(file_idx)+"_node_unstranded_cov color=0,0,0 altColor=0,0,0\n");		
+			// Ouput unstranded graphs into bed file.
+			if (graph_bed) {
+				nodeunispgfname_unstrand = outfname_prefix + "_node_unstranded_unispg.bed";
+				node_unispg_unstrand_bed = fopen(nodeunispgfname_unstrand.chars(), "w");		
+				fprintf(node_unispg_unstrand_bed, "track name=Sample_"+GStr(file_idx)+"_node_unstranded_cov color=0,0,0 altColor=0,0,0\n");	
+			}	
 
+			// Ouput stranded graphs into DOT / BED file.
 			for (int s=0; s<2; s++) {
 				if (s == 0) {
 					direction = "neg";
@@ -473,46 +499,49 @@ int main(int argc, char*argv[]) {
 				dotfname_vec[s]->Add(dotfname);
 				dot_vec[s]->Add(dot);
 
-				nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_lclg_"+GStr(file_idx)+".bed";
-				edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_lclg_"+GStr(file_idx)+".bed";				
-				node_cov_bed = fopen(nodecovfname.chars(), "w");				
-				edge_cov_bed = fopen(edgecovfname.chars(), "w");
-				fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-				fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-				fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-				fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-				nodelclgfname_vec[s]->Add(nodecovfname);
-				edgelclgfname_vec[s]->Add(edgecovfname);
-				node_lclg_bed_vec[s]->Add(node_cov_bed);
-				edge_lclg_bed_vec[s]->Add(edge_cov_bed);
+				if (graph_bed) {
+					// Initializing BED files.
+					nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_lclg_"+GStr(file_idx)+".bed";
+					edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_lclg_"+GStr(file_idx)+".bed";				
+					node_cov_bed = fopen(nodecovfname.chars(), "w");				
+					edge_cov_bed = fopen(edgecovfname.chars(), "w");
+					fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+					fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+					fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+					fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+					nodelclgfname_vec[s]->Add(nodecovfname);
+					edgelclgfname_vec[s]->Add(edgecovfname);
+					node_lclg_bed_vec[s]->Add(node_cov_bed);
+					edge_lclg_bed_vec[s]->Add(edge_cov_bed);
 
 
-				nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_nonovp_"+GStr(file_idx)+".bed";
-				edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_nonovp_"+GStr(file_idx)+".bed";				
-				node_cov_bed = fopen(nodecovfname.chars(), "w");				
-				edge_cov_bed = fopen(edgecovfname.chars(), "w");
-				fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-				fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-				fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-				fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-				nodenovpfname_vec[s]->Add(nodecovfname);
-				edgenovpfname_vec[s]->Add(edgecovfname);
-				node_novp_bed_vec[s]->Add(node_cov_bed);
-				edge_novp_bed_vec[s]->Add(edge_cov_bed);
+					nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_nonovp_"+GStr(file_idx)+".bed";
+					edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_nonovp_"+GStr(file_idx)+".bed";				
+					node_cov_bed = fopen(nodecovfname.chars(), "w");				
+					edge_cov_bed = fopen(edgecovfname.chars(), "w");
+					fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+					fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+					fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+					fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+					nodenovpfname_vec[s]->Add(nodecovfname);
+					edgenovpfname_vec[s]->Add(edgecovfname);
+					node_novp_bed_vec[s]->Add(node_cov_bed);
+					edge_novp_bed_vec[s]->Add(edge_cov_bed);
 
 
-				nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_unispg_"+GStr(file_idx)+".bed";
-				edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_unispg_"+GStr(file_idx)+".bed";				
-				node_cov_bed = fopen(nodecovfname.chars(), "w");				
-				edge_cov_bed = fopen(edgecovfname.chars(), "w");
-				fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-				fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-				fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-				fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-				nodeunispgfname_vec[s]->Add(nodecovfname);
-				edgeunispgfname_vec[s]->Add(edgecovfname);
-				node_unispg_bed_vec[s]->Add(node_cov_bed);
-				edge_unispg_bed_vec[s]->Add(edge_cov_bed);
+					nodecovfname = outfname_prefix + "_node_"+direction.chars()+"_unispg_"+GStr(file_idx)+".bed";
+					edgecovfname = outfname_prefix + "_edge_"+direction.chars()+"_unispg_"+GStr(file_idx)+".bed";				
+					node_cov_bed = fopen(nodecovfname.chars(), "w");				
+					edge_cov_bed = fopen(edgecovfname.chars(), "w");
+					fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+					fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+					fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+					fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+					nodeunispgfname_vec[s]->Add(nodecovfname);
+					edgeunispgfname_vec[s]->Add(edgecovfname);
+					node_unispg_bed_vec[s]->Add(node_cov_bed);
+					edge_unispg_bed_vec[s]->Add(edge_cov_bed);
+				}
 			}
 
 			bundle->Clear();
@@ -528,8 +557,6 @@ int main(int argc, char*argv[]) {
 			ng_end=-1;
 			ptf_idx=0; //point-feature current index in the current (*refptfs)[]
 			ng=0;
-
-			fprintf(stderr, "** file_idx: %d\n", file_idx);
 			bamreader.start_fidx(file_idx);
 
 			while (more_alns) { 
@@ -698,7 +725,7 @@ int main(int argc, char*argv[]) {
 			#else //no threads
 						//Num_Fragments+=bundle->num_fragments;
 						//Frag_Len+=bundle->frag_len;
-						processBundle_CREATE_UNISPG(bundle, file_idx);
+						processBundle_CREATE_UNISPG(bundle, unispg_gp, file_idx);
 			#endif
 						// ncluster++; used it for debug purposes only
 					} //have alignments to process
@@ -882,8 +909,8 @@ int main(int argc, char*argv[]) {
 		 ** Process arguments.
 		 *******************************************/
 		GArgs args(argc, argv,
-		"debug;help;version;dot=;d=;bam;fr;rf;"
-		"exclude=hvdx:n:j:s:d:D:G:C:S:l:m:o:a:j:c:f:p:g:P:M:Bb:A:E:F:T:");
+		"debug;help;version;dot=;d=;fr;rf;"
+		"exclude=hvno:");
 		processApplyOptions(args);
 
 		GVec<int> alncounts(30); //keep track of the number of read alignments per chromosome [gseq_id]
@@ -904,12 +931,8 @@ int main(int argc, char*argv[]) {
 	#endif
 		const char* ERR_BAM_SORT="\nError: the input alignment file is not sorted!\n";
 
-
-
 		/*******************************************
-		 *******************************************
 		 ** input processing
-		 *******************************************
 		 *******************************************/
 		GHash<int> hashread;      //read_name:pos:hit_index => readlist index
 		GList<GffObj>* guides=NULL; //list of transcripts on a specific reference
@@ -925,7 +948,6 @@ int main(int argc, char*argv[]) {
 		// int ncluster=0; used it for debug purposes only
 
 	#ifndef NOTHREADS
-
 		//model: one producer, multiple consumers
 	#define DEF_TSTACK_SIZE 8388608
 		size_t defStackSize=DEF_TSTACK_SIZE;
@@ -959,14 +981,6 @@ int main(int argc, char*argv[]) {
 	#else
 		BundleData bundles[1];
 		BundleData* bundle = &(bundles[0]);
-
-		// if (multiMode) {
-		// } else {
-		// 	UniSpliceGraphGp uni_splice_graphGps[1];
-		// 	UniSpliceGraphGp* uni_splice_graphGp = &(uni_splice_graphGps[0]);
-		// }
-		// UniSpliceGraphGp uni_splice_graphGps[1];
-		// UniSpliceGraphGp* uni_splice_graphGp = &(uni_splice_graphGps[0]);
 	#endif
 
 		/*******************************************
@@ -988,13 +1002,10 @@ int main(int argc, char*argv[]) {
 		bool next_graph_neg=true;
 
 		int prev_pos=0;
-		// bool skipGseq=false;
-		UnispgGp* drec=NULL;
-		UnispgGp* prev_drec=NULL;
-		UnispgGp* drec_pos=NULL;
-		UnispgGp* drec_neg=NULL;
-		// UnispgGp* prev_drec_pos=NULL;
-		// UnispgGp* prev_drec_neg=NULL;
+		UnispgGp_APPLY* drec=NULL;
+		UnispgGp_APPLY* prev_drec=NULL;
+		UnispgGp_APPLY* drec_pos=NULL;
+		UnispgGp_APPLY* drec_neg=NULL;
 		int prev_drec_pos_start=NULL;
 		int prev_drec_pos_end=NULL;
 		int prev_drec_neg_start=NULL;
@@ -1003,43 +1014,40 @@ int main(int argc, char*argv[]) {
 		bool next_pos_neg = NULL;
 
 		// Initialize the dot graphs vector.
-		GPVec<UnispgGp>* graphs_vec[2];
+		GPVec<UnispgGp_APPLY>* graphs_vec[2];
 		for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
 			int s=sno/2; // adjusted strand due to ignoring neutral strand
-			graphs_vec[s] = new GPVec<UnispgGp>[1024];
+			graphs_vec[s] = new GPVec<UnispgGp_APPLY>[1024];
 		}
-
-
-		// while ((brec=bamreader.next())!=NULL) {
-		// }
-
-
-
-
-		fprintf(stderr, "unispgdotfname_root: %s\n", unispgdotfname_root.chars());
 
 		unispgdotfname_pos = unispgdotfname_root + "_node_pos_0_unispg.dot";
 		unispgdotfname_neg = unispgdotfname_root + "_node_neg_0_unispg.dot";
+	/*
+	{ //DEBUG ONLY
+		fprintf(stderr, "unispgdotfname_root: %s\n", unispgdotfname_root.chars());
 		fprintf(stderr, "unispgdotfname_pos: %s\n", unispgdotfname_pos.chars());
 		fprintf(stderr, "unispgdotfname_neg: %s\n", unispgdotfname_neg.chars());
-
+	}
+	*/
 		// unispgdotfname_root
 		if (fileExists(unispgdotfname_pos.chars())==0 || fileExists(unispgdotfname_neg.chars())==0) {
 			GError("%sError: the dot file does not exist!\n", USAGE);
 		}
 
 		bool dot_is_open = dotreader.start(unispgdotfname_pos); //setup and open DOT input file
-		fprintf(stderr, "unispgdotfname_pos: %d\n", dot_is_open);
 
 
 		bool dot_is_open_pos = dotreader_pos.start(unispgdotfname_pos); //setup and open DOT input file
-		fprintf(stderr, "unispgdotfname_pos: %d\n", dot_is_open_pos);
 
 		bool dot_is_open_neg = dotreader_neg.start(unispgdotfname_neg); //setup and open DOT input file
+	/*
+	{ //DEBUG ONLY
+		fprintf(stderr, "unispgdotfname: %d\n", dot_is_open);
+		fprintf(stderr, "unispgdotfname_pos: %d\n", dot_is_open_pos);
 		fprintf(stderr, "unispgdotfname_neg: %d\n", dot_is_open_neg);
-
 		fprintf(stderr, "bamreader.files.Get(file_idx): %s\n", bamreader.files.Get(0).chars());
-
+	}
+	*/
 
 		bundle->Clear();
 		brec=NULL;	
@@ -1062,12 +1070,9 @@ int main(int argc, char*argv[]) {
 		int gseq_id=lastref_id;  //current chr id
 		bool new_bundle=false;
 
-
 		fprintf(stderr, "** file_idx: %d\n", 0);
+
 		bamreader.start_fidx(0);
-
-
-
 		int total_read = 0;
 		int processed_read = 0;
 		int pos_strand = 0;
@@ -1077,8 +1082,11 @@ int main(int argc, char*argv[]) {
 		bool process_graphs_vec = false;
 
 
-  		ratio_file_pos.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/ratio_pos.txt");
-  		ratio_file_neg.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/ratio_neg.txt");
+  		cov_file_pos.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/cov_pos.txt");
+  		cov_file_neg.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/cov_neg.txt");
+		
+		cov_file_pos_norm.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/cov_pos_norm.txt");
+  		cov_file_neg_norm.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/cov_neg_norm.txt");
 
 
 
@@ -1118,7 +1126,7 @@ int main(int argc, char*argv[]) {
 					if (drec_pos->get_refstart() <= drec_neg->get_refstart()) {
 						fprintf(stderr, "Adding `drec_pos`!!!!\n");
 
-						// UnispgGp* copy_drec_pos = new UnispgGp(drec_pos);
+						// UnispgGp_APPLY* copy_drec_pos = new UnispgGp_APPLY(drec_pos);
 						graphs_vec[1]->Add(drec_pos);
 						prev_drec_pos_start = drec_pos->get_refstart();
 						prev_drec_pos_end = drec_pos->get_refend();
@@ -1128,7 +1136,7 @@ int main(int argc, char*argv[]) {
 					} else if (drec_pos->get_refstart() > drec_neg->get_refstart()) {
 						fprintf(stderr, "Adding `drec_neg`!!!!\n");
 						
-						// UnispgGp* copy_drec_neg = new UnispgGp(drec_neg);
+						// UnispgGp_APPLY* copy_drec_neg = new UnispgGp_APPLY(drec_neg);
 						graphs_vec[0]->Add(drec_neg);
 						prev_drec_neg_start = drec_neg->get_refstart();
 						prev_drec_neg_end = drec_neg->get_refend();
@@ -1154,7 +1162,7 @@ int main(int argc, char*argv[]) {
 							next_graph_pos = true;
 							fprintf(stderr, ">> Adding `drec_pos`: %d - %d \n", drec_pos->get_refstart(), drec_pos->get_refend());
 							fprintf(stderr, "\t\t>> `prev_drec_neg`: %d - %d \n", prev_drec_neg_start, prev_drec_neg_end);
-							// UnispgGp* copy_drec_pos = new UnispgGp(drec_pos);
+							// UnispgGp_APPLY* copy_drec_pos = new UnispgGp_APPLY(drec_pos);
 							graphs_vec[1]->Add(drec_pos);
 							prev_drec_pos_start = drec_pos->get_refstart();
 							prev_drec_pos_end = drec_pos->get_refend();
@@ -1179,7 +1187,7 @@ int main(int argc, char*argv[]) {
 							next_graph_neg = true;
 							fprintf(stderr, ">> Adding `drec_neg`: %d - %d \n", drec_neg->get_refstart(), drec_neg->get_refend());
 							fprintf(stderr, "\t\t>> `prev_drec_pos`: %d - %d \n", prev_drec_pos_start, prev_drec_pos_end);
-							// UnispgGp* copy_drec_neg = new UnispgGp(drec_neg);
+							// UnispgGp_APPLY* copy_drec_neg = new UnispgGp_APPLY(drec_neg);
 							graphs_vec[0]->Add(drec_neg);
 							prev_drec_neg_start = drec_neg->get_refstart();
 							prev_drec_neg_end = drec_neg->get_refend();
@@ -1411,7 +1419,7 @@ int main(int argc, char*argv[]) {
 				#else //no threads
 							//Num_Fragments+=bundle->num_fragments;
 							//Frag_Len+=bundle->frag_len;
-							processBundleUnispg(bundle, graphs_vec);
+							processBundle_APPLY_UNISPG(bundle, graphs_vec);
 				#endif
 							// ncluster++; used it for debug purposes only
 						} //have alignments to process
@@ -1511,7 +1519,7 @@ int main(int argc, char*argv[]) {
 
 					// delete [] graphs_vec[s];
 					graphs_vec[s]->Clear();
-					graphs_vec[s] = new GPVec<UnispgGp>[1024];
+					graphs_vec[s] = new GPVec<UnispgGp_APPLY>[1024];
 				}
 			}
 		}
@@ -1529,8 +1537,11 @@ int main(int argc, char*argv[]) {
 		// dotreader_pos.stop(); //close all DOT files
 		// dotreader_neg.stop(); //close all DOT files
 
-  		ratio_file_pos.close();
-  		ratio_file_neg.close();
+  		cov_file_pos.close();
+  		cov_file_neg.close();
+
+  		cov_file_pos_norm.close();
+  		cov_file_neg_norm.close();
 	}
     return 0;
 }

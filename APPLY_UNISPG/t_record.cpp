@@ -1,4 +1,4 @@
-#include "tmerge.h"
+#include "t_record.h"
 
 void TInputFiles::Add(const char* fn) {
 	   GStr sfn(fn);

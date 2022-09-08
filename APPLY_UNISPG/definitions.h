@@ -1,3 +1,5 @@
+#ifndef __DEFINITIONS_H__
+#define __DEFINITIONS_H__
 
 // Let's test single thread first!! 
 #define NOTHREADS
@@ -21,3 +23,22 @@ Options:\n\
 * APPLY_UNISPG mode: \n\
    multistringtie APPLY_UNISPG [Options] { bam_list | sample1.bam ...}\n\
 "
+
+#define BSIZE 10000 // bundle size
+
+#define MAX_NODE 1000000
+#define KMER 31
+
+#define DROP 0.5
+#define ERROR_PERC 0.1
+#define DBL_ERROR 0.01
+
+#define CHI_WIN 100
+#define CHI_THR 50
+#define SMALL_EXON 35 // exons smaller than this have a tendency to be missed by long read data
+
+#define IS_FPKM_FLAG 1
+#define IS_TPM_FLAG 2
+#define IS_COV_FLAG 4
+
+#endif

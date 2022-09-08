@@ -798,3 +798,74 @@ int calOverlapLen(uint rstart, uint rend, uint start, uint end) {
         return (rend<end)? rend-start+1 : end-start+1;
     }
 }
+
+char* sprintTime() {
+	static char sbuf[32];
+	time_t ltime; /* calendar time */
+	ltime=time(NULL);
+	struct tm *t=localtime(&ltime);
+	sprintf(sbuf, "%02d_%02d_%02d:%02d:%02d",t->tm_mon+1, t->tm_mday,
+			t->tm_hour, t->tm_min, t->tm_sec);
+	return(sbuf);
+}
+
+int loadPtFeatures(FILE* f, GArray<GRefPtData>& refpts) {
+  //expected format:
+  //<chromosome> <coordinate> <strand> <feature_type>
+  int num=0;
+  GLineReader lr(f);
+  char* line=NULL;
+  GDynArray<char*> tokens;
+  while ((line=lr.nextLine())!=NULL) {
+    strsplit(line, tokens);
+    if (tokens.Count()<4)
+    	GError("Error parsing point-feature line (not enough columns):\n%s\n",line);
+    int start;
+    if (!strToInt(tokens[1], start))
+    	GError("Error parsing point-feature line (invalid coordinate):\n%s\n",line);
+    int8_t strand=-2;
+    if (strlen(tokens[2])==1) {
+    	if (tokens[2][0]=='+')
+    		strand=1;
+    	else if (tokens[2][0]=='-')
+    		strand=-1;
+    	else if (tokens[2][0]=='.')
+    		strand=0;
+    }
+    if (strand==-2)
+    	GError("Error parsing point-feature line (invalid strand):\n%s\n",line);
+    GPFType pftype=GPFT_NONE;
+    if (strcmp(tokens[3], "TSS")==0)
+			pftype=GPFT_TSS;
+	else if (strcmp(tokens[3], "CPAS")==0)
+			pftype=GPFT_CPAS;
+    if (pftype==0)
+    	GError("Error parsing point-feature line (unrecognized type):\n%s\n",line);
+    GPtFeature* ptf=new GPtFeature(pftype, -1, strand, start);
+    addPtFeature(tokens[0], ptf, refpts);
+    num++;
+  } //while line
+  return num;
+}
+
+
+void addPtFeature(const char* refname, GPtFeature* pf, GArray<GRefPtData>& refpts) {
+  //expects gseqNames to be set to GffObj::names and initialized/populated already!
+  //MUST be called AFTER the guides file has been loaded (if given)
+  int gseq_id=gseqNames->gseqs.addName(refname);
+  pf->ref_id=gseq_id;
+  int ridx=-1;
+  GRefPtData* rpd=NULL;
+  GRefPtData rd(gseq_id);
+  if (refpts.Count()==0) {
+	  ridx=refpts.Add(rd);
+  } else {
+	  ridx=refpts.IndexOf(rd);
+	  if (ridx<0) {
+		  ridx=refpts.Add(rd);
+	  }
+  }
+  if (ridx<0) GError("Error adding GRefPtData entry (bug!)\n");
+  rpd = & refpts.Get(ridx);
+  rpd->add(pf);
+}

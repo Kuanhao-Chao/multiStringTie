@@ -1,7 +1,7 @@
-#include "parse_reads.h"
+#include "parse_reads_A.h"
 
-void get_fragment_pattern(BundleData* bundle, GList<CReadAln>& readlist, int n, int np, float readcov, GPVec<UnispgGp>** graphs_vec, int* global_gidx) {
-    fprintf(stderr, "get_fragment_pattern is called. \n");
+void get_fragment_pattern_APPLY_UNISPG(BundleData* bundle, GList<CReadAln>& readlist, int n, int np, float readcov, GPVec<UnispgGp_APPLY>** graphs_vec, int* global_gidx) {
+    fprintf(stderr, "get_fragment_pattern_APPLY_UNISPG is called. \n");
 
 	int refstart = bundle->start;
     int refend = bundle->end;
@@ -60,7 +60,7 @@ void get_fragment_pattern(BundleData* bundle, GList<CReadAln>& readlist, int n, 
 	for(int s=0;s<2;s++) {
 
         /*****************************
-         * Step 1-1: After the `get_read_pattern`, 
+         * Step 1-1: After the `get_read_pattern_APPLY_UNISPG`, 
          *   (1) confirm each read belongs to which nodes
          *   (2) the node coverage gonna be updated
          *****************************/
@@ -70,7 +70,7 @@ void get_fragment_pattern(BundleData* bundle, GList<CReadAln>& readlist, int n, 
 		GVec<int> *rnode=new GVec<int>[readlist[n]->segs.Count()];
 
 		if(readlist[n]->nh) {
-			get_read_pattern(s, readcov, rprop[s], readlist, n, rgno, rnode, graphs_vec, global_gidx);
+			get_read_pattern_APPLY_UNISPG(s, readcov, rprop[s], readlist, n, rgno, rnode, graphs_vec, global_gidx);
         }
 
     	// pgno: It stores the paired bundle<->graph indices in a BundleData that a read belongs to.
@@ -80,7 +80,7 @@ void get_fragment_pattern(BundleData* bundle, GList<CReadAln>& readlist, int n, 
 
         if(np>-1 && readlist[np]->nh) {
 			pnode=new GVec<int>[readlist[np]->segs.Count()];
-			get_read_pattern(s, readcov, rprop[s], readlist, np, rgno, rnode, graphs_vec, global_gidx);
+			get_read_pattern_APPLY_UNISPG(s, readcov, rprop[s], readlist, np, rgno, rnode, graphs_vec, global_gidx);
 		}
 
 
@@ -107,12 +107,12 @@ void get_fragment_pattern(BundleData* bundle, GList<CReadAln>& readlist, int n, 
  * (1) confirm each read belongs to which nodes
  * (2) the node coverage gonna be updated
  *****************************/
-void get_read_pattern(int s, float readcov, float rprop, GList<CReadAln>& readlist, int n,GVec<int> &rgno, GVec<int> *rnode, GPVec<UnispgGp>** graphs_vec, int* global_gidx) {
+void get_read_pattern_APPLY_UNISPG(int s, float readcov, float rprop, GList<CReadAln>& readlist, int n,GVec<int> &rgno, GVec<int> *rnode, GPVec<UnispgGp_APPLY>** graphs_vec, int* global_gidx) {
 
 	// rgno: It stores the bundle<->graph indices in a BundleData that a read belongs to.
 	// rnode: It stores the node indices in the bundle<->graph indices in a BundleData that a read belongs to.
 
-	fprintf(stderr, ">> Inside 'get_read_pattern'\n");
+	fprintf(stderr, ">> Inside 'get_read_pattern_APPLY_UNISPG'\n");
 	int lastgnode=-1;
 	int lastngraph=-1;
 	int ncoord=readlist[n]->segs.Count();

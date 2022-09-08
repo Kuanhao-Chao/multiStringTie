@@ -1,4 +1,4 @@
-#include "multist.h"
+#include "dot_record.h"
 #include "GBitVec.h"
 #include "unispg.h"
 #include <float.h>
@@ -24,21 +24,21 @@ bool DOTInputFile::start(const char* fn) {
 	// 	this -> rec = this -> reader->next();
 	// }
 	return is_dot_open;
-    // UnispgGp* brec=this -> reader->next();
+    // UnispgGp_APPLY* brec=this -> reader->next();
 }
 
 
-UnispgGp* DOTInputFile::next() {
+UnispgGp_APPLY* DOTInputFile::next() {
 	//must free old current record first
 	// delete rec;
 	rec=NULL;
 	rec = reader->next();
-	// this -> updateUnispgGpGp();
+	// this -> updateUnispgGp_APPLYGp();
 	// uni_splice_graphs
 	return rec;
     // if (recs.Count()>0) {
     // 	crec=recs.Pop();//lowest coordinate
-    	// UnispgGp* rnext = this->reader->next();
+    	// UnispgGp_APPLY* rnext = this->reader->next();
     	// if (rnext)
     	// 	recs.Add(new DOTInputRecord(rnext, crec->fidx));
     	// return crec->brec;

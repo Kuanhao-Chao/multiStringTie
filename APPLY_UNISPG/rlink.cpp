@@ -7,9 +7,6 @@
 #include "proc_mem.h"
 #endif
 
-
-#define BSIZE 10000 // bundle size
-
 //import globals from main program:
 
 //extern GffNames* gseqNames;

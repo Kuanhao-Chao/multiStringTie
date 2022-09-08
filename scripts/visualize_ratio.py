@@ -9,7 +9,7 @@ with open(sys.argv[1], 'r') as f:
 
     arr = np.array(lines_split)
 
-filter_arr = arr[:,0] < 10000
+filter_arr = arr[:,0] < 500
 newarr = arr[filter_arr]
 # newarr = arr
 

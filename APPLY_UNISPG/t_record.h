@@ -1,13 +1,20 @@
-#ifndef STRINGTIE_MERGE_H_
-#define STRINGTIE_MERGE_H_
-#include "GStr.h"
-#include "GList.hh"
-#include "rlink.h"
-extern GStr tmp_path;
-extern GStr cram_ref;
-extern bool keepTempFiles;
-extern bool debugMode; // "debug" or "D" tag.
-extern bool verbose; // "v" tag.
+#ifndef __T_RECORD_H__
+#define __T_RECORD_H__
+
+#pragma once
+
+#include "global_params.h"
+
+// #include "GStr.h"
+// #include "GSam.h"
+// #include "gff.h"
+// #include "GList.hh"
+// #include "rlink.h"
+// extern GStr tmp_path;
+// extern GStr cram_ref;
+// extern bool keepTempFiles;
+// extern bool debugMode; // "debug" or "D" tag.
+// extern bool verbose; // "v" tag.
 
 struct TInputRecord {
 	GSamRecord* brec;
@@ -74,4 +81,4 @@ struct TInputFiles {
 };
 
 
-#endif /* STRINGTIE_MERGE_H_ */
+#endif /* __T_RECORD_H__ */

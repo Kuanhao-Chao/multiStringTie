@@ -5,8 +5,12 @@
  *      Author: gpertea
  */
 
-#ifndef TABLEMAKER_H_
-#define TABLEMAKER_H_
+#ifndef __TABLEMAKER_H__
+#define __TABLEMAKER_H__
+#pragma once
+
+#include "global_params.h"
+
 #include <vector>
 #include <map>
 #include <set>
@@ -444,4 +448,4 @@ struct RC_BundleData {
 
 void rc_update_exons(RC_BundleData& rc);
 
-#endif /* TABLEMAKER_H_ */
+#endif /* __TABLEMAKER_H__ */

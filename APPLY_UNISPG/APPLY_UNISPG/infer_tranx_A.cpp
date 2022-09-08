@@ -1,52 +1,14 @@
-#include "infer_tranx.h"
-int infer_transcripts_CREATE_UNISPG(BundleData* bundle, int fidx) {
-    int geneno=0;
-	//DEBUG ONLY: 	showReads(refname, readlist);
+#include "infer_tranx_A.h"
 
-/*
-#ifdef GMEMTRACE
-	double vm,rsm;
-	get_mem_usage(vm, rsm);
-	GMessage("\t\tM(s):infer_transcripts memory usage: rsm=%6.1fMB vm=%6.1fMB\n",rsm/1024,vm/1024);
-#endif
-*/
-	if(mergeMode) {
-	// 	//count_merge_junctions(bundle->readlist,bundle->covflags); // this make sense only if I want to count junctions
-		// geneno = build_merge(bundle);
-
-	} 
-	// else if (multiMode && (bundle->keepguides.Count() || !eonly)) {
-	// 	fprintf(stderr, "This is the multiMiode of the graph.\n");
-	// 	count_good_junctions(bundle);
-	// 	geneno = build_graphs_multi(bundle, unispg_gp);
-	// }
-	else if(bundle->keepguides.Count() || !eonly) {
-		//fprintf(stderr,"Process %d reads from %lu.\n",bundle->readlist.Count(),bundle->numreads);
-		count_good_junctions(bundle);
-		// geneno = build_graphs(bundle);
-		// geneno = build_graphs_CREATE_UNISPG(bundle, fidx);
-		// geneno = build_graphs_unispg(bundle, unispg_gp);
-	}
-
-/*
-#ifdef GMEMTRACE
-	//double vm,rsm;
-	get_mem_usage(vm, rsm);
-	GMessage("\t\tM(e):infer_transcripts memory usage: rsm=%6.1fMB vm=%6.1fMB\n",rsm/1024,vm/1024);
-#endif
-*/
-	return(geneno);
-}
-
-void infer_transcripts_unispg(BundleData* bundle, GPVec<UnispgGp>** graphs_vec) {
+void infer_transcripts_APPLY_UNISPG(BundleData* bundle, GPVec<UnispgGp_APPLY>** graphs_vec) {
 
     int refstart = bundle->start;
     int refend = bundle->end;
 
-    count_good_junctions(bundle);
+    count_good_junctions_APPLY_UNISPG(bundle);
 	
     // geneno = build_graphs_unispg(bundle, unispg);
-    fprintf(stderr, "Inside `infer_transcripts_unispg`\n");
+    fprintf(stderr, "Inside `infer_transcripts_APPLY_UNISPG`\n");
     fprintf(stderr, "bundle->readlist.Count(): %d\n", bundle->readlist.Count());
     fprintf(stderr, "bundle->bpcov[1].Count(): %d\n", bundle->bpcov[1].Count());
     fprintf(stderr, "bundle->start - end: %d - %d\n", bundle->start, bundle->end);
@@ -65,7 +27,7 @@ void infer_transcripts_unispg(BundleData* bundle, GPVec<UnispgGp>** graphs_vec) 
     }
 
     /*****************************
-     **    'get_fragment_pattern' function
+     **    'get_fragment_pattern_APPLY_UNISPG' function
      **        because of this going throu
      *****************************/
     int global_gidx[2] = {0};
@@ -85,13 +47,13 @@ void infer_transcripts_unispg(BundleData* bundle, GPVec<UnispgGp>** graphs_vec) 
                     fprintf(stderr, ">> n: %d;   np: %d\n", n, np);
                     if (n < np) {
                         // fprintf(stderr, ">> n < np: %d\n", n < np);
-                        get_fragment_pattern(bundle, bundle->readlist, n, np, bundle->readlist[n]->pair_count[i], graphs_vec, global_gidx);
+                        get_fragment_pattern_APPLY_UNISPG(bundle, bundle->readlist, n, np, bundle->readlist[n]->pair_count[i], graphs_vec, global_gidx);
                             // readlist,n,np,readlist[n]->pair_count[j],readgroup,merge,group2bundle,bundle2graph,graphno,edgeno,gpos,no2gnode,transfrag,tr2no,group);
                     }
                 }
             }
             if (single_count > epsilon) {
-                get_fragment_pattern(bundle, bundle->readlist, n, -1, single_count, graphs_vec, global_gidx);
+                get_fragment_pattern_APPLY_UNISPG(bundle, bundle->readlist, n, -1, single_count, graphs_vec, global_gidx);
                     // readlist,n,-1,single_count,readgroup,merge,group2bundle,bundle2graph,graphno,edgeno,gpos,no2gnode,transfrag,tr2no,group);
             }
         } else {
@@ -126,12 +88,13 @@ void infer_transcripts_unispg(BundleData* bundle, GPVec<UnispgGp>** graphs_vec) 
                 
 
                 float expected_cov_pos = graphs_vec[1]->Get(g)->no2gnode_unispg[1][0].Get(n)->cov_s->Get(0);
+                int expected_len_pos = int(graphs_vec[1]->Get(g)->no2gnode_unispg[1][0].Get(n)->len());
                 float new_cov_pos = graphs_vec[1]->Get(g)->no2gnode_unispg[1][0].Get(n)->cov_unispg_s[0];
 
-                fprintf(stderr, ">> expected_cov_pos: %f;  new_cov_pos: %f\n", expected_cov_pos, new_cov_pos);
+                fprintf(stderr, ">> expected_cov_pos: %f;  new_cov_pos: %f\n", expected_cov_pos/expected_len_pos, new_cov_pos/expected_len_pos);
 
-                ratio_file_pos << expected_cov_pos << "\t" << new_cov_pos << "\n";
-
+                cov_file_pos << expected_cov_pos << "\t" << new_cov_pos << "\n";
+                cov_file_pos_norm << (expected_cov_pos/expected_len_pos) << "\t" << (new_cov_pos/expected_len_pos) << "\n";
             }
         }
     } else if (graphs_vec[1]->Count() == 0) {
@@ -142,11 +105,14 @@ void infer_transcripts_unispg(BundleData* bundle, GPVec<UnispgGp>** graphs_vec) 
                 fprintf(stderr, "g: %d; n: %d; ref (%d - %d); graphs_vec[%d][%d] nodeid: %d (%u - %u)\n", g, n, graphs_vec[0]->Get(g)->get_refstart(), graphs_vec[0]->Get(g)->get_refend(), g, n, graphs_vec[0]->Get(g)->no2gnode_unispg[0][0].Get(n)->nodeid, graphs_vec[0]->Get(g)->no2gnode_unispg[0][0].Get(n)->start, graphs_vec[0]->Get(g)->no2gnode_unispg[0][0].Get(n)->end);
                 
                 float expected_cov_neg = graphs_vec[0]->Get(g)->no2gnode_unispg[0][0].Get(n)->cov_s->Get(0);
+                int expected_len_neg = int(graphs_vec[0]->Get(g)->no2gnode_unispg[0][0].Get(n)->len());
                 float new_cov_neg = graphs_vec[0]->Get(g)->no2gnode_unispg[0][0].Get(n)->cov_unispg_s[0];
 
-                fprintf(stderr, ">> expected_cov_neg: %f;  new_cov_neg: %f.", expected_cov_neg, new_cov_neg);
+                fprintf(stderr, ">> expected_cov_neg: %f;  new_cov_neg: %f.", expected_cov_neg/expected_len_neg, new_cov_neg/expected_len_neg);
                 
-                ratio_file_neg << expected_cov_neg << "\t" << new_cov_neg << "\n";
+
+                cov_file_neg << expected_cov_neg << "\t" << new_cov_neg << "\n";
+                cov_file_neg_norm << (expected_cov_neg/expected_len_neg) << "\t" << (new_cov_neg/expected_len_neg) << "\n";
             }
         }
     }
