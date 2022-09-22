@@ -12,6 +12,7 @@
 // #include "GHashMap.hh"
 // #include "unispg.h"
 #include "global_params.h"
+#include "helper.h"
 #include "APPLY_UNISPG/unispg_A.h"
 
 #include <fstream>
@@ -93,13 +94,14 @@ class DOTReader {
             int refend = 0;
             int s = 0;
             int g_idx = 0;
+            int g_num = 0;
             bool add_source = true;
             bool add_sink = true;
             while ((pos = line.find(delimiter)) != string::npos) {
                token = line.substr(0, pos);
                // std::cout << token << std::endl;
                // fprintf(stderr, "token: %s\n", token.c_str());
-               regex title_rgx("strict\\s+digraph\\s+(\\w+)_(\\w+)_(\\w+)_(\\w+)");
+               regex title_rgx("strict\\s+digraph\\s+(\\w+)_(\\w+)_(\\w+)_(\\w+)_(\\w+)");
                smatch match;
                fprintf(stderr, "line: %s \n", line.c_str());
                if (regex_search(token, match, title_rgx)) {
@@ -107,6 +109,7 @@ class DOTReader {
                   refend = stoi(match[2]);
                   s = stoi(match[3]);
                   g_idx = stoi(match[4]);
+                  g_num = stoi(match[5]);
                   // Set back to 0 first.
                   g_idx = 0;
                   // fprintf(stderr, "ref : %d - %d, %d, %d\n", refstart, refend, s, g_idx);
@@ -121,7 +124,7 @@ class DOTReader {
 
             // UnispgGp_APPLY* uni_splice_graph = new UnispgGp_APPLY();
             fprintf(stderr, ">> boundaries: %u - %u\n ", refstart, refend);
-            UnispgGp_APPLY* uni_splice_graph = new UnispgGp_APPLY(refstart, refend);
+            UnispgGp_APPLY* uni_splice_graph = new UnispgGp_APPLY(refstart, refend, g_num);
 
             uni_splice_graph->ProcessSample(fname);
 			   // uni_splice_graph->PrintGraphGp();
@@ -133,6 +136,8 @@ class DOTReader {
             token = "";
             uni_splice_graph->graphno_unispg[s] = 2;
             uni_splice_graph->edgeno_unispg[s] = 0;
+            int node_num = 0;
+            int edge_num = 0;
             while ((pos = line.find(delimiter)) != string::npos) {
                int node_id = 0;
                int start = 0;
@@ -149,6 +154,7 @@ class DOTReader {
                smatch match;
 
                if (add_source) {
+                  node_num += 1;
                   // Add Source
                   GVec<bool>* is_passed_s_source = new GVec<bool>(sample_num-1, false);
                   GVec<float>* cov_s_source = new GVec<float>(sample_num-1, 0.0f);
@@ -164,6 +170,8 @@ class DOTReader {
 
                if (regex_search(token, match, node_rgx)) {
                   node_id = stoi(match[1]);
+                  // if (max_node_id < node_id) max_node_id = node_id;
+                  node_num += 1;
                   start = stoi(match[2]);
                   end = stoi(match[3]);
                   cov = stof(match[4]);
@@ -187,16 +195,26 @@ class DOTReader {
                if (regex_search(token, match, edge_rgx)) {
                   // Add Sink
                   if (add_sink) {
+                     node_num += 1;
                      GVec<bool>* is_passed_s_sink = new GVec<bool>(sample_num-1, false);
                      GVec<float>* cov_s_sink = new GVec<float>(sample_num-1, 0.0f);
                      GVec<float>* capacity_s_sink = new GVec<float>(sample_num-1, 0.0f);
                      // delete source_gp[s];
-                     CGraphnodeUnispg* sink = new CGraphnodeUnispg(sample_num, 0, 0, 0, is_passed_s_sink, cov_s_sink, capacity_s_sink, true, 0, 0, 0);
+                     CGraphnodeUnispg* sink = new CGraphnodeUnispg(sample_num, 0, 0, node_num, is_passed_s_sink, cov_s_sink, capacity_s_sink, true, 0, 0, 0);
                      uni_splice_graph->no2gnode_unispg[s][g_idx].Add(sink);
                      add_sink = false;
                   }
+                  edge_num += 1;
+
                   tail = stoi(match[1]);
                   head = stoi(match[2]);
+
+                  // Consturcting edge key.
+				      int key=edge(tail, head, node_num);
+                  int *pos=uni_splice_graph->gpos[s][g_idx][key];
+                  if(pos==NULL) {
+                     uni_splice_graph->gpos[s][g_idx].Add(key,node_num-1+edge_num);
+                  }
                   // uni_splice_graph->AddEdge(refstart, refend, tail, head);
 
                   uni_splice_graph->no2gnode_unispg[s][g_idx].Get(tail)->child.cAdd(head);
@@ -210,7 +228,7 @@ class DOTReader {
                // no2gnode
             }
             // uni_splice_graph -> PrintGraph();
-
+            uni_splice_graph->set_N_E_num(s, node_num, edge_num);
             return uni_splice_graph;
          } else {    
             return NULL;        

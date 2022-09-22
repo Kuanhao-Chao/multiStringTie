@@ -22,18 +22,6 @@ void printBitVecTest(GBitVec& bv) {
 
 void UnispgGp::ProcessSample(GStr sample_name) {
     samples.Add(sample_name);
-    // for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-    //     int s=sno/2; // adjusted strand due to ignoring neutral strand
-    //     current_gidx[s] = 0;
-    //     new_gidx[s] = 0;
-    //     last_nidx[s] = 1; // node id
-    //     prev_bdy[s] = 0;
-    //     lclg_bundle_num[s] = 1;
-    //     has_unispg_tail[s] = false;
-
-    //     // source_gp[s] = new CGraphnodeUnispg();
-    //     // sink_gp[s] = new CGraphnodeUnispg();
-    // }
 }
 
 // void UnispgGp::PrintGraphGp() {

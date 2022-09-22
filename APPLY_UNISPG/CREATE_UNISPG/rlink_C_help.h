@@ -4,6 +4,7 @@
 #pragma once
 
 #include "global_params_C.h"
+#include "../helper.h"
 
 void parse_trf_unispg(int maxi,int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraphnode>& no2gnode,GPVec<CTransfrag>& transfrag,
 		int& geneno,bool first,int strand,GList<CPrediction>& pred,GVec<float>& nodecov,

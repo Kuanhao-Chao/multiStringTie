@@ -2534,6 +2534,7 @@ void UnispgGp_CREATE::WriteUNISPG_DOT(int fidx, int s, int unispg_start_idx, int
             fprintf(stderr,"after traverse:\n");
             // uinigraph_out
             // fprintf(stderr,"strict digraph %d_%d_%d_%d {", no2gnode_unispg[s][g].Get(1)->start, no2gnode_unispg[s][g].Get(no2gnode_unispg[s][g].Count()-2)->end, s, g);
+            GStr node_g_num(unispg_end_idx);
             GStr node_g(g);
             GStr strand_s(s);
             int node_start = 0;
@@ -2543,7 +2544,7 @@ void UnispgGp_CREATE::WriteUNISPG_DOT(int fidx, int s, int unispg_start_idx, int
             unispg_start = int(no2gnode_unispg[s][g][1]->start);
             unispg_end = int(no2gnode_unispg[s][g][ no2gnode_unispg[s][g].Count()-2 ]->end);
 
-            GStr dot_first_line = "strict digraph " + unispg_start + "_" + unispg_end + "_" + strand_s + "_" + node_g + " {";
+            GStr dot_first_line = "strict digraph " + unispg_start + "_" + unispg_end + "_" + strand_s + "_" + node_g + "_" + node_g_num + " {";
 
             fprintf(stderr, dot_first_line.chars());
             fprintf(dot_vec[s]->Get(fidx), dot_first_line.chars());

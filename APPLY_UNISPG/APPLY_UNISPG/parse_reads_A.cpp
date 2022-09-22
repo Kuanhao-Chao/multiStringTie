@@ -1,7 +1,7 @@
 #include "parse_reads_A.h"
 
-void get_fragment_pattern_APPLY_UNISPG(BundleData* bundle, GList<CReadAln>& readlist, int n, int np, float readcov, GPVec<UnispgGp_APPLY>** graphs_vec, int* global_gidx) {
-    fprintf(stderr, "get_fragment_pattern_APPLY_UNISPG is called. \n");
+void get_fragment_pattern_APPLY_UNISPG(BundleData* bundle, GList<CReadAln>& readlist, int n, int np, float readcov, GPVec<UnispgGp_APPLY>** graphs_vec, int* global_gidx, GPVec<CTransfrag> **transfrag, GPVec<CMTransfrag>** mgt, CTreePat ***tr2no) {
+    fprintf(stderr, ">> get_fragment_pattern_APPLY_UNISPG is called. \n");
 
 	int refstart = bundle->start;
     int refend = bundle->end;
@@ -15,7 +15,7 @@ void get_fragment_pattern_APPLY_UNISPG(BundleData* bundle, GList<CReadAln>& read
 	float rprop[2]={0,0}; // by default read does not belong to any strand
 
 	/*****************************
-	 * Step 1: Calculatingt the redistribution ratio (for each read).
+	 * Step 1: Calculating the redistribution ratio (for each read).
 	 *****************************/
 	// nh => number of reported alignments that contain the query in the current record.
 	if(readlist[n]->nh && !readlist[n]->strand && np>-1 && readlist[np]->nh && !readlist[np]->strand) {
@@ -64,38 +64,37 @@ void get_fragment_pattern_APPLY_UNISPG(BundleData* bundle, GList<CReadAln>& read
          *   (1) confirm each read belongs to which nodes
          *   (2) the node coverage gonna be updated
          *****************************/
-    	// rgno: It stores the bundle<->graph indices in a BundleData that a read belongs to.
-		GVec<int> rgno;
-	    // rnode: It stores the node indices in the bundle<->graph indices in a BundleData that a read belongs to.
-		GVec<int> *rnode=new GVec<int>[readlist[n]->segs.Count()];
-
-		if(readlist[n]->nh) {
-			get_read_pattern_APPLY_UNISPG(s, readcov, rprop[s], readlist, n, rgno, rnode, graphs_vec, global_gidx);
-        }
-
-    	// pgno: It stores the paired bundle<->graph indices in a BundleData that a read belongs to.
-		GVec<int> pgno;
-	    // pnode: It stores the paired node indices in the bundle<->graph indices in a BundleData that a read belongs to.
-		GVec<int> *pnode=NULL;
-
-        if(np>-1 && readlist[np]->nh) {
-			pnode=new GVec<int>[readlist[np]->segs.Count()];
-			get_read_pattern_APPLY_UNISPG(s, readcov, rprop[s], readlist, np, rgno, rnode, graphs_vec, global_gidx);
-		}
-
 
         /*****************************
-         * Step 1-2: actually create a pattern for a read
+         * Step 1-1-1: main read!
          *****************************/
+    	// rgno: It stores the bundle<->graph indices in a BundleData that a read belongs to.
+		int rgno = 0;
+	    // rnode: It stores the node indices in the bundle<->graph indices in a BundleData that a read belongs to.
+		GVec<int> rnode;
         // Read pattern
         GBitVec rpat;
+		if(readlist[n]->nh) {
+			get_read_pattern_APPLY_UNISPG(s, readcov, rprop[s], readlist, n, rnode, graphs_vec, rpat, global_gidx, transfrag, mgt, tr2no);
+        }
+
+        /*****************************
+         * Step 1-1-2: paired read!
+         *****************************/
+    	// pgno: It stores the paired bundle<->graph indices in a BundleData that a read belongs to.
+		int pgno = 0;
+	    // pnode: It stores the paired node indices in the bundle<->graph indices in a BundleData that a read belongs to.
+		GVec<int> pnode;
         // Paired pattern
         GBitVec ppat;
+        if(np>-1 && readlist[np]->nh) {
+			get_read_pattern_APPLY_UNISPG(s, readcov, rprop[s], readlist, np, pnode, graphs_vec, ppat, global_gidx, transfrag, mgt, tr2no);
+		}
+
         int usedp=0;
 
         // set read pattern
         rpat.clear();
-        // rpat.resize(graphno[s][rgno[r]]+edgeno[s][rgno[r]]);
         int i=0;
         int clear_rnode=0;
 
@@ -107,113 +106,244 @@ void get_fragment_pattern_APPLY_UNISPG(BundleData* bundle, GList<CReadAln>& read
  * (1) confirm each read belongs to which nodes
  * (2) the node coverage gonna be updated
  *****************************/
-void get_read_pattern_APPLY_UNISPG(int s, float readcov, float rprop, GList<CReadAln>& readlist, int n,GVec<int> &rgno, GVec<int> *rnode, GPVec<UnispgGp_APPLY>** graphs_vec, int* global_gidx) {
-
-	// rgno: It stores the bundle<->graph indices in a BundleData that a read belongs to.
-	// rnode: It stores the node indices in the bundle<->graph indices in a BundleData that a read belongs to.
-
+void get_read_pattern_APPLY_UNISPG(int s, float readcov, float rprop, GList<CReadAln>& readlist, int n, GVec<int>& nodes, GPVec<UnispgGp_APPLY>** graphs_vec, GBitVec& pat, int* global_gidx, GPVec<CTransfrag> **transfrag, GPVec<CMTransfrag>** mgt, CTreePat ***tr2no) {
+	// nodes: It stores the node indices in the bundle<->graph indices in a BundleData that a read belongs to.
 	fprintf(stderr, ">> Inside 'get_read_pattern_APPLY_UNISPG'\n");
 	int lastgnode=-1;
 	int lastngraph=-1;
-	int ncoord=readlist[n]->segs.Count();
-	// int k=0; // need to keep track of coordinates already added to coverages of graphnodes
-	int kmer=KMER-1; //f1
-
-	GIntHash<bool> hashnode;
-
-    // Here, I need to link a read to the node/nodes that it belongs to
 
 	/*****************************
-	 * Using the whole read start/end to anchor the graph.
-	 * (1) Iterate through segments in nodes. Check which node it belongs to. 
-	 * (2) Iterate through graphs
-	 * (3) Iterate through nodes in the graph
+	 * Definition: Read information.
 	 *****************************/
+	int ncoord=readlist[n]->segs.Count();
 	uint r_start = readlist[n]->start;
 	uint r_end = readlist[n]->end;
+	// int k=0; // need to keep track of coordinates already added to coverages of graphnodes
+	int kmer=KMER-1; //f1
+	bool gn_r_overlap = false;
+
+	GIntHash<bool> hashnode;
+    // Here, I need to link a read to the node/nodes that it belongs to
+	/*****************************
+	 * Using the whole read start/end to anchor the graph.
+	 * (1) Iterate through graphs
+	 * (2) Check if a read overlaps the graph.
+	 * (3) Iterate through segments in a read & nodes in the graph
+	 *     (3.1) Check if a read segment overlap a node.
+	 *     (3.2) Create a transfrag for a read.
+	 *****************************/
+
 	fprintf(stderr, ">> Read (%d - %d)\n", r_start, r_end);
 
-	for (int k=0; k<ncoord; k++) {
-    	fprintf(stderr, ">> s: %d; n: %d; global_gidx[0]: %d; global_gidx[1]: %d; k: %d\n", s, n, global_gidx[0], global_gidx[1], k);
+	int g_sidx = 0;
+	if (global_gidx[s] == 0) {
+		g_sidx = 0;
+	} else {
+		g_sidx = global_gidx[s]-1;
+	}
+	
+	/*****************************
+	 * (1) Iterate through graphs
+	 *****************************/
+	int g = 0; 
+	int node_num = 0;
+	int edge_num = 0;
+	// break when gn_r_overlap equals true.
+	for (g=g_sidx; (g<graphs_vec[s]->Count() && !gn_r_overlap); g++) {
+		// We can create different transfrag based on different graphs.
+		/*****************************
+		 * Definition: Graph information.
+		 *****************************/
+		fprintf(stderr, ">> g_local: %d\n", g);
+		int g_start = graphs_vec[s]->Get(g)->get_refstart();
+		int g_end = graphs_vec[s]->Get(g)->get_refend();
+		int g_node_num = graphs_vec[s]->Get(g)->no2gnode_unispg[s][0].Count();
+		int g_node_capacity = graphs_vec[s]->Get(g)->no2gnode_unispg[s][0].Capacity();
+
+		fprintf(stderr, ">> g_node_num: %d;  g_node_capacity: %d \n", g_node_num, g_node_capacity);
 
 
-		uint rseg_start = readlist[n]->segs[k].start;
-		uint rseg_end = readlist[n]->segs[k].end;
-		for (int g=global_gidx[s]; g<graphs_vec[s]->Count(); g++) {
-		// for (int g=0; g<graphs_vec[s]->Count(); g++) {
-			fprintf(stderr, ">> g_local: %d\n", g);
-			int g_start = graphs_vec[s]->Get(g)->get_refstart();
-			int g_end = graphs_vec[s]->Get(g)->get_refend();
+		/*****************************
+	 	 * (2) Check if a read overlaps the graph.
+		 *****************************/
+        bool g_r_overlap = segs_overlap(g_start, g_end, r_start, r_end);
+		if (g_r_overlap) {
+			/*****************************
+			 * (2.1) We need to create a pattern for this read based on the overlapped graph.
+			 *****************************/
+			pat.reset();
 
+			node_num = graphs_vec[s]->Get(g)->node_nums[s][0];
+			edge_num = graphs_vec[s]->Get(g)->edge_nums[s][0];
+			fprintf(stderr, ">> node_num: %d;  edge_num: %d\n", node_num, edge_num);
+			pat.resize(node_num + edge_num);
+			/*****************************
+	 		 * (3) Iterate through segments in a read & nodes in the graph
+			 *****************************/
+			int nidx = 1; 
+			int k = 0;
+			while (nidx < g_node_num-1 && k < ncoord) {
+				fprintf(stderr, ">> s: %d; n: %d; global_gidx[0]: %d; global_gidx[1]: %d; k: %d\n", s, n, global_gidx[0], global_gidx[1], k);
 
-			if (g_end < r_start) {
-				fprintf(stderr, "|(g)-------(g)|   (r).......(r)\n");
-				global_gidx[s] += 1;
-				fprintf(stderr, ">> s: %d; global_gidx[s]: %d; g_local: %d\n", s, global_gidx[s], g);
-				continue;
-			}
+				/*****************************
+				 * (3.1) rseq-related information.
+				 *****************************/
+				uint rseg_start = readlist[n]->segs[k].start;
+				uint rseg_end = readlist[n]->segs[k].end;
+				// fprintf(stderr, ">> rseg (%u - %u)\n", rseg_start, rseg_end);
 
-            bool g_rseq_overlap = segs_overlap(g_start, g_end, rseg_start, rseg_end);
+				/*****************************
+				 * (3.2) node-related information
+				 *****************************/
+				CGraphnodeUnispg *node = graphs_vec[s]->Get(g)->no2gnode_unispg[s][0][nidx];
+				uint n_start = node->start;
+				uint n_end = node->end;
+				// fprintf(stderr, ">> node (%u - %u)\n", n_start, n_end);
 
-			if (g_rseq_overlap) {
+				/*****************************
+				 * (3.3) Check if rseq * node are overlapped.
+				 *****************************/
 
-
-				// Iterating through nodes in the graph
-				for (int nidx=1; nidx<graphs_vec[s]->Get(g)->no2gnode_unispg[s][0].Count()-1; nidx++) {
-					// fprintf(stderr, ">> graphs_vec[s]->Get(g)->no2gnode_unispg[s][0].Count(): %d\n", graphs_vec[s]->Get(g)->no2gnode_unispg[s][0].Count());
-
-					CGraphnodeUnispg *node = graphs_vec[s]->Get(g)->no2gnode_unispg[s][0][nidx];
-					// fprintf(stderr, ">> node: %p\n", node);
-					// fprintf(stderr, ">> node: %u - %u\n", node->start, node->end);
-
-					uint n_start = node->start;
-					uint n_end = node->end;
-					// fprintf(stderr, ">> graphs_vec[s]->Get(g)->no2gnode_unispg[s][0]: %u - %u\n", n_start, n_end);
-
-					// int bp = readlist[n]->segs[k].overlapLen(n_start, n_end);
+    			bool intersect=false;
+				while (k < ncoord) {
+					// fprintf(stderr, ">> k: %d,  ncoord: %d\n", k, ncoord);
+					rseg_start = readlist[n]->segs[k].start;
+					rseg_end = readlist[n]->segs[k].end;
+					// fprintf(stderr, ">> rseg (%u - %u)\n", rseg_start, rseg_end);
 					int bp = node->calOverlapLen(rseg_start, rseg_end);
-
-					// int bp = calOverlapLen(n_start, n_end, rseg_start, rseg_end);
-					// // // int bp = readlist[n]->segs[k].overlapLen();
-					// // // int bp = overlapLen(n_start, n_end, rseg_start, rseg_end);
 					if(bp) {
-						// intersect=true;
+						intersect = true;
+						gn_r_overlap = true;
 						fprintf(stderr, ">> bp: %d \n", bp);
-						/*****************************
-						 ** Update the realist if it is not a unitig.
-						 *****************************/
-						// node->cov_s[0]+=rprop*bp*readcov;
-						
 						graphs_vec[s]->Get(g)->no2gnode_unispg[s][0][nidx]->cov_unispg_s[0] += rprop*bp*readcov;
-
 						fprintf(stderr, ">> node->cov_s[0]: %f\n", graphs_vec[s]->Get(g)->no2gnode_unispg[s][0][nidx]->cov_unispg_s[0]);
-
-						// fprintf(stderr, ">> node->cov_s[0]: %f; (rprop: %f; bp: %d; readcov: %f) \n", rprop*bp*readcov, rprop, bp, readcov);
-
-
-						// if(readlist[n]->segs[k].end<=n_end) ;
-						// else break;
-
-						// else if (n_end < rseg_start) {
-						// 	// |(n)-------(n)|  (rseg).......(rseg)
-						// 	continue;
-						// }
-					}
-					if (rseg_end <= n_end) {
-						// (rseg).......(rseg)  |(n)-------(n)|
-						break;
-					} 
+						if (rseg_end <= n_end) k++;
+						else break; 
+					} else break;
 				}
 
-			} else if (rseg_end < g_start) {
-				// (rseg).......(rseg)  |(g)-------(g)|
-				fprintf(stderr, "(rseg).......(rseg)  |(g)-------(g)|\n");
-				break;
-			} else if (g_end < rseg_start) {
-				// |(g)-------(g)|  (rseg).......(rseg)
-				fprintf(stderr, "|(g)-------(g)|  (rseg).......(rseg)\n");
-				continue;
+				if (intersect) {
+					/*****************************
+					 ** (3.4) Overlap occurs => set the edge bit first. 
+					 *****************************/
+					if (lastgnode > -1) {
+						int min = lastgnode;
+						int max = nidx; 	
+						int *pos=graphs_vec[s]->Get(g)->gpos[s][0][edge(min,max,g_node_num)];
+						if(pos!=NULL) {
+							pat[*pos] = 1;
+						}
+					}
+					fprintf(stderr, "nodes.Add(nidx): nidx: %d\n", nidx);
+					nodes.Add(nidx);
+					/*****************************
+					 ** (3.5) Overlap occurs => set the node bit 
+					 *****************************/
+					pat[nidx] = 1;
+					lastgnode = nidx;
+				}
+				nidx++;
 			}
+
+		} else if (g_end <= r_start) {
+			// Move on to the next graph!!
+			fprintf(stderr, "|(g)-------(g)|   (r).......(r)\n");
+			global_gidx[s] += 1;
+			fprintf(stderr, ">> s: %d; global_gidx[s]: %d; g_local: %d\n", s, global_gidx[s], g);
+			continue;
+		} else {
+			// (r).......(r)  |(g)-------(g)|
+			// It's done processing this read. => break!
+			break;
 		}
 	}
+
+	g -= 1;
+	if (gn_r_overlap) {
+		fprintf(stderr, ">> Printing bitvector: ");
+		printBitVec(pat);
+		fprintf(stderr, "\n");
+
+      	/*****************************
+         * (4) Update the abundance of transfrag 
+		 *   (4.1) Update the abundance.
+		 *   (4.2) push the read pattern into transfrag
+		 *   (4.3) Iteratively create the CTreePat.
+         *****************************/
+		CTransfrag *t=update_read_pattern_abund_APPLY_UNISPG(s, g, node_num, graphs_vec[s]->Get(g)->gpos[s][0], pat, readcov, nodes, transfrag, mgt, tr2no);
+
+      	/*****************************
+         * (4) Update the MTransfrag
+         *****************************/
+		int mgt_idx = 0;
+		while (mgt_idx < mgt[s][g].Count()) {
+			if(mgt[s][g][mgt_idx]->transfrag == t) {
+				for(int x=0;x<readlist[n]->pair_idx.Count();x++) {
+					mgt[s][g][mgt_idx]->read.Add(readlist[n]->pair_idx[x]);
+				}
+				//mgt[s][rgno[s]][i]->read.Add(n);
+				mgt[s][g][mgt_idx]->len=readlist[n]->len;
+				break;
+			}
+			mgt_idx++;
+		}
+		if(mgt_idx == mgt[s][g].Count()) { // MTransfrag not found
+			CMTransfrag *mt=new CMTransfrag(t);
+			for(int x=0;x<readlist[n]->pair_idx.Count();x++) {
+				mt->read.Add(readlist[n]->pair_idx[x]);
+			}
+			mt->len=readlist[n]->len;
+			mgt[s][g].Add(mt);
+		}
+	}
+}
+
+
+CTransfrag* update_read_pattern_abund_APPLY_UNISPG(int s,int g, int node_num, GIntHash<int>& gpos, GBitVec& pat, float abundance, GVec<int>& nodes, GPVec<CTransfrag> **transfrag, GPVec<CMTransfrag>** mgt, CTreePat ***tr2no){
+
+	// fprintf(stderr, ">> Inside 'update_read_pattern_abund_APPLY_UNISPG'!!\n");
+	/*
+	{ // DEBUG ONLY
+		// fprintf(stderr,"Update transfrag[%d][%d] longread=%d:",s,g,is_lr);
+		for(int i=0;i<nodes.Count();i++) fprintf(stderr," %d",nodes[i]);
+		fprintf(stderr," with abundance=%f in graph[%d][%d]\n",abundance,s,g);
+	}
+	*/
+	CTransfrag *t = findtrf_in_treepat_APPLY_UNISPG(node_num, gpos, nodes,pat,tr2no[s][g]);
+	if(!t) { // t is NULL
+	  t=new CTransfrag(nodes,pat,0);
+
+	  /*
+		{ // DEBUG ONLY
+			fprintf(stderr,"Add update transfrag[%d][%d]=%d and pattern",s,g,transfrag[s][g].Count());
+			fprintf(stderr," (check nodes:");
+			for(int i=0;i<nodes.Count();i++) fprintf(stderr," %d",nodes[i]);
+			fprintf(stderr,")");
+			//printBitVec(pattern);
+			fprintf(stderr,"\n");
+		}
+	   */
+
+	  transfrag[s][g].Add(t);
+
+	  // nodes.Sort() : nodes should be sorted; if they are not then I should update to sort here
+	  CTreePat *tree=tr2no[s][g];
+	  for(int n=0;n<nodes.Count();n++) {
+		  CTreePat *child;
+		  if(n) { // not the first node in pattern
+			  int *pos=gpos[edge(nodes[n-1],nodes[n],node_num)];
+			  if(pos && pat[*pos]) // there is an edge between nodes[n-1] and nodes[n]
+				  child=tree->settree(node_num-1-nodes[n-1]+nodes[n]-nodes[n-1]-1,nodes[n],2*(node_num-nodes[n]-1));
+			  else child=tree->settree(nodes[n]-nodes[n-1]-1,nodes[n],2*(node_num-nodes[n]-1));
+		  }
+		  else child=tree->settree(nodes[n]-1,nodes[n],2*(node_num-nodes[n]-1));
+		  tree=child;
+	  }
+	  tree->tr=t;
+	}
+
+	//fprintf(stderr,"Set short read\n");
+	t->shortread=true;
+	t->abundance+=abundance;
+	return(t);
 }

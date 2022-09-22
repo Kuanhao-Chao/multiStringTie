@@ -14,8 +14,7 @@
 // #include "definitions.h"
 #include "global_params.h"
 #include "tablemaker.h"
-
-
+#include "static_func.h"
 
 const double epsilon=0.000001; //-E
 const float trthr=1.0;   // transfrag pattern threshold

@@ -121,6 +121,8 @@ extern double Cov_Sum;
 extern int GeneNo; //-- global "gene" counter
 // For multistringtie applyUNISPG only. Counting how many reads are skipped (not processed).
 extern int skip_counter;
+extern int boundary_counter;
+extern int skip_counter_nh;
 extern int allowed_nodes;
 
 /*******************************************

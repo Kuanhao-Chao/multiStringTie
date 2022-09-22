@@ -86,13 +86,6 @@ void printTime(FILE* f) {
 			t->tm_hour, t->tm_min, t->tm_sec);
 }
 
-void printBitVec(GBitVec& bv) {
-   for (uint i=0;i<bv.size();i++) {
-       fprintf(stderr, "%c", bv.test(i)?'1':'0');
-   }
-}
-
-
 
 void cov_edge_add(GVec<float> *bpcov, int sno, int start, int end, float v) {
 	bool neutral=false;
@@ -2478,10 +2471,10 @@ CGraphnode *trimnode_all(int s, int g, int refstart,uint newend, CGraphnode *gra
 	return(graphnode);
 }
 
-inline int edge(int min, int max, int gno) {
-	//return((gno-1)*min-min*(min-1)/2+max-min); // this should be changed if source to node edges are also stored
-	return((gno-1)*(min+1)-min*(min-1)/2+max-min); // this includes source to node edges
-}
+// inline int edge(int min, int max, int gno) {
+// 	//return((gno-1)*min-min*(min-1)/2+max-min); // this should be changed if source to node edges are also stored
+// 	return((gno-1)*(min+1)-min*(min-1)/2+max-min); // this includes source to node edges
+// }
 
 GBitVec traverse_dfs(int s,int g,CGraphnode *node,CGraphnode *sink,GBitVec parents,int gno, GVec<bool>& visit,
 		GPVec<CGraphnode> **no2gnode,GPVec<CTransfrag> **transfrag, int &edgeno,GIntHash<int> **gpos,int &lastgpos){
@@ -4246,6 +4239,7 @@ CTreePat *construct_treepat(int gno, GIntHash<int>& gpos,GPVec<CTransfrag>& tran
 }*/
 
 void print_pattern(CTreePat *tree,GStr& pattern,int gno) {
+	fprintf(stderr, "Inside print_pattern\n");
 	if(!tree) return;
 	pattern+=tree->nodeno;
 	fprintf(stderr,"pat outside: %s\n",pattern.chars());

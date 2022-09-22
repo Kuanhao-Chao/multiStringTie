@@ -184,8 +184,13 @@ struct UnispgGp {
 		int refstart = 0; // the start of the first node.
 		int refend = 0; // the end of the last node.
 		GPVec<CGraphnodeUnispg>* no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode_unispg[s][g][i] gives the node i
-		int graphno_unispg[2] = {0};  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
-		int edgeno_unispg[2] = {0};  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+
+		GVec<int> node_nums[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
+		GVec<int> edge_nums[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
+
+		int graphno_unispg[2] = {0};  // how many nodes are in a certain graph g. Current processing graph only
+		int edgeno_unispg[2] = {0};  // how many edges are in a certain graph g. Current processing graph only
+
 		GVec<GStr> samples;
 		CGraphnodeUnispg* source_gp[2];
 		CGraphnodeUnispg* sink_gp[2];

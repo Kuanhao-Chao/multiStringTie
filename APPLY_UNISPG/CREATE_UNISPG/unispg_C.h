@@ -21,7 +21,6 @@ struct UnispgGp_CREATE:public UnispgGp {
 		// GVec<int> lastgpos_unispg[2];
 		GPVec<CGraphnodeUnispg>* lclg_nonoverlap[2]; // for each graph g, on a strand s, lclg_nonoverlap[s][g][i] gives the node i
 		GPVec<CTransfrag>* lclg_nonoverlap_transfrag[2]; // for each transfrag t on a strand s, in a graph g, lclg_nonoverlap_transfrag[s][g][t] gives it's abundance and it's pattern
-		
 
 		GPVec<CGraphnodeUnispg>* new_no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
 		GVec<int> new_gidx; // graph id

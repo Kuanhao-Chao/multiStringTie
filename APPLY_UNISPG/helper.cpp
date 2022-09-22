@@ -869,3 +869,9 @@ void addPtFeature(const char* refname, GPtFeature* pf, GArray<GRefPtData>& refpt
   rpd = & refpts.Get(ridx);
   rpd->add(pf);
 }
+
+void printBitVec(GBitVec& bv) {
+   for (uint i=0;i<bv.size();i++) {
+       fprintf(stderr, "%c", bv.test(i)?'1':'0');
+   }
+}

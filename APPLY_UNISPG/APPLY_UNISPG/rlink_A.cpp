@@ -613,3 +613,23 @@ void count_good_junctions_APPLY_UNISPG(BundleData* bdata) {
 	}
 }
 
+
+CTransfrag *findtrf_in_treepat_APPLY_UNISPG(int gno,GIntHash<int>& gpos,GVec<int>& node,GBitVec& pattern,CTreePat *tr2no) { // doesn't work for patterns including source node
+	fprintf(stderr, ">> Inside 'findtrf_in_treepat_APPLY_UNISPG'\n");
+	return NULL;
+	if(!tr2no) return(NULL);
+
+	CTreePat *tree=tr2no;
+	for(int n=0;n<node.Count();n++) {
+		if(n) { // not the first node in pattern
+			int *pos=gpos[edge(node[n-1],node[n],gno)];
+			if(pos && pattern[*pos]) { // there is an edge between node[n-1] and node[n]
+				tree=tree->nextpat[gno-1-node[n-1]+node[n]-node[n-1]-1];
+			}
+			else tree=tree->nextpat[node[n]-node[n-1]-1];
+		}
+		else tree=tree->nextpat[node[n]-1];
+		if(!tree) return(NULL);
+	}
+	return(tree->tr);
+}

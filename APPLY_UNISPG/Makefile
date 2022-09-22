@@ -165,7 +165,7 @@ endif
 	${CXX} ${CXXFLAGS} -c $< -o $@
 
 # OBJS += rlink.o tablemaker.o t_record.o
-OBJS += t_record.o dot_record.o rlink.o tablemaker.o unispg.o APPLY_UNISPG/unispg_A.o CREATE_UNISPG/unispg_C.o APPLY_UNISPG/infer_tranx_A.o CREATE_UNISPG/infer_tranx_C.o helper.o APPLY_UNISPG/parse_reads_A.o APPLY_UNISPG/processOptions_A.o CREATE_UNISPG/processOptions_C.o APPLY_UNISPG/processBundle_A.o CREATE_UNISPG/processBundle_C.o CREATE_UNISPG/build_graphs_C.o CREATE_UNISPG/rlink_C.o APPLY_UNISPG/rlink_A.o CREATE_UNISPG/rlink_C_help.o
+OBJS += t_record.o dot_record.o rlink.o tablemaker.o unispg.o APPLY_UNISPG/unispg_A.o CREATE_UNISPG/unispg_C.o APPLY_UNISPG/infer_tranx_A.o CREATE_UNISPG/infer_tranx_C.o helper.o APPLY_UNISPG/parse_reads_A.o APPLY_UNISPG/processOptions_A.o CREATE_UNISPG/processOptions_C.o APPLY_UNISPG/processBundle_A.o CREATE_UNISPG/processBundle_C.o CREATE_UNISPG/build_graphs_C.o CREATE_UNISPG/rlink_C.o APPLY_UNISPG/rlink_A.o CREATE_UNISPG/rlink_C_help.o APPLY_UNISPG/tree_pattern_A.o APPLY_UNISPG/processTransfrags_A.o
 
 all release static static-cpp debug: multistringtie${EXE}
 memcheck memdebug tsan tcheck thrcheck: multistringtie${EXE}
@@ -202,6 +202,9 @@ CREATE_UNISPG/infer_tranx_C.o: CREATE_UNISPG/infer_tranx_C.h rlink.h
 
 APPLY_UNISPG/parse_reads_A.o:
 CREATE_UNISPG/build_graphs_C.o:
+
+APPLY_UNISPG/tree_pattern_A.o: APPLY_UNISPG/tree_pattern_A.h
+APPLY_UNISPG/processTransfrags_A.o: APPLY_UNISPG/processTransfrags_A.h
 
 helper.o:
 

@@ -2,6 +2,7 @@
 #define __HELPER_H__
 
 #include "global_params.h"
+#include "static_func.h"
 #include "rlink.h"
 
 bool segs_overlap(int s1_start, int s1_end, int s2_start, int s2_end);
@@ -21,4 +22,7 @@ char* sprintTime();
 void addPtFeature(const char* refname, GPtFeature* pf, GArray<GRefPtData>& refpts);
 
 int loadPtFeatures(FILE* f, GArray<GRefPtData>& refpts);
+
+void printBitVec(GBitVec& bv);
+
 #endif

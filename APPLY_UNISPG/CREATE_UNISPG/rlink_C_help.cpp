@@ -6,11 +6,6 @@
 #include "proc_mem.h"
 #endif
 
-inline int edge(int min, int max, int gno) {
-	//return((gno-1)*min-min*(min-1)/2+max-min); // this should be changed if source to node edges are also stored
-	return((gno-1)*(min+1)-min*(min-1)/2+max-min); // this includes source to node edges
-}
-
 void parse_trf_unispg(int maxi,int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraphnode>& no2gnode,GPVec<CTransfrag>& transfrag,
 		int& geneno,bool first,int strand,GList<CPrediction>& pred,GVec<float>& nodecov,
 		GBitVec& istranscript,GBitVec& usednode,float maxcov,GBitVec& prevpath) {
