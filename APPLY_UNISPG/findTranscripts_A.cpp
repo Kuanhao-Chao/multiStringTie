@@ -5,9 +5,6 @@
 int find_transcripts_APPLY_UNISPG(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraphnodeUnispg>& no2gnode,GPVec<CTransfrag>& transfrag,int geneno,int strand, GVec<CGuide>& guidetrf,GPVec<GffObj>& guides,GVec<int>& guidepred,BundleData* bdata,GVec<int>& trflong) {
 	GList<CPrediction>& pred = bdata->pred;
 	fprintf(stderr, "find_transcripts_APPLY_UNISPG\n");
-	/*
-	if(trflong.Count()) get_trf_long(gno,edgeno, gpos,no2gnode,transfrag,geneno,strand,pred,trflong,bdata);
-	if(longreads) return(geneno);*/
 
 	// process in and out coverages for each node
 	int maxi=0; // node with maximum coverage
@@ -84,32 +81,7 @@ int find_transcripts_APPLY_UNISPG(int gno,int edgeno, GIntHash<int> &gpos,GPVec<
 		guides_pushmaxflow_APPLY_UNISPG(gno,edgeno,gpos,no2gnode,transfrag,guidetrf,geneno,strand,pred,nodecov,istranscript,pathpat,first,guides,guidepred,bdata);
 	else { //if(!eonly) {
 
-		if(!mixedMode && guidetrf.Count()) maxi=guides_pushmaxflow_APPLY_UNISPG(gno,edgeno,gpos,no2gnode,transfrag,guidetrf,geneno,strand,pred,nodecov,istranscript,pathpat,first,guides,guidepred,bdata);
-		/*
-		{ // DEBUG ONLY
-			if(mixedMode) {
-				fprintf(stderr,"After get_trf_long:\n");
-				for(int i=0;i<gno;i++) {
-					CGraphnodeUnispg *inode=no2gnode[i];
-					printTime(stderr);
-					fprintf(stderr,"Node %d: cov=%f capacity=%f rate=%f ",i,inode->cov/(inode->end-inode->start+1),inode->capacity,inode->rate);
-					fprintf(stderr,"trf=");
-					for(int t=0;t<inode->trf.Count();t++) fprintf(stderr," %d(%f)",inode->trf[t],transfrag[inode->trf[t]]->abundance);
-					fprintf(stderr," maxi=%d maxcov=%f\n",maxi,nodecov[maxi]);
-				}
-				fprintf(stderr,"There are %d transfrags:\n",transfrag.Count());
-				for(int t=0;t<transfrag.Count();t++) {
-					fprintf(stderr,"%d: ",t);
-					//printBitVec(transfrag[s][b][t]->pattern);
-					fprintf(stderr," %f(%f,%d,%d) long=%d nodes=%d",transfrag[t]->abundance,transfrag[t]->srabund, transfrag[t]->longstart,transfrag[t]->longend,transfrag[t]->longread,transfrag[t]->nodes.Count());
-					for(int i=0;i<transfrag[t]->nodes.Count();i++) fprintf(stderr," %d",transfrag[t]->nodes[i]);
-					if(!transfrag[t]->abundance) fprintf(stderr," *");
-					fprintf(stderr,"\n");
-				}
-			}
-		}
-		*/
-
+		if(guidetrf.Count()) maxi=guides_pushmaxflow_APPLY_UNISPG(gno,edgeno,gpos,no2gnode,transfrag,guidetrf,geneno,strand,pred,nodecov,istranscript,pathpat,first,guides,guidepred,bdata);
 
 		if(nodecov[maxi]>=1) { // sensitive mode only; otherwise >=readthr
 
@@ -840,8 +812,6 @@ void parse_trf_APPLY_UNISPG(int maxi,int gno,int edgeno, GIntHash<int> &gpos,GPV
 		//  */
 
 		 float frac=isofrac;
-		 if(mixedMode && frac<ERROR_PERC) frac=ERROR_PERC;
-
 		 if(included || cov<frac*maxcov) {
 			 /*
 			 if(sensitivitylevel) usednode[maxi]=1;
@@ -929,8 +899,6 @@ float push_max_flow_APPLY_UNISPG(int gno,GVec<int>& path,GBitVec& istranscript,G
 	sumright.Resize(n);
 
 	//bool full=true;
-	//if(longreads && path.Count()>3) full=false;
-
 	/*
 	{ // DEBUG ONLY
 		//printTime(stderr);
@@ -961,24 +929,6 @@ float push_max_flow_APPLY_UNISPG(int gno,GVec<int>& path,GBitVec& istranscript,G
 				}
 				else if(transfrag[t]->nodes[0]==path[i] && ((pathpat & transfrag[t]->pattern)==transfrag[t]->pattern)) { // only need to check transfrag the first time I encounter it
 					keeptr=true;
-
-					if(longreads) { // an extremely gapped transcript should not be considered to support path (I am doing this for longreads but it might work for paired reads too
-						int ti=1;
-						int pi=i+1;
-						int lenp=0;
-						while(ti<transfrag[t]->nodes.Count()) {
-							if(path[pi]!=transfrag[t]->nodes[ti]) { // I found a gap in transfrag => I need to check if it's not too big and can not support path
-								// node on path is coming before transfrag node; otherwise I wouldn't have the match above
-								lenp+=no2gnode[path[pi]]->len();
-								if(lenp>CHI_WIN) {
-									keeptr=false;
-									break;
-								}
-							}
-							else ti++;
-							pi++;
-						}
-					}
 
 					if(keeptr && !full) { // check if transcript fully supports path (full is false means I have not found any transcript to fully support path)
 						full=true;
@@ -1382,7 +1332,6 @@ float store_transcript_APPLY_UNISPG(GList<CPrediction>& pred,GVec<int>& path,GVe
 		if(t && t->exons.Count()==1) exoncov[0]=gcov;
 		p->exoncov=exoncov;
 		if(full) p->mergename+='.';
-		if(longreads) p->tlen=-p->tlen;
 		pred.Add(p);
 		first=false;
 
@@ -1468,7 +1417,6 @@ float push_guide_maxflow_APPLY_UNISPG(int gno,GVec<int>& path,GBitVec& istranscr
 	*/
 
 	bool marginal=false;
-	if(longreads) marginal=true;
 
 	// compute capacities and sums for all nodes
 	for(int i=1;i<n-1;i++) {
@@ -1777,7 +1725,6 @@ int store_guide_transcript_APPLY_UNISPG(GList<CPrediction>& pred,GVec<int>& path
 	CPrediction *p=new CPrediction(geneno-1, t, exons[0].start, exons.Last().end, 0, t->strand, len);
 	p->exons=exons;
 	p->exoncov=exoncov;
-	if(longreads) p->tlen=-p->tlen;
 	pred.Add(p);
 
 	if (t && t->uptr) {

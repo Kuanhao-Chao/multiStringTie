@@ -57,13 +57,13 @@ GStr edgecovfname;
 GVec<GRefData> refguides; // plain vector with transcripts for each chromosome
 GArray<GRefPtData> refpts(true, true); // sorted,unique array of refseq point-features data
 
-/*****************************
- * Declaring Ballgown related data structure
- *   table indexes for Ballgown Raw Counts data (-B/-b option)
- *****************************/
-GPVec<RC_TData> guides_RC_tdata(true); //raw count data or other info for all guide transcripts
-GPVec<RC_Feature> guides_RC_exons(true); //raw count data for all guide exons
-GPVec<RC_Feature> guides_RC_introns(true);//raw count data for all guide introns
+// /*****************************
+//  * Declaring Ballgown related data structure
+//  *   table indexes for Ballgown Raw Counts data (-B/-b option)
+//  *****************************/
+// GPVec<RC_TData> guides_RC_tdata(true); //raw count data or other info for all guide transcripts
+// GPVec<RC_Feature> guides_RC_exons(true); //raw count data for all guide exons
+// GPVec<RC_Feature> guides_RC_introns(true);//raw count data for all guide introns
 
 
 
@@ -72,8 +72,8 @@ void multistringtie_CREATE (int argc, char*argv[]) {
      ** Process arguments.
      *******************************************/
     GArgs args(argc, argv,
-    "debug;help;version;ballgown;viral;conservative;mix;merge;multi;graph_bed;ref=;cram-ref=cds=;keeptmp;rseq=;ptf=;fr;rf;"
-    "exclude=zihvteuLRx:n:j:s:D:G:C:S:l:m:o:a:c:f:p:g:M:Bb:A:E:F:T:");
+    "debug;help;version;conservative;multi;graph_bed;ref=;cram-ref=;keeptmp;rseq=;ptf=;fr;rf;"
+    "exclude=zihvteuLx:n:j:s:D:G:C:S:l:m:o:a:c:f:p:g:M:Bb:A:E:F:T:");
     args.printError(USAGE, true);
     processCreateOptions(args);
 
@@ -156,7 +156,6 @@ void multistringtie_CREATE (int argc, char*argv[]) {
     fprintf(stderr, "cram_ref: %s\n", cram_ref.chars());
     fprintf(stderr, "tmpfname: %s\n", tmpfname.chars());
     fprintf(stderr, "genefname: %s\n", genefname.chars());
-    fprintf(stderr, "traindir: %s\n", traindir.chars());
 
 
     /*******************************************
@@ -197,10 +196,6 @@ void multistringtie_CREATE (int argc, char*argv[]) {
             GffObj* m=gffr.gflst[i];
             if (last_refid!=m->gseq_id) {
                 //chromosome switch
-                if (ballgown) { //prepare memory storage/tables for all guides on this chromosome
-                    uexons.Clear();
-                    uintrons.Clear();
-                }
                 last_refid=m->gseq_id;
                 skipGseq=excludeGseqs.hasKey(m->getGSeqName());
             }
@@ -215,11 +210,6 @@ void multistringtie_CREATE (int argc, char*argv[]) {
             //DONE: always keep a RC_TData pointer around, with additional info about guides
             RC_TData* tdata=new RC_TData(*m, ++c_tid);
             m->uptr=tdata;
-            guides_RC_tdata.Add(tdata);
-            if (ballgown) { //already gather exon & intron info for all ref transcripts
-                tdata->rc_addFeatures(c_exon_id, uexons, guides_RC_exons,
-                        c_intron_id, uintrons, guides_RC_introns);
-            }
             GRefData& grefdata = refguides[m->gseq_id];
             grefdata.add(&gffr, m); //transcripts already sorted by location
         }
@@ -491,22 +481,6 @@ void multistringtie_CREATE (int argc, char*argv[]) {
                 nh=brec->tag_int("NH");
                 if (nh==0) nh=1;
                 hi=brec->tag_int("HI");
-                if (mergeMode) {
-                    //tinfo=new TAlnInfo(brec->name(), brec->tag_int("ZF"));
-                        tinfo=new TAlnInfo(brec->name(), brec->uval);
-                    GStr score(brec->tag_str("ZS"));
-                    if (!score.is_empty()) {
-                        GStr srest=score.split('|');
-                        if (!score.is_empty())
-                            tinfo->cov=score.asDouble();
-                        score=srest.split('|');
-                        if (!srest.is_empty())
-                            tinfo->fpkm=srest.asDouble();
-                        srest=score.split('|');
-                        if (!score.is_empty())
-                            tinfo->tpm=score.asDouble();
-                    }
-                }
 
                 if (!chr_changed && currentend>0 && pos>currentend+(int)runoffdist) {
                     new_bundle=true;
@@ -676,14 +650,14 @@ void multistringtie_CREATE (int argc, char*argv[]) {
                                         currentstart=(int)(*guides)[g_back]->start;
                                 }
                             } //while checking previous guides that could be pulled in this bundle
-                            for (int gb=g_ovl_start;gb<=ng_ovl;++gb) {
-                                bundle->keepGuide((*guides)[gb],
-                                        &guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
-                            }
+                            // for (int gb=g_ovl_start;gb<=ng_ovl;++gb) {
+                            //     bundle->keepGuide((*guides)[gb],
+                            //             &guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
+                            // }
                         } //needed to check previous guides for overlaps
                         else
-                        bundle->keepGuide((*guides)[ng_ovl],
-                                &guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
+                        // bundle->keepGuide((*guides)[ng_ovl],
+                        //         &guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
                         ng_ovl++;
                     } //while guide overlap
                     ng_end=ng_ovl-1; //MUST update ng_end here, even if no overlaps were found
@@ -708,8 +682,8 @@ void multistringtie_CREATE (int argc, char*argv[]) {
                             //more transcripts overlapping this bundle?
                             if ((int)(*guides)[ng_end]->end>=currentstart) {
                                 //it should really overlap the bundle
-                                bundle->keepGuide((*guides)[ng_end],
-                                        &guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
+                                // bundle->keepGuide((*guides)[ng_end],
+                                //         &guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
                                 if(currentend<(int)(*guides)[ng_end]->end) {
                                     currentend=(*guides)[ng_end]->end;
                                     cend_changed=true;
@@ -781,9 +755,6 @@ void multistringtie_CREATE (int argc, char*argv[]) {
 #ifdef B_DEBUG
         fclose(dbg_out);
 #endif
-        // if (mergeMode && guided )
-        //     writeUnbundledGuides(refguides, f_out);
-
 
         // clear refpts data, if loaded
         if (refpts.Count()>0)
@@ -797,100 +768,88 @@ void multistringtie_CREATE (int argc, char*argv[]) {
         // if(verbose && no_xs>0)
         //     GMessage("Number spliced alignments missing the XS tag (skipped): %d\n",no_xs);
 
-        if(!mergeMode) {
-            if(verbose) {
-                GMessage("Total count of aligned fragments: %g\n", Num_Fragments);
-                if (Num_Fragments)
-                GMessage("Fragment coverage length: %g\n", Frag_Len/Num_Fragments);
-            }
+        if(verbose) {
+            GMessage("Total count of aligned fragments: %g\n", Num_Fragments);
+            if (Num_Fragments)
+            GMessage("Fragment coverage length: %g\n", Frag_Len/Num_Fragments);
+        }
 
-            f_out=stdout;
-            if(outfname!="stdout") {
-                f_out=fopen(outfname.chars(), "w");
-                if (f_out==NULL) GError("Error creating output file %s\n", outfname.chars());
-            }
+        f_out=stdout;
+        if(outfname!="stdout") {
+            f_out=fopen(outfname.chars(), "w");
+            if (f_out==NULL) GError("Error creating output file %s\n", outfname.chars());
+        }
 
-            fprintf(f_out,"# ");
-            args.printCmdLine(f_out);
-            fprintf(f_out,"# StringTie version %s\n",VERSION);
+        fprintf(f_out,"# ");
+        args.printCmdLine(f_out);
+        fprintf(f_out,"# StringTie version %s\n",VERSION);
 
-            //fprintf(stderr,"cov_sum=%g frag_len=%g num_frag=%g\n",Cov_Sum,Frag_Len,Num_Fragments);
+        //fprintf(stderr,"cov_sum=%g frag_len=%g num_frag=%g\n",Cov_Sum,Frag_Len,Num_Fragments);
 
-            FILE *g_out=NULL;
-            if(geneabundance) {
-                g_out=fopen(genefname.chars(),"w");
-                if (g_out==NULL)
-                    GError("Error creating gene abundance output file %s\n", genefname.chars());
-                fprintf(g_out,"Gene ID\tGene Name\tReference\tStrand\tStart\tEnd\tCoverage\tFPKM\tTPM\n");
-            }
+        FILE *g_out=NULL;
+        if(geneabundance) {
+            g_out=fopen(genefname.chars(),"w");
+            if (g_out==NULL)
+                GError("Error creating gene abundance output file %s\n", genefname.chars());
+            fprintf(g_out,"Gene ID\tGene Name\tReference\tStrand\tStart\tEnd\tCoverage\tFPKM\tTPM\n");
+        }
 
-            FILE* ftmp_in=fopen(tmpfname.chars(),"rt");
-            if (ftmp_in!=NULL) {
-                char* linebuf=NULL;
-                int linebuflen=5000;
-                GMALLOC(linebuf, linebuflen);
-                int nl;
-                int istr;
-                int tlen;
-                float tcov; //do we need to increase precision here ? (double)
-                float calc_fpkm;
-                float calc_tpm;
-                int t_id;
-                while(fgetline(linebuf,linebuflen,ftmp_in)) {
-                    sscanf(linebuf,"%d %d %d %d %g", &istr, &nl, &tlen, &t_id, &tcov);
-                    if (tcov<0) tcov=0;
-                    if (Frag_Len>0.001) calc_fpkm=tcov*1000000000/Frag_Len;
-                        else calc_fpkm=0.0;
-                    if (Cov_Sum>0.00001) calc_tpm=tcov*1000000/Cov_Sum;
-                        else calc_tpm=0.0;
-                    if(istr) { // this is a transcript
+        FILE* ftmp_in=fopen(tmpfname.chars(),"rt");
+        if (ftmp_in!=NULL) {
+            char* linebuf=NULL;
+            int linebuflen=5000;
+            GMALLOC(linebuf, linebuflen);
+            int nl;
+            int istr;
+            int tlen;
+            float tcov; //do we need to increase precision here ? (double)
+            float calc_fpkm;
+            float calc_tpm;
+            int t_id;
+            while(fgetline(linebuf,linebuflen,ftmp_in)) {
+                sscanf(linebuf,"%d %d %d %d %g", &istr, &nl, &tlen, &t_id, &tcov);
+                if (tcov<0) tcov=0;
+                if (Frag_Len>0.001) calc_fpkm=tcov*1000000000/Frag_Len;
+                    else calc_fpkm=0.0;
+                if (Cov_Sum>0.00001) calc_tpm=tcov*1000000/Cov_Sum;
+                    else calc_tpm=0.0;
+                if(istr) { // this is a transcript
 
-                        fprintf(stderr, ">> calc_tpm: %f\n", calc_tpm);
-                        fprintf(stderr, ">> calc_fpkm: %f\n", calc_fpkm);
-                        fprintf(stderr, ">> tcov: %f\n", tcov);
+                    fprintf(stderr, ">> calc_tpm: %f\n", calc_tpm);
+                    fprintf(stderr, ">> calc_fpkm: %f\n", calc_fpkm);
+                    fprintf(stderr, ">> tcov: %f\n", tcov);
 
-                        if (ballgown && t_id>0) {
-                            guides_RC_tdata[t_id-1]->fpkm=calc_fpkm;
-                            guides_RC_tdata[t_id-1]->cov=tcov;
+                    for(int i=0;i<nl;i++) {
+                        fgetline(linebuf,linebuflen,ftmp_in);
+                        if(!i) {
+                            //linebuf[strlen(line)-1]='\0';
+                            fprintf(f_out,"%s",linebuf);
+                            fprintf(f_out," FPKM \"%.6f\";",calc_fpkm);
+                            fprintf(f_out," TPM \"%.6f\";",calc_tpm);
+                            fprintf(f_out,"\n");
                         }
-                        for(int i=0;i<nl;i++) {
-                            fgetline(linebuf,linebuflen,ftmp_in);
-                            if(!i) {
-                                //linebuf[strlen(line)-1]='\0';
-                                fprintf(f_out,"%s",linebuf);
-                                fprintf(f_out," FPKM \"%.6f\";",calc_fpkm);
-                                fprintf(f_out," TPM \"%.6f\";",calc_tpm);
-                                fprintf(f_out,"\n");
-                            }
-                            else fprintf(f_out,"%s\n",linebuf);
-                        }
-                    }
-                    else { // this is a gene -> different file pointer
-                        fgetline(linebuf, linebuflen, ftmp_in);
-                        fprintf(g_out, "%s\t%.6f\t%.6f\n", linebuf, calc_fpkm, calc_tpm);
+                        else fprintf(f_out,"%s\n",linebuf);
                     }
                 }
-                // if (guided) {
-                //     writeUnbundledGuides(refguides, f_out, g_out);
-                // }
-                fclose(f_out);
-                fclose(ftmp_in);
-                if(geneabundance) fclose(g_out);
-                GFREE(linebuf);
-                if (!keepTempFiles) {
-                    remove(tmpfname.chars());
+                else { // this is a gene -> different file pointer
+                    fgetline(linebuf, linebuflen, ftmp_in);
+                    fprintf(g_out, "%s\t%.6f\t%.6f\n", linebuf, calc_fpkm, calc_tpm);
                 }
             }
-            else {
-                fclose(f_out);
-                GError("No temporary file %s present!\n",tmpfname.chars());
-            }
-
-            //lastly, for ballgown, rewrite the tdata file with updated cov and fpkm
-            // if (ballgown) {
-            //     rc_writeRC(guides_RC_tdata, guides_RC_exons, guides_RC_introns,
-            //             f_tdata, f_edata, f_idata, f_e2t, f_i2t);
+            // if (guided) {
+            //     writeUnbundledGuides(refguides, f_out, g_out);
             // }
+            fclose(f_out);
+            fclose(ftmp_in);
+            if(geneabundance) fclose(g_out);
+            GFREE(linebuf);
+            if (!keepTempFiles) {
+                remove(tmpfname.chars());
+            }
+        }
+        else {
+            fclose(f_out);
+            GError("No temporary file %s present!\n",tmpfname.chars());
         }
 
         if (!keepTempFiles) {

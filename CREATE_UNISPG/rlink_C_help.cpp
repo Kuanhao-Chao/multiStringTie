@@ -80,7 +80,6 @@ void parse_trf_unispg(int maxi,int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGr
 		//  */
 
 		 float frac=isofrac;
-		 if(mixedMode && frac<ERROR_PERC) frac=ERROR_PERC;
 
 		 if(included || cov<frac*maxcov) {
 			 /*
@@ -920,10 +919,6 @@ void get_trf_long_mix_unispg(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGrap
 						 nodecov[path[j]]-=nodeflux[j];
 						 float ecov=nodeflux[j]*noderate[path[j]];
 						 float excov=ecov;
-						 /*if(mixedMode) {
-							 no2gnode[path[j]]->cov-=ecov;
-							 if(no2gnode[path[j]]->cov<epsilon) no2gnode[path[j]]->cov=0;
-						 }*/
 						 //float excov=nodeflux[j]*noderate[path[j]];
 						 while(j+1<=lastnode && no2gnode[path[j]]->end+1==no2gnode[path[j+1]]->start) {
 						 //while(j+1<path.Count()-1 && no2gnode[path[j]]->end+1==no2gnode[path[j+1]]->start) {
@@ -1412,38 +1407,6 @@ void get_trf_long_unispg(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraphnod
 					 //uint startpoint=no2gnode[path[lastnode]]->end;
 					 //uint endpoint=no2gnode[path[1]]->start;
 
-					 /* if(mixedMode) { // establish start/end point of path
-						 while(j<path.Count()-1) {
-							 CGraphnode *jnode=no2gnode[path[j]];
-							 for(int i=0;i<jnode->trf.Count();i++) { // for all transfrags going through node
-								 int t=jnode->trf[i];
-								 if(istranscript[t] && transfrag[t]->longread && transfrag[t]->nodes[0] && transfrag[t]->nodes.Last()!=gno-1) {
-									 if(transfrag[t]->nodes[0]==path[j]) {
-										 if(transfrag[t]->longstart) {
-											 if(transfrag[t]->longstart<startpoint) { startpoint=transfrag[t]->longstart; startnode=j;}
-										 }
-										 else if(jnode->start<startpoint) { startpoint=jnode->start; startnode=j;}
-									 }
-									 if(transfrag[t]->nodes.Last()==path[j]) {
-										 if(transfrag[t]->longend) {
-											 if(transfrag[t]->longend>endpoint) { endpoint=transfrag[t]->longend; lastnode=j;}
-										 }
-										 else if(jnode->end>endpoint) {endpoint=jnode->end; lastnode=j;}
-									 }
-								 }
-							 }
-							 j++;
-						 }
-						 if(startpoint>endpoint) {
-							 j=1;
-							 lastnode=path.Count()-2;
-							 startpoint=no2gnode[path[1]]->start;
-							 endpoint=no2gnode[path[lastnode]]->end;
-						 }
-						 else j=startnode;
-						 //fprintf(stderr,"startnode=%d lastnode=%d startpoint=%d endpoint=%d\n",path[startnode],path[lastnode],startpoint,endpoint);
-					 }*/
-
 					 while(j<=lastnode) {
 					 //while(j<path.Count()-1) {
 						 int nodestart=no2gnode[path[j]]->start;
@@ -1453,10 +1416,6 @@ void get_trf_long_unispg(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraphnod
 						 float ecov=nodeflux[j]*noderate[path[j]];
 						 float excov=ecov;
 						 //fprintf(stderr,"excov+=%f * %f = %f\n",nodeflux[j],noderate[path[j]],excov);
-						 /*if(mixedMode) {
-							 no2gnode[path[j]]->cov-=ecov;
-							 if(no2gnode[path[j]]->cov<epsilon) no2gnode[path[j]]->cov=0;
-						 }*/
 						 //float excov=nodeflux[j]*noderate[path[j]];
 						 while(j+1<=lastnode && no2gnode[path[j]]->end+1==no2gnode[path[j+1]]->start) {
 						 //while(j+1<path.Count()-1 && no2gnode[path[j]]->end+1==no2gnode[path[j+1]]->start) {
@@ -1509,7 +1468,7 @@ void get_trf_long_unispg(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraphnod
 			 }
 		 }
 
-		 if(tocheck)  { // try to see if you can rescue transfrag -> they are stored from more abundant to least -> not if using mixedMode
+		 if(tocheck)  { // try to see if you can rescue transfrag -> they are stored from more abundant to least
 			 checktrf.Add(t);
 		 }
 	 }
@@ -1642,16 +1601,7 @@ void get_trf_long_unispg(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraphnod
 	 }
 
 	 if(pred.Count()>npred) {
-		 /*if(mixedMode) {
-			 for(int t=0;t<transfrag.Count();t++) {
-			   if(transfrag[t]->longread && (!transfrag[t]->nodes[0] || transfrag[t]->nodes.Last()==gno-1) )
-			     transfrag[t]->abundance=0;
-			   else
-			     transfrag[t]->abundance=transfrag[t]->usepath;
-			   transfrag[t]->usepath=-1;
-			 }
-		 }
-		 else */for(int t=0;t<transfrag.Count();t++) if(transfrag[t]->longread) { // longreads mode --> tries to add all transfrags to predictions
+		for(int t=0;t<transfrag.Count();t++) if(transfrag[t]->longread) { // longreads mode --> tries to add all transfrags to predictions
 			 if(transfrag[t]->abundance>epsilon && transfrag[t]->nodes[0] && transfrag[t]->nodes.Last()!=gno-1 ) {
 			   /*fprintf(stderr,"Consider transfrag[%d]->abundance=%f with start=%d end=%d nodes:",t,transfrag[t]->abundance,transfrag[t]->longstart,transfrag[t]->longend);
 				 for(int i=0;i<transfrag[t]->nodes.Count();i++) fprintf(stderr," %d",transfrag[t]->nodes[i]);

@@ -305,20 +305,8 @@ GBitVec traverse_dfs_APPLY_UNISPG(int s,int g,CGraphnodeUnispg *node,CGraphnodeU
 				//printBitVec(trpat);
 				fprintf(stderr,"\n");
 			}
-			// */
-			/*if(mixedMode) {
-				tr->abundance*=2;
-			}*/
 
 			transfrag[s][g].Add(tr);
-			if(mixedMode) { // I need to add a long read as well
-				CTransfrag *longtr=new CTransfrag(nodes,trpat,trthr);
-				longtr->longread=true;
-				transfrag[s][g].Add(longtr);
-			} else
-			if(longreads) // || mixedMode)
-				transfrag[s][g].Last()->longread=true;
-
 		}
 
 		int n=node->child.Count();
@@ -345,21 +333,8 @@ GBitVec traverse_dfs_APPLY_UNISPG(int s,int g,CGraphnodeUnispg *node,CGraphnodeU
 				//printBitVec(trpat);
 				fprintf(stderr,"\n");
 			}
-			// */
-
-			/*if(mixedMode) {
-				tr->abundance*=2;
-			}*/
 
 			transfrag[s][g].Add(tr);
-			if(mixedMode) { // I need to add a long read as well
-				CTransfrag *longtr=new CTransfrag(nodes,trpat,trthr);
-				longtr->longread=true;
-				transfrag[s][g].Add(longtr);
-			}
-			else
-			if(longreads)// || mixedMode)
-				transfrag[s][g].Last()->longread=true;
 			n++;
 	    }
 		// /*

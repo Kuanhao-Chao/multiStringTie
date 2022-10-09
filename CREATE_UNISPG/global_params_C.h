@@ -65,12 +65,12 @@ extern GStr edgecovfname;
 extern GVec<GRefData> refguides; // plain vector with transcripts for each chromosome
 extern GArray<GRefPtData> refpts; // sorted,unique array of refseq point-features data
 
-/*****************************
- * Declaring Ballgown related data structure
- *   table indexes for Ballgown Raw Counts data (-B/-b option)
- *****************************/
-extern GPVec<RC_TData> guides_RC_tdatarlink_C; //raw count data or other info for all guide transcripts
-extern GPVec<RC_Feature> guides_RC_exonsrlink_C; //raw count data for all guide exons
-extern GPVec<RC_Feature> guides_RC_intronsrlink_C;//raw count data for all guide introns
+// /*****************************
+//  * Declaring Ballgown related data structure
+//  *   table indexes for Ballgown Raw Counts data (-B/-b option)
+//  *****************************/
+// extern GPVec<RC_TData> guides_RC_tdatarlink_C; //raw count data or other info for all guide transcripts
+// extern GPVec<RC_Feature> guides_RC_exonsrlink_C; //raw count data for all guide exons
+// extern GPVec<RC_Feature> guides_RC_intronsrlink_C;//raw count data for all guide introns
 
 #endif

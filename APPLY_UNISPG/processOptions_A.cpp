@@ -107,21 +107,10 @@ void processApplyOptions(GArgs& args) {
 	if (dbg_out==NULL) GError("Error creating debug output file %s\n", dbgfname.chars());
 #endif
 
-	if(mergeMode) {
-		f_out=stdout;
-		if(outfname!="stdout") {
-			f_out=fopen(outfname.chars(), "w");
-			if (f_out==NULL) GError("Error creating output file %s\n", outfname.chars());
-		}
-		fprintf(f_out,"# ");
-		args.printCmdLine(f_out);
-		fprintf(f_out,"# StringTie version %s\n",VERSION);
-	}
-	else {
-		tmpfname+=".tmp";
-		f_out=fopen(tmpfname.chars(), "w");
-		if (f_out==NULL) GError("Error creating output file %s\n", tmpfname.chars());
-	}
+
+	tmpfname+=".tmp";
+	f_out=fopen(tmpfname.chars(), "w");
+	if (f_out==NULL) GError("Error creating output file %s\n", tmpfname.chars());
 
 
 	s=args.getOpt("rseq");
@@ -130,4 +119,6 @@ void processApplyOptions(GArgs& args) {
 	if (!s.is_empty()) {
 		gfasta=new GFastaDb(s.chars());
 	}
+	
+	nomulti=(args.getOpt('u')!=NULL);
 }

@@ -89,7 +89,6 @@ void multistringtie_APPLY (int argc, char*argv[]) {
     GSamRecord* brec=NULL;	
     GSamRecord* prev_brec=NULL;	
     bool more_alns=true;
-    TAlnInfo* tinfo=NULL; // for --merge
 
     /*******************************************
      ** This is for reading dot file.
@@ -160,8 +159,6 @@ void multistringtie_APPLY (int argc, char*argv[]) {
     fprintf(stderr, "cram_ref: %s\n", cram_ref.chars());
     fprintf(stderr, "tmpfname: %s\n", tmpfname.chars());
     fprintf(stderr, "genefname: %s\n", genefname.chars());
-    fprintf(stderr, "traindir: %s\n", traindir.chars());
-
 
     /*******************************************
      ** read guiding transcripts from input gff file
@@ -180,7 +177,6 @@ void multistringtie_APPLY (int argc, char*argv[]) {
     next_graph_pos=true;
     next_graph_neg=true;
 
-    tinfo=NULL; // for --merge
     prev_pos=0;
     bool skipGseq=false;
     uint r_start = 0;
@@ -208,11 +204,15 @@ void multistringtie_APPLY (int argc, char*argv[]) {
     bool process_unispgs = false;
 
 
-    cov_file_pos.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/cov_pos.txt");
-    cov_file_neg.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/cov_neg.txt");
+    GStr cov_pos_fname = out_dir + "cov_pos.txt";
+    cov_file_pos.open(cov_pos_fname.chars());
+    GStr cov_neg_fname = out_dir + "cov_neg.txt";
+    cov_file_neg.open(cov_neg_fname.chars());
     
-    cov_file_pos_norm.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/cov_pos_norm.txt");
-    cov_file_neg_norm.open("/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/cov_neg_norm.txt");
+    GStr cov_posnorm_fname = out_dir + "cov_pos_norm.txt";
+    cov_file_pos_norm.open(cov_posnorm_fname.chars());
+    GStr cov_negnorm_fname = out_dir + "cov_neg_norm.txt";
+    cov_file_neg_norm.open(cov_negnorm_fname.chars());
 
 
 
@@ -652,7 +652,7 @@ void multistringtie_APPLY (int argc, char*argv[]) {
                     fprintf(stderr, "brec: %d - %d\n", brec->start, brec->end);
                     // 	new_bundle=true;
                     // }
-                    GReadAlnData alndata(brec, 0, nh, hi, tinfo);
+                    GReadAlnData alndata(brec, 0, nh, hi, NULL);
                     fprintf(stderr, ">>> before evalReadAln xstrand: %c\n", xstrand);
                     bool ovlpguide=bundle->evalReadAln(alndata, xstrand);
                     fprintf(stderr, ">>> after evalReadAln xstrand: %c\n", xstrand);
@@ -753,9 +753,6 @@ void multistringtie_APPLY (int argc, char*argv[]) {
 #ifdef B_DEBUG
     fclose(dbg_out);
 #endif
-    // if (mergeMode && guided )
-    //     writeUnbundledGuides(refguides, f_out);
-
 
     // // clear refpts data, if loaded
     // if (refpts.Count()>0)
@@ -769,102 +766,90 @@ void multistringtie_APPLY (int argc, char*argv[]) {
     // if(verbose && no_xs>0)
     //     GMessage("Number spliced alignments missing the XS tag (skipped): %d\n",no_xs);
 
-    if(!mergeMode) {
-        if(verbose) {
-            GMessage("Total count of aligned fragments: %g\n", Num_Fragments);
-            if (Num_Fragments)
-            GMessage("Fragment coverage length: %g\n", Frag_Len/Num_Fragments);
-        }
+    if(verbose) {
+        GMessage("Total count of aligned fragments: %g\n", Num_Fragments);
+        if (Num_Fragments)
+        GMessage("Fragment coverage length: %g\n", Frag_Len/Num_Fragments);
+    }
 
-        f_out=stdout;
-        if(outfname!="stdout") {
-            fprintf(stderr, "outfname: %s\n", outfname.chars());
-            GStr unispg_f_out = out_dir+"UNISPG_"+f_basename;
-            f_out=fopen(unispg_f_out.chars(), "w");
-            if (f_out==NULL) GError("Error creating output file %s\n", unispg_f_out.chars());
-        }
+    f_out=stdout;
+    if(outfname!="stdout") {
+        fprintf(stderr, "outfname: %s\n", outfname.chars());
+        GStr unispg_f_out = out_dir+"UNISPG_"+f_basename;
+        f_out=fopen(unispg_f_out.chars(), "w");
+        if (f_out==NULL) GError("Error creating output file %s\n", unispg_f_out.chars());
+    }
 
-        fprintf(f_out,"# ");
-        args.printCmdLine(f_out);
-        fprintf(f_out,"# StringTie version %s\n",VERSION);
+    fprintf(f_out,"# ");
+    args.printCmdLine(f_out);
+    fprintf(f_out,"# StringTie version %s\n",VERSION);
 
-        //fprintf(stderr,"cov_sum=%g frag_len=%g num_frag=%g\n",Cov_Sum,Frag_Len,Num_Fragments);
+    //fprintf(stderr,"cov_sum=%g frag_len=%g num_frag=%g\n",Cov_Sum,Frag_Len,Num_Fragments);
 
-        FILE *g_out=NULL;
-        if(geneabundance) {
-            g_out=fopen(genefname.chars(),"w");
-            if (g_out==NULL)
-                GError("Error creating gene abundance output file %s\n", genefname.chars());
-            fprintf(g_out,"Gene ID\tGene Name\tReference\tStrand\tStart\tEnd\tCoverage\tFPKM\tTPM\n");
-        }
+    FILE *g_out=NULL;
+    if(geneabundance) {
+        g_out=fopen(genefname.chars(),"w");
+        if (g_out==NULL)
+            GError("Error creating gene abundance output file %s\n", genefname.chars());
+        fprintf(g_out,"Gene ID\tGene Name\tReference\tStrand\tStart\tEnd\tCoverage\tFPKM\tTPM\n");
+    }
 
-        FILE* ftmp_in=fopen(tmpfname.chars(),"rt");
-        if (ftmp_in!=NULL) {
-            char* linebuf=NULL;
-            int linebuflen=5000;
-            GMALLOC(linebuf, linebuflen);
-            int nl;
-            int istr;
-            int tlen;
-            float tcov; //do we need to increase precision here ? (double)
-            float calc_fpkm;
-            float calc_tpm;
-            int t_id;
-            while(fgetline(linebuf,linebuflen,ftmp_in)) {
-                sscanf(linebuf,"%d %d %d %d %g", &istr, &nl, &tlen, &t_id, &tcov);
-                if (tcov<0) tcov=0;
-                if (Frag_Len>0.001) calc_fpkm=tcov*1000000000/Frag_Len;
-                    else calc_fpkm=0.0;
-                if (Cov_Sum>0.00001) calc_tpm=tcov*1000000/Cov_Sum;
-                    else calc_tpm=0.0;
-                if(istr) { 
-                    fprintf(stderr, ">> calc_tpm: %f\n", calc_tpm);
-                    fprintf(stderr, ">> calc_fpkm: %f\n", calc_fpkm);
-                    fprintf(stderr, ">> tcov: %f\n", tcov);
+    FILE* ftmp_in=fopen(tmpfname.chars(),"rt");
+    if (ftmp_in!=NULL) {
+        char* linebuf=NULL;
+        int linebuflen=5000;
+        GMALLOC(linebuf, linebuflen);
+        int nl;
+        int istr;
+        int tlen;
+        float tcov; //do we need to increase precision here ? (double)
+        float calc_fpkm;
+        float calc_tpm;
+        int t_id;
+        while(fgetline(linebuf,linebuflen,ftmp_in)) {
+            sscanf(linebuf,"%d %d %d %d %g", &istr, &nl, &tlen, &t_id, &tcov);
+            if (tcov<0) tcov=0;
+            if (Frag_Len>0.001) calc_fpkm=tcov*1000000000/Frag_Len;
+                else calc_fpkm=0.0;
+            if (Cov_Sum>0.00001) calc_tpm=tcov*1000000/Cov_Sum;
+                else calc_tpm=0.0;
+            if(istr) { 
+                fprintf(stderr, ">> calc_tpm: %f\n", calc_tpm);
+                fprintf(stderr, ">> calc_fpkm: %f\n", calc_fpkm);
+                fprintf(stderr, ">> tcov: %f\n", tcov);
 
-                    // this is a transcript
-                    // if (ballgown && t_id>0) {
-                    //     guides_RC_tdata[t_id-1]->fpkm=calc_fpkm;
-                    //     guides_RC_tdata[t_id-1]->cov=tcov;
-                    // }
-                    for(int i=0;i<nl;i++) {
-                        fgetline(linebuf,linebuflen,ftmp_in);
-                        if(!i) {
-                            //linebuf[strlen(line)-1]='\0';
-                            fprintf(f_out,"%s",linebuf);
-                            fprintf(f_out," FPKM \"%.6f\";",calc_fpkm);
-                            fprintf(f_out," TPM \"%.6f\";",calc_tpm);
-                            fprintf(f_out,"\n");
-                        }
-                        else fprintf(f_out,"%s\n",linebuf);
+                // this is a transcript
+                for(int i=0;i<nl;i++) {
+                    fgetline(linebuf,linebuflen,ftmp_in);
+                    if(!i) {
+                        //linebuf[strlen(line)-1]='\0';
+                        fprintf(f_out,"%s",linebuf);
+                        fprintf(f_out," FPKM \"%.6f\";",calc_fpkm);
+                        fprintf(f_out," TPM \"%.6f\";",calc_tpm);
+                        fprintf(f_out,"\n");
                     }
-                }
-                else { // this is a gene -> different file pointer
-                    fgetline(linebuf, linebuflen, ftmp_in);
-                    fprintf(g_out, "%s\t%.6f\t%.6f\n", linebuf, calc_fpkm, calc_tpm);
+                    else fprintf(f_out,"%s\n",linebuf);
                 }
             }
-            // if (guided) {
-            //     writeUnbundledGuides(refguides, f_out, g_out);
-            // }
-            fclose(f_out);
-            fclose(ftmp_in);
-            if(geneabundance) fclose(g_out);
-            GFREE(linebuf);
-            if (!keepTempFiles) {
-                remove(tmpfname.chars());
+            else { // this is a gene -> different file pointer
+                fgetline(linebuf, linebuflen, ftmp_in);
+                fprintf(g_out, "%s\t%.6f\t%.6f\n", linebuf, calc_fpkm, calc_tpm);
             }
         }
-        else {
-            fclose(f_out);
-            GError("No temporary file %s present!\n",tmpfname.chars());
-        }
-
-        //lastly, for ballgown, rewrite the tdata file with updated cov and fpkm
-        // if (ballgown) {
-        //     rc_writeRC(guides_RC_tdata, guides_RC_exons, guides_RC_introns,
-        //             f_tdata, f_edata, f_idata, f_e2t, f_i2t);
+        // if (guided) {
+        //     writeUnbundledGuides(refguides, f_out, g_out);
         // }
+        fclose(f_out);
+        fclose(ftmp_in);
+        if(geneabundance) fclose(g_out);
+        GFREE(linebuf);
+        if (!keepTempFiles) {
+            remove(tmpfname.chars());
+        }
+    }
+    else {
+        fclose(f_out);
+        GError("No temporary file %s present!\n",tmpfname.chars());
     }
 
     if (!keepTempFiles) {

@@ -40,11 +40,6 @@ struct DOTInputFile;
 
 extern bool debugMode; // "debug" or "D" tag.
 extern bool verbose; // "verbose" / "v" tag.
-extern bool ballgown; // "B" tag.
-extern GStr ballgown_dir; // "b" tag.
-extern bool viral; // "viral" tag.
-extern bool mixedMode; // "mix" tag. both short and long read data alignments are provided
-extern bool mergeMode; // "merge" tag. For running StringTie Merge.
 extern bool multiMode; // "multi" tag.
 extern bool graph_bed;
 extern bool keepTempFiles; // "keeptmp" tag.
@@ -57,8 +52,6 @@ extern bool retained_intron; // "i" tag. set by parameter -i for merge option
 extern bool trim; // "t" tag. 
 extern bool eonly; // "e" tag. for mergeMode includes estimated coverage sum in the merged transcripts
 extern bool nomulti; // "u" tag.
-extern bool longreads; // "L" tag.
-extern bool rawreads; // "R" tag.
 extern GStrSet<> excludeGseqs; // "x" tag. hash of chromosomes/contigs to exclude (e.g. chrM)
 extern bool guided; // "G" tag.
 extern GStr guidegff; // "G" tag
@@ -99,7 +92,6 @@ extern GStr tmp_path;
 extern GStr cram_ref; //"ref" / "cram-ref" tag. Reference genome FASTA for CRAM input
 extern GStr tmpfname; // "o" tag.
 extern GStr genefname;
-extern GStr traindir; // "cds" tag. training directory for CDS option (removed)
 // Ratio file => for coverage comparison & visualization.
 extern ofstream cov_file_pos;
 extern ofstream cov_file_neg;

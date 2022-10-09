@@ -54,24 +54,10 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 			guidepred.cAdd(-1);
 			bool covered=true;
 			RC_TData* tdata=(RC_TData*)(guides[g]->uptr);
-			if(longreads || mixedMode) {
-				for(int i=1;i<guides[g]->exons.Count();i++) {
-					char s=0; // unknown strand
-					if(guides[g]->strand=='+') s=1; // guide on positive strand
-					else if(guides[g]->strand=='-') s=-1; // guide on negative strand
-					CJunction jn(guides[g]->exons[i-1]->end,guides[g]->exons[i]->start,s);
-					int oidx=-1;
-					if (!junction.Found(&jn, oidx)) {
-						covered=false;
-						break;
-					}
-				}
-			} else {
-				for(int i=0;i<tdata->t_introns.Count();i++) {
-					if(!tdata->t_introns[i]->rcount) {
-						covered=false;
-						break;
-					}
+			for(int i=0;i<tdata->t_introns.Count();i++) {
+				if(!tdata->t_introns[i]->rcount) {
+					covered=false;
+					break;
 				}
 			}
 
@@ -139,28 +125,8 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 	for(int i=0;i<junction.Count();i++) {
 		fprintf(stderr,"check junction:%d-%d:%d leftsupport=%f rightsupport=%f nm=%f nreads=%f\n",junction[i]->start,junction[i]->end,junction[i]->strand,junction[i]->leftsupport,junction[i]->rightsupport,junction[i]->nm,junction[i]->nreads);
 
-		if((!higherr || mixedMode) && junction[i]->strand && junction[i]->nm==junction[i]->nreads && !junction[i]->guide_match) {
+		if((!higherr) && junction[i]->strand && junction[i]->nm==junction[i]->nreads && !junction[i]->guide_match) {
 			higherr=true;
-			if(mixedMode) {
-				int j=i-1;
-				while(j>=0 && junction[j]->start+sserror>junction[i]->start) {
-					if(junction[j]->strand && junction[i]->strand!=junction[j]->strand && abs((int)(junction[j]->end-junction[i]->end))<(int)sserror && junction[j]->nm<junction[j]->nreads) {
-						junction[i]->strand = 0;
-						break;
-					}
-					j--;
-				}
-				if(junction[i]->strand) {
-					j=i+1;
-					while(j<junction.Count() && junction[j]->start-sserror<junction[i]->start) {
-						if(junction[j]->strand && junction[i]->strand!=junction[j]->strand && abs((int)(junction[j]->end-junction[i]->end))<(int)sserror && junction[j]->nm<junction[j]->nreads) {
-							junction[i]->strand = 0;
-							break;
-						}
-						j++;
-					}
-				}
-			}
 		}
 
 		if(junction[i]->start!=start) {  // new junction starting at i
@@ -276,66 +242,18 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 	 *****************************/
 	if(higherr) { 
 		uint juncsupport=junctionsupport;
-		if(longreads)
-			juncsupport=sserror;
-		else if(mixedMode) juncsupport=sserror/DROP;
 		//fprintf(stderr,"In higherr!\n");
 		GVec<int> jstarts; // good starting junctions
 		GVec<int> jends; // good ending junctions
-		if(viral) {
-			for(int i=1;i<junction.Count();i++) { // junction is sorted based on start
 
-				if(junction[i]->strand && junction[i]->nm && !junction[i]->guide_match && junction[i]->nm>=junction[i]->nreads) { // this is a bad junction -> check if it's maximal;
-					if(junction[i]->nreads_good>=0 && (junction[i]->nreads_good<1.25*junctionthr || !good_junc(*junction[i],refstart,bpcov))) { // threshold for bad junctions is higher; (should I also add that too short junctions not to be accepted?)
-						//junction[i]->strand=0; // just delete junction if it's low count
-						junction[i]->mm=-1;
-						//fprintf(stderr,"...delete due to being under threshold\n");
-					}
+		float tolerance=1-ERROR_PERC;
 
-					int j=i-1;
-					while(j>0 && junction[i]->start-junction[j]->start<juncsupport) {
-						if(junction[j]->strand==junction[i]->strand && junction[j]->nreads_good>=0 && junction[i]->nreads<junction[j]->nreads &&
-								abs((int)junction[i]->end-(int)junction[j]->end)<(int)juncsupport) { // j was not elminated and is better
-							if(junction[i]->nreads_good<0) { // i was eliminated before
-								int k=-junction[i]->nreads_good;
-								if(junction[k]->nreads<junction[j]->nreads) junction[i]->nreads_good=-j;
-							}
-							else {
-								junction[i]->nreads_good=-j;
-							}
-						}
-						j--;
-					}
-				}
-			}
-			for(int i=junction.Count()-1;i>0;i--) {
-				if(junction[i]->strand && junction[i]->nm && !junction[i]->guide_match && junction[i]->nm>=junction[i]->nreads) { // this is a bad junction -> check if it's maximal;
-					int j=i+1;
-					while(j<junction.Count() && junction[j]->start-junction[i]->start<juncsupport) {
-						if(junction[j]->strand==junction[i]->strand && junction[j]->nreads_good>=0 && junction[i]->nreads<junction[j]->nreads &&
-								abs((int)junction[i]->end-(int)junction[j]->end)<(int)juncsupport) { // j was not elminated and is better
-							if(junction[i]->nreads_good<0) { // i was eliminated before
-								int k=-junction[i]->nreads_good;
-								if(junction[k]->nreads<junction[j]->nreads) junction[i]->nreads_good=-j;
-							}
-							else {
-								junction[i]->nreads_good=-j;
-							}
-						}
-						j++;
-					}
-				}
-			}
-		} else {
+		// strand based version
+		for(int i=1;i<junction.Count();i++) { // junction is sorted based on start
 
-			float tolerance=1-ERROR_PERC;
-
-			// strand based version
-			for(int i=1;i<junction.Count();i++) { // junction is sorted based on start
-
-				//fprintf(stderr,"junct[%d]:%d-%d:%d lefttsupport=%f nm=%f mm=%f nreads=%f nreads_good=%f\n",i,junction[i]->start,junction[i]->end,junction[i]->strand,junction[i]->leftsupport,junction[i]->nm,junction[i]->mm,junction[i]->nreads,junction[i]->nreads_good);
-				if(junction[i]->strand) {
-					if(junction[i]->nm && !junction[i]->guide_match && junction[i]->nm>=junction[i]->nreads) { // this is a bad junction -> check if it's maximal;
+			//fprintf(stderr,"junct[%d]:%d-%d:%d lefttsupport=%f nm=%f mm=%f nreads=%f nreads_good=%f\n",i,junction[i]->start,junction[i]->end,junction[i]->strand,junction[i]->leftsupport,junction[i]->nm,junction[i]->mm,junction[i]->nreads,junction[i]->nreads_good);
+			if(junction[i]->strand) {
+				if(junction[i]->nm && !junction[i]->guide_match && junction[i]->nm>=junction[i]->nreads) { // this is a bad junction -> check if it's maximal;
 					if(junction[i]->nreads_good>=0 && junction[i]->nreads_good<1.25*junctionthr) { // threshold for bad junctions is higher; (should I also add that too short junctions not to be accepted?)
 						//junction[i]->strand=0; // just delete junction if it's low count
 						junction[i]->mm=-1;
@@ -399,98 +317,73 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 						}
 					}
 				}
-					else if(mixedMode && junction[i]->nm<junction[i]->nreads) {
-						jstarts.Add(i);
-					}
-				}
-				//fprintf(stderr,"ejunct[%d]:%d-%d:%d rightsupport=%f nm=%f nreads=%f\n",i,ejunction[i]->start,ejunction[i]->end,ejunction[i]->strand,ejunction[i]->rightsupport,ejunction[i]->nm,ejunction[i]->nreads);
+			}
+			//fprintf(stderr,"ejunct[%d]:%d-%d:%d rightsupport=%f nm=%f nreads=%f\n",i,ejunction[i]->start,ejunction[i]->end,ejunction[i]->strand,ejunction[i]->rightsupport,ejunction[i]->nm,ejunction[i]->nreads);
 
-				if(ejunction[i]->strand) {
-					if(ejunction[i]->nm && !ejunction[i]->guide_match && ejunction[i]->nm>=ejunction[i]->nreads) { // this is a bad junction -> check if it's maximal
-					if(ejunction[i]->nreads_good>=0 && ejunction[i]->nreads_good<1.25*junctionthr) { // threshold for bad junctions is higher
-						//ejunction[i]->strand=0;
-						ejunction[i]->mm=-1;
-						//fprintf(stderr,"...delete due to being under threshold\n");
-					}
-					int j=i-1;
-					float support=0;
-					bool searchjunc=true;
-					bool reliable=false;
-					//if(j>=0) fprintf(stderr,"...start at junct:%d-%d:%d rightsupport=%f dist=%d\n",ejunction[j]->start,ejunction[j]->end,ejunction[j]->strand,ejunction[j]->rightsupport,ejunction[i]->end-ejunction[j]->end);
-					while(j>0 && ejunction[i]->end-ejunction[j]->end<juncsupport) {
-						if(ejunction[j]->strand==ejunction[i]->strand) {
-							if(ejunction[j]->end==ejunction[i]->end) {
-								if(ejunction[j]->nreads_good<0) {
-									ejunction[i]->nreads_good=ejunction[j]->nreads_good;
-									searchjunc=false;
-								}
+			if(ejunction[i]->strand) {
+				if(ejunction[i]->nm && !ejunction[i]->guide_match && ejunction[i]->nm>=ejunction[i]->nreads) { // this is a bad junction -> check if it's maximal
+				if(ejunction[i]->nreads_good>=0 && ejunction[i]->nreads_good<1.25*junctionthr) { // threshold for bad junctions is higher
+					//ejunction[i]->strand=0;
+					ejunction[i]->mm=-1;
+					//fprintf(stderr,"...delete due to being under threshold\n");
+				}
+				int j=i-1;
+				float support=0;
+				bool searchjunc=true;
+				bool reliable=false;
+				//if(j>=0) fprintf(stderr,"...start at junct:%d-%d:%d rightsupport=%f dist=%d\n",ejunction[j]->start,ejunction[j]->end,ejunction[j]->strand,ejunction[j]->rightsupport,ejunction[i]->end-ejunction[j]->end);
+				while(j>0 && ejunction[i]->end-ejunction[j]->end<juncsupport) {
+					if(ejunction[j]->strand==ejunction[i]->strand) {
+						if(ejunction[j]->end==ejunction[i]->end) {
+							if(ejunction[j]->nreads_good<0) {
+								ejunction[i]->nreads_good=ejunction[j]->nreads_good;
+								searchjunc=false;
+							}
+							break;
+						}
+						else if(ejunction[j]->guide_match || ejunction[j]->nm<ejunction[j]->nreads) { // nearby junction is much more reliable
+							if(ejunction[j]->rightsupport>ejunction[i]->rightsupport*tolerance) { // the good junction is close enough
+								reliable=true;
+								ejunction[i]->nreads_good=-j;
+								support=ejunction[j]->rightsupport;
 								break;
 							}
-							else if(ejunction[j]->guide_match || ejunction[j]->nm<ejunction[j]->nreads) { // nearby junction is much more reliable
-								if(ejunction[j]->rightsupport>ejunction[i]->rightsupport*tolerance) { // the good junction is close enough
-									reliable=true;
+						}
+						else if(ejunction[j]->rightsupport>support && ejunction[i]->end-ejunction[j]->end < sserror && ejunction[j]->rightsupport*tolerance>ejunction[i]->rightsupport) {
+							//fprintf(stderr,"...1 compare to [%d]:%d-%d:%d rightsupport=%f\n",j,ejunction[j]->start,ejunction[j]->end,ejunction[j]->strand,ejunction[j]->rightsupport);
+							ejunction[i]->nreads_good=-j;
+							support=ejunction[j]->rightsupport;
+						}
+					}
+					j--;
+				}
+				if(searchjunc) {
+					j=i+1;
+					int dist=juncsupport;
+					if(ejunction[i]->nreads_good<0) {
+						dist=ejunction[i]->end-ejunction[abs((int)ejunction[i]->nreads_good)]->end;
+					}
+					//if(j<junction.Count()) fprintf(stderr,"...start at junct:%d-%d:%d rightsupport=%f dist=%d\n",ejunction[j]->start,ejunction[j]->end,ejunction[j]->strand,ejunction[j]->rightsupport,ejunction[j]->end-ejunction[i]->end);
+					while(j<junction.Count() && ejunction[j]->end-ejunction[i]->end<juncsupport) {
+						if(ejunction[j]->strand==ejunction[i]->strand && ejunction[j]->end!=ejunction[i]->end) {
+							int d=ejunction[j]->end-ejunction[i]->end;
+							if(ejunction[j]->guide_match || ejunction[j]->nm<ejunction[j]->nreads) {
+								if((d<dist || (d==dist && ejunction[j]->rightsupport>support)) && ejunction[j]->rightsupport>ejunction[i]->rightsupport*tolerance) {
 									ejunction[i]->nreads_good=-j;
 									support=ejunction[j]->rightsupport;
 									break;
 								}
 							}
-							else if(ejunction[j]->rightsupport>support && ejunction[i]->end-ejunction[j]->end < sserror && ejunction[j]->rightsupport*tolerance>ejunction[i]->rightsupport) {
-								//fprintf(stderr,"...1 compare to [%d]:%d-%d:%d rightsupport=%f\n",j,ejunction[j]->start,ejunction[j]->end,ejunction[j]->strand,ejunction[j]->rightsupport);
+							else if((!reliable && ejunction[j]->rightsupport>support && ejunction[j]->end-ejunction[i]->end < sserror && ejunction[j]->rightsupport*tolerance>ejunction[i]->rightsupport) || ((int)(ejunction[j]->end-ejunction[i]->end)<dist && (ejunction[j]->guide_match || ejunction[j]->nm<ejunction[j]->nreads))) {
+								//fprintf(stderr,"...2 compare to [%d]:%d-%d:%d rightsupport=%f\n",j,ejunction[j]->start,ejunction[j]->end,ejunction[j]->strand,ejunction[j]->rightsupport);
 								ejunction[i]->nreads_good=-j;
 								support=ejunction[j]->rightsupport;
 							}
 						}
-						j--;
-					}
-					if(searchjunc) {
-						j=i+1;
-						int dist=juncsupport;
-						if(ejunction[i]->nreads_good<0) {
-							dist=ejunction[i]->end-ejunction[abs((int)ejunction[i]->nreads_good)]->end;
-						}
-						//if(j<junction.Count()) fprintf(stderr,"...start at junct:%d-%d:%d rightsupport=%f dist=%d\n",ejunction[j]->start,ejunction[j]->end,ejunction[j]->strand,ejunction[j]->rightsupport,ejunction[j]->end-ejunction[i]->end);
-						while(j<junction.Count() && ejunction[j]->end-ejunction[i]->end<juncsupport) {
-							if(ejunction[j]->strand==ejunction[i]->strand && ejunction[j]->end!=ejunction[i]->end) {
-								int d=ejunction[j]->end-ejunction[i]->end;
-								if(ejunction[j]->guide_match || ejunction[j]->nm<ejunction[j]->nreads) {
-									if((d<dist || (d==dist && ejunction[j]->rightsupport>support)) && ejunction[j]->rightsupport>ejunction[i]->rightsupport*tolerance) {
-										ejunction[i]->nreads_good=-j;
-										support=ejunction[j]->rightsupport;
-										break;
-									}
-								}
-								else if((!reliable && ejunction[j]->rightsupport>support && ejunction[j]->end-ejunction[i]->end < sserror && ejunction[j]->rightsupport*tolerance>ejunction[i]->rightsupport) || ((int)(ejunction[j]->end-ejunction[i]->end)<dist && (ejunction[j]->guide_match || ejunction[j]->nm<ejunction[j]->nreads))) {
-									//fprintf(stderr,"...2 compare to [%d]:%d-%d:%d rightsupport=%f\n",j,ejunction[j]->start,ejunction[j]->end,ejunction[j]->strand,ejunction[j]->rightsupport);
-									ejunction[i]->nreads_good=-j;
-									support=ejunction[j]->rightsupport;
-								}
-							}
-							j++;
-						}
-					}
-				}
-					else if(mixedMode && ejunction[i]->nm<ejunction[i]->nreads) {
-						jends.Add(i);
+						j++;
 					}
 				}
 			}
-		}
-		if(mixedMode) { // check if there are junctions inside bigger junctions that can form small exons
-			int si=0;
-			for(int ei=0;ei<jends.Count();ei++) {
-				while(si<jstarts.Count() && junction[jstarts[si]]->start<=ejunction[jends[ei]]->end) si++;
-				int k=si;
-				while(k<jstarts.Count() && junction[jstarts[k]]->start-ejunction[jends[ei]]->end<SMALL_EXON) {
-					if(junction[jstarts[k]]->strand == ejunction[jends[ei]]->strand) {
-						CJunction jn(ejunction[jends[ei]]->start,junction[jstarts[k]]->end,junction[jstarts[k]]->strand);
-						int oidx=-1;
-						if (junction.Found(&jn, oidx) && junction[oidx]->nm>=junction[oidx]->nreads) { // candidate junction for deletion
-							junction[oidx]->strand=0;
-							break;
-						}
-					}
-					k++;
-				}
 			}
 		}
 	} //if higherr
@@ -547,7 +440,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 
 			bool changeright=jd.nreads_good<0;
 			bool changeleft=jd.nreads<0;
-			if(viral && changeright) {
+			if(changeright) {
 				changeleft=true;
 				jd.nreads=jd.nreads_good;
 			}
@@ -582,24 +475,13 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 					}
 					if(changeright) {
 						ek=abs(int(jd.nreads_good));
-						if(viral) {
-							if(junction[ek]->nreads_good<0) {
-								newend=rd.segs[i+1].end+1;
-							}
-							else {
-								newend=junction[ek]->end;
-								//fprintf(stderr,"junction has newend=%d from junction[ek=%d]\n",newend,ek);
-							}
+						if(ejunction[ek]->nreads_good<0) {
+							newend=rd.segs[i+1].end+1;
 						}
 						else {
-							if(ejunction[ek]->nreads_good<0) {
-								newend=rd.segs[i+1].end+1;
-							}
-							else {
-								newend=ejunction[ek]->end;
-								//fprintf(stderr,"junction has newend=%d from junction[ek=%d]\n",newend,ek);
-								if(ejunction[ek]->strand) ek=-1;
-							}
+							newend=ejunction[ek]->end;
+							//fprintf(stderr,"junction has newend=%d from junction[ek=%d]\n",newend,ek);
+							if(ejunction[ek]->strand) ek=-1;
 						}
 					}
 					//if(jd.mm>=0 && newstart>=rd.segs[i].start && newend<=rd.segs[i+1].end) { // junction inside read boundaries
@@ -612,7 +494,6 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 							if(jk>0) { // search junctions
 								int k=jk;
 								while(k>0 && junction[k]->start==newstart) {
-								   if(mixedMode && junction[k]->nm<junction[k]->nreads) addjunction=false;
 								   if(rd.strand==junction[k]->strand && junction[k]->end==newend) {
 									rd.juncs.Put(i,junction[k]);
 										searchjunc=false;
@@ -623,7 +504,6 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 								if(searchjunc) {
 									k=jk+1;
 									while(k<junction.Count() && junction[k]->start==newstart) {
-										if(mixedMode && junction[k]->nm<junction[k]->nreads) addjunction=false;
 										if(rd.strand==junction[k]->strand && junction[k]->end==newend) {
 											rd.juncs.Put(i,junction[k]);
 											searchjunc=false;
@@ -658,7 +538,6 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 							else if(ek>0) { // ek>0 => search ejunctions; ek>0 because I have either changeleft or changeright
 								int k=ek;
 								while(k>0 && ejunction[k]->end==newend) {
-									if(mixedMode && junction[k]->nm<junction[k]->nreads) addjunction=false;
 									if(rd.strand==ejunction[k]->strand && ejunction[k]->start==newstart) {
 										rd.juncs.Put(i,ejunction[k]);
 										searchjunc=false;
@@ -669,7 +548,6 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 								if(searchjunc) {
 									k=ek+1;
 									while(k<ejunction.Count() && ejunction[k]->end==newend) {
-										if(mixedMode && junction[k]->nm<junction[k]->nreads) addjunction=false;
 										if(rd.strand==ejunction[k]->strand && ejunction[k]->start==newstart) {
 											rd.juncs.Put(i,ejunction[k]);
 											searchjunc=false;
@@ -821,7 +699,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 	 ** Step 4: 'merge_fwd_groups' function
 	 ** 	merge groups that are close together or __groups that are within the same exon of a reference gene__
 	 *****************************/
-	if(bundledist || (guides.Count() && !longreads)) {
+	if(bundledist || (guides.Count())) {
 		for(int sno=0;sno<3;sno++) {
 			CGroup *lastgroup=NULL;
 			CGroup *procgroup=startgroup[sno];
@@ -1213,7 +1091,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 		// now guides[g]->end>=bnode[1][bundle[1][b]->startnode]->start
 		if(g<guides.Count() && guides[g]->start<=bnode[1][bundle[1][b]->startnode]->end) guide_ovlp=true;
 
-		if(bundle[1][b]->cov && ((bundle[1][b]->multi/bundle[1][b]->cov)<=mcov*(1-ERROR_PERC) || guide_ovlp || rawreads)) { // && (guides.Count() || adaptive || bundle[1][b]->len >= mintranscriptlen)) { // there might be small transfrags that are worth showing, but here I am ignoring them
+		if(bundle[1][b]->cov && ((bundle[1][b]->multi/bundle[1][b]->cov)<=mcov*(1-ERROR_PERC) || guide_ovlp)) { // && (guides.Count() || adaptive || bundle[1][b]->len >= mintranscriptlen)) { // there might be small transfrags that are worth showing, but here I am ignoring them
     		// bundle might contain multiple fragments of a transcript but since we don't know the complete structure -> print only the pieces that are well represented
     		CBundlenode *currbnode=bnode[1][bundle[1][b]->startnode];
     		int t=1;
@@ -1240,7 +1118,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     			//float cov=currbnode->cov/(currbnode->end-currbnode->start+1);
     			bool printguides=false;
 
-    			if(!rawreads) for(int i=0;i<bnodeguides[currbnode->bid].Count();i++) {
+				for(int i=0;i<bnodeguides[currbnode->bid].Count();i++) {
     				int g=bnodeguides[currbnode->bid][i];
     				geneno++;
     				int glen=guides[g]->end-guides[g]->start+1;
@@ -1259,7 +1137,6 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     					GSeg exon(guides[g]->start, guides[g]->end);
     					p->exons.Add(exon);
     					p->exoncov.Add(gcov);
-    					if(longreads) p->tlen=-p->tlen;
     					pred.Add(p);
     					printguides=true;
     					guidepred[g]=pred.Count()-1;
@@ -1289,8 +1166,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     								GSeg exon(predstart, trimpoint[i].pos-CHI_WIN);
 
     								p->exons.Add(exon);
-    								if(!rawreads) p->exoncov.Add(cov);
-    								if(longreads) p->tlen=-p->tlen;
+									p->exoncov.Add(cov);
     								pred.Add(p);
     								t++;
     							}
@@ -1307,8 +1183,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     								GSeg exon(predstart, trimpoint[i].pos);
 
     								p->exons.Add(exon);
-    								if(!rawreads) p->exoncov.Add(cov);
-    								if(longreads) p->tlen=-p->tlen;
+									p->exoncov.Add(cov);
     								pred.Add(p);
     								t++;
     							}
@@ -1328,8 +1203,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     					GSeg exon(predstart, predend);
 
     					p->exons.Add(exon);
-    					if(!rawreads) p->exoncov.Add(cov);
-    					if(longreads) p->tlen=-p->tlen;
+						p->exoncov.Add(cov);
     					pred.Add(p);
     					t++;
     				}
@@ -1702,11 +1576,10 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 
     				fprintf(stderr,"guidetrf no=%d\n",guidetrf.Count());
 
-    				//if(!longreads) {
     				// find transcripts now
 
 					// gpos / no2gnode / transfrag
-    				if(!rawreads) geneno=find_transcripts_unispg(graphno[s][b],edgeno[s][b],gpos[s][b],no2gnode[s][b],transfrag[s][b],
+					geneno=find_transcripts_unispg(graphno[s][b],edgeno[s][b],gpos[s][b],no2gnode[s][b],transfrag[s][b],
     						geneno,s,guidetrf,guides,guidepred,bdata,trflong);
     				//}
     				for(int g=0;g<guidetrf.Count();g++) delete guidetrf[g].trf;

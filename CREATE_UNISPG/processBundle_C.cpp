@@ -48,16 +48,12 @@ void processBundle_CREATE_UNISPG(BundleData* bundle, UnispgGp_CREATE* unispg_gp,
 #endif
 
 	infer_transcripts_CREATE_UNISPG(bundle, unispg_gp, fidx);
-
-	// if (ballgown && bundle->rc_data) {
-	// 	rc_update_exons(*(bundle->rc_data));
-	// }
+	
 	if (bundle->pred.Count()>0 || ((eonly || geneabundance) && bundle->keepguides.Count()>0)) {
 #ifndef NOTHREADS
 		GLockGuard<GFastMutex> lock(printMutex);
 #endif
-		if(mergeMode) GeneNo=printMergeResults(bundle, GeneNo,bundle->refseq);
-		else GeneNo=printResults(bundle, GeneNo, bundle->refseq);
+		GeneNo=printResults(bundle, GeneNo, bundle->refseq);
 	}
 
 	if (bundle->num_fragments) {

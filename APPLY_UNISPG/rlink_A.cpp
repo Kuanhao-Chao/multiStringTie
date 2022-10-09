@@ -150,208 +150,6 @@ void count_good_junctions_APPLY_UNISPG(BundleData* bdata) {
 	GHashMap<CJunction*, CJunction*> jhash(false); //hash of pointers
 	//char sbuf[20];
 
-	if((longreads||mixedMode) && bdata->keepguides.Count()) { // there are guides to consider with longreads -> I might need to adjust the splice sites
-		GPVec<GffObj>& guides = bdata->keepguides;
-		GList<CJunction> gjunc(true, true, true);
-		for(int g=0;g<guides.Count();g++) {
-			char s=0; // unknown strand
-			if(guides[g]->strand=='+') s=1; // guide on positive strand
-			else if(guides[g]->strand=='-') s=-1; // guide on negative strand
-			for(int i=1;i<guides[g]->exons.Count();i++) { //add_junction((int)guides[g]->exons[i-1]->end,(int)guides[g]->exons[i]->start,gjunc,s);
-
-				int gidx=gjunc.AddedIfNew(new CJunction(guides[g]->exons[i-1]->end,guides[g]->exons[i]->start,s));
-				if(gidx>-1) { // item is new
-					gjunc[gidx]->guide_match=1;
-					if(mixedMode) { // this should favor junctions already covered by short reads
-						CJunction jn(guides[g]->exons[i-1]->end,guides[g]->exons[i]->start,s);
-						int oidx=-1;
-						if (!junction.Found(&jn, oidx) || junction[oidx]->nm>=junction[oidx]->nreads) {
-							gjunc[gidx]->guide_match=0;
-							break;
-						}
-					}
-				}
-				fprintf(stderr,"Add guide junction=%d-%d:%d from reference %s\n",guides[g]->exons[i-1]->end,guides[g]->exons[i]->start,s,guides[g]->getID());
-			}
-		}
-
-		if(gjunc.Count()) {
-
-			//for(int i=0;i<gjunc.Count();i++) fprintf(stderr,"Guide junction=%d-%d:%d\n",gjunc[i]->start,gjunc[i]->end,gjunc[i]->strand);
-
-			//int ssdist=1/ERROR_PERC;
-			//int ssdist=longintronanchor;
-
-			GVec<int> smodjunc; // keeps a list of all modified start junctions' indices (might keep the same junction twice)
-			GVec<int> emodjunc; // keeps a list of all modified end junctions' indices (might keep the same junction twice)
-			GList<CJunction> ejunction(junction);
-			ejunction.setFreeItem(false);
-			if(ejunction.Count()) ejunction.setSorted(juncCmpEnd);
-			GList<CJunction> egjunc(gjunc);
-			egjunc.setFreeItem(false);
-			egjunc.setSorted(juncCmpEnd);
-			int s=0;
-			int e=0;
-			for(int i=1;i<junction.Count();i++) {
-
-				if(junction[i]->nm>=junction[i]->nreads){ // for all junctions -> try to see if I can correct them
-
-					//fprintf(stderr,"check junction[%d]:%d-%d:%d rightsupport=%f nm=%f nreads=%f\n",i,junction[i]->start,junction[i]->end,junction[i]->strand,junction[i]->rightsupport,junction[i]->nm,junction[i]->nreads);
-
-					// check start junction
-					while(s<gjunc.Count() && gjunc[s]->start+sserror<junction[i]->start) s++;
-					int k=s;
-					int c=-1;
-					int dist=1+sserror;
-					while(k<gjunc.Count() && gjunc[k]->start<=junction[i]->start+sserror) {
-						if(!junction[i]->strand || gjunc[k]->strand==junction[i]->strand) {
-							if(gjunc[k]->start==junction[i]->start && gjunc[k]->guide_match) { // perfect match --> no need to change anything
-								c=-1;
-								break;
-							}
-							int d=dist;
-							if(c<0 || gjunc[c]->guide_match==gjunc[k]->guide_match) d=abs((int)gjunc[k]->start-(int)junction[i]->start);
-							if(d<dist || (!gjunc[c]->guide_match && gjunc[k]->guide_match)) {
-								dist=d;
-								c=k;
-								smodjunc.Add(i);
-							}
-						}
-						k++;
-					}
-					if(c>=0) {
-						//fprintf(stderr,"...correct start of junction[%d] to %d\n",i,gjunc[c]->start);
-						junction[i]->start=gjunc[c]->start;
-						junction[i]->strand=gjunc[c]->strand;
-						while(c<gjunc.Count() && gjunc[c]->start==junction[i]->start) {
-							if(junction[i]->end==gjunc[c]->end && junction[i]->strand==gjunc[c]->strand) {
-								junction[i]->guide_match=true;
-								break;
-							}
-							c++;
-						}
-					}
-				}
-				if(ejunction[i]->nm>=ejunction[i]->nreads){ // for all junctions -> try to see if I can correct them
-
-					//fprintf(stderr,"check ejunction[%d]:%d-%d:%d rightsupport=%f nm=%f nreads=%f\n",i,ejunction[i]->start,ejunction[i]->end,ejunction[i]->strand,ejunction[i]->rightsupport,ejunction[i]->nm,ejunction[i]->nreads);
-
-					// check end junction
-					while(e<egjunc.Count() && egjunc[e]->end+sserror<ejunction[i]->end) e++;
-					int k=e;
-					int c=-1;
-					int dist=1+sserror;
-					while(k<egjunc.Count() && egjunc[k]->end<=ejunction[i]->end+sserror) {
-						if(!ejunction[i]->strand || egjunc[k]->strand==ejunction[i]->strand) {
-							if(egjunc[k]->end==ejunction[i]->end  && egjunc[k]->guide_match) { // perfect match --> no need to change anything
-								c=-1;
-								break;
-							}
-
-							int d=dist;
-							if(c<0 || egjunc[c]->guide_match==egjunc[k]->guide_match) d=abs((int)egjunc[k]->end-(int)ejunction[i]->end);
-							if(d<dist || (!egjunc[c]->guide_match && egjunc[k]->guide_match)) {
-								dist=d;
-								c=k;
-								emodjunc.Add(i);
-							}
-						}
-						k++;
-					}
-					if(c>=0) {
-						//fprintf(stderr,"...correct end of ejunction[%d] to %d\n",i,egjunc[c]->end);
-						ejunction[i]->end=egjunc[c]->end;
-						ejunction[i]->strand=egjunc[c]->strand;
-						while(c<egjunc.Count() && egjunc[c]->end==ejunction[i]->end) {
-							if(ejunction[i]->start==egjunc[c]->start && ejunction[i]->strand==egjunc[c]->strand) {
-								ejunction[i]->guide_match=true; break;
-							}
-							c++;
-						}
-					}
-					if(s==gjunc.Count() && e==egjunc.Count()) break;
-				}
-			}
-
-			if(smodjunc.Count()||emodjunc.Count()) {
-				modified=true;
-				for(int i=0;i<smodjunc.Count();i++) {
-					int j=smodjunc[i]; // junction that I modified --> try to see if there are other equal junctions
-					//sprintf(sbuf, "%p", junction[j]);
-					const CJunction* jp=jhash[junction[j]];
-					if(!jp) { // did not process junction before
-						//fprintf(stderr,"smodified junction[%d]:%d-%d:%d %p nreads=%f\n",j,junction[j]->start,junction[j]->end,junction[j]->strand,junction[j],junction[j]->nreads);
-						s=j-1;
-						GVec<int> equal;
-						while(s>=0 && junction[s]->start==junction[j]->start) {
-							if(junction[s]->end==junction[j]->end && junction[s]->strand==junction[j]->strand) equal.Add(s);
-							s--;
-						}
-						s=j+1;
-						while(s<junction.Count() && junction[s]->start==junction[j]->start) {
-							if(junction[s]->end==junction[j]->end && junction[s]->strand==junction[j]->strand) equal.Add(s);
-							s++;
-						}
-						if(equal.Count()) { // junction j is equal to other junctions
-							for(s=0;s<equal.Count();s++) {
-								//sprintf(sbuf, "%p", junction[equal[s]]);
-								//jhash.Add(sbuf,junction[j]);
-								CJunction* jct=junction[equal[s]];
-								//fprintf(stderr,"...equal to junction[%d]:%d-%d:%d %p nreads=%f\n",equal[s],jct->start,jct->end,jct->strand,jct,jct->nreads);
-								jhash.Add(jct, junction[j]);
-								if(mixedMode) { // I can trust the reads coming from mixed data but not so much from long reads
-									junction[j]->nreads+=jct->nreads;
-									junction[j]->nm+=jct->nm;
-									jct->nreads=0;
-								}
-								jct->strand=0;
-								jct->guide_match=false;
-							}
-						}
-					}
-				}
-				for(int i=0;i<emodjunc.Count();i++) {
-					int j=emodjunc[i];
-					//sprintf(sbuf, "%p", ejunction[j]);
-					CJunction* jp=jhash[ejunction[j]];
-					if(!jp) { // did not process junction before
-						//fprintf(stderr,"emodified ejunction[%d]:%d-%d:%d %p nreads=%f\n",j,ejunction[j]->start,ejunction[j]->end,ejunction[j]->strand,ejunction[j],ejunction[j]->nreads);
-						s=j-1;
-						GVec<int> equal;
-						while(s>=0 && ejunction[s]->end==ejunction[j]->end) {
-							if(ejunction[s]->start==ejunction[j]->start && ejunction[s]->strand==ejunction[j]->strand) equal.Add(s);
-							s--;
-						}
-						s=j+1;
-						while(s<ejunction.Count() && ejunction[s]->end==ejunction[j]->end) {
-							if(ejunction[s]->start==ejunction[j]->start && ejunction[s]->strand==ejunction[j]->strand) equal.Add(s);
-							s++;
-						}
-						if(equal.Count()) { // junction j is equal to other junctions
-							for(s=0;s<equal.Count();s++) {
-								//sprintf(sbuf, "%p", ejunction[equal[s]]);
-								//jhash.Add(sbuf,ejunction[j]);
-								//ejunction[equal[s]]->strand=0;
-								//ejunction[equal[s]]->guide_match=false;
-								CJunction* ej=ejunction[equal[s]];
-								jhash.Add(ej, ejunction[j]);
-								//fprintf(stderr,"...equal to ejunction[%d]:%d-%d:%d %p nreads=%f\n",equal[s],ej->start,ej->end,ej->strand,ej,ej->nreads);
-								if(mixedMode) { // I can trust the reads coming from mixed data but not so much from long reads
-									ejunction[j]->nreads+=ej->nreads;
-									ejunction[j]->nm+=ej->nm;
-									ej->nreads=0;
-								}
-								ej->strand=0;
-								ej->guide_match=false;
-							}
-						}
-					}
-				}
-			}
-			junction.Sort();
-		}
-		gjunc.Clear();
-	}
 
 	for(int s=0;s<3;s++) bpcov[s].Resize(refend-refstart+3);
 
@@ -423,39 +221,6 @@ void count_good_junctions_APPLY_UNISPG(BundleData* bdata) {
 						}
 					}
 				}
-				/* DEL AWARE*/
-				else if(!rd.juncs[i-1]->strand && (longreads || mixedMode) && (rd.segs[i-1].end!=rd.juncs[i-1]->start || rd.segs[i].start!=rd.juncs[i-1]->end)){ // see if I need to adjust read start/ends due to junction having deletions around it
-
-					CJunction *nj=NULL;
-					CJunction jn(rd.juncs[i-1]->start, rd.juncs[i-1]->end, rd.strand); // if the deletion makes sense then keep it
-					int oidx=-1;
-					if (junction.Found(&jn, oidx)) {
-						nj=junction.Get(oidx);
-						nj->nreads+=rd.juncs[i-1]->nreads;
-						nj->mm+=rd.juncs[i-1]->mm;
-						nj->nm+=rd.juncs[i-1]->nm;
-						rd.juncs[i-1]=nj;
-						// adjust start/end of read
-						rd.segs[i-1].end=rd.juncs[i-1]->start;
-						rd.segs[i].start=rd.juncs[i-1]->end;
-					}
-					else { // restore the correct junction
-						CJunction jn(rd.segs[i-1].end, rd.segs[i].start, rd.strand);
-						if (junction.Found(&jn, oidx)) {
-							nj=junction.Get(oidx);
-							nj->nreads+=rd.juncs[i-1]->nreads;
-							nj->mm+=rd.juncs[i-1]->mm;
-							nj->nm+=rd.juncs[i-1]->nm;
-							rd.juncs[i-1]=nj;
-						}
-						else { // new junction
-							rd.juncs[i-1]->strand=rd.strand;
-							rd.juncs[i-1]->start=rd.segs[i-1].end;
-							rd.juncs[i-1]->end=rd.segs[i].start;
-						}
-					}
-				}
-
 
 				if(rd.segs[i-1].len()>maxleftsupport) maxleftsupport=rd.segs[i-1].len();
 				if(rd.segs[nex-i].len()>maxrightsupport) maxrightsupport=rd.segs[nex-i].len();
@@ -472,7 +237,7 @@ void count_good_junctions_APPLY_UNISPG(BundleData* bdata) {
 			//if(!rd.juncs[i-1]->strand) { rd.juncs[i-1]->strand = rd.strand; }
 			uint anchor=junctionsupport;
 			//if(rd.juncs[i-1]->len()>longintron || rd.juncs[i-1]->nreads-rd.juncs[i-1]->mm<junctionthr || rd.juncs[i-1]->nreads-rd.juncs[i-1]->nm<junctionthr) {
-			if(rd.juncs[i-1]->len()>longintron || (!longreads && rd.juncs[i-1]->nreads-rd.juncs[i-1]->nm<junctionthr && !rd.juncs[i-1]->mm)) {
+			if(rd.juncs[i-1]->len()>longintron || (rd.juncs[i-1]->nreads-rd.juncs[i-1]->nm<junctionthr && !rd.juncs[i-1]->mm)) {
 				//if(rd.juncs[i-1]->len()>verylongintron) { if(anchor<verylongintronanchor) anchor=verylongintronanchor; } // I want to use a longer anchor for long introns to believe them
 				//else
 					if(anchor<longintronanchor) anchor=longintronanchor;
@@ -495,9 +260,6 @@ void count_good_junctions_APPLY_UNISPG(BundleData* bdata) {
 			}
 			//fprintf(stderr," %d(%d-%d)[%f-%f][%d][%f][%f]",anchor,leftsup[i-1],rightsup[nex-i-1],rd.juncs[i-1]->leftsupport,rd.juncs[i-1]->rightsupport,rd.juncs[i-1]->strand,rd.juncs[i-1]->nm,rd.juncs[i-1]->nreads);
 		}
-
-		if((mixedMode || longreads) && !rd.strand && nex>1) unstranded.Add(n);
-
 		//if(nex>1) fprintf(stderr,"\n");
 	}
 
@@ -541,76 +303,6 @@ void count_good_junctions_APPLY_UNISPG(BundleData* bdata) {
 			prev_sum[s]=bpcov[s][i];
 			//fprintf(stderr,"bpPos[%d][%d]: cov=%f sumbpcov=%f\n",s,i,prev_val[s],prev_sum[s]);
 		}
-
-	if(longreads || mixedMode) {
-		for(int n=0;n<unstranded.Count();n++) {
-			CReadAln & rd=*(readlist[unstranded[n]]);
-			if(rd.start>=(uint)refstart && (int)(rd.end-(uint)refstart)<bpcov[1].Count()) {
-				int nex=rd.segs.Count();
-				float pos=0;
-				float neg=0;
-				if(longreads) {
-					pos=get_cov(2,rd.segs[0].start-refstart,rd.segs[0].end-refstart,bpcov);
-					neg=get_cov(0,rd.segs[0].start-refstart,rd.segs[0].end-refstart,bpcov);
-				}
-				bool posjunc=false;
-				bool negjunc=false;
-				for(int i=1;i<nex;i++) { // some junctions don't get an assigned strand by buggy aligners
-					if(longreads) {
-						pos+=get_cov(2,rd.segs[i].start-refstart,rd.segs[i].end-refstart,bpcov);
-						neg+=get_cov(0,rd.segs[i].start-refstart,rd.segs[i].end-refstart,bpcov);
-					}
-					if(rd.juncs[i-1]->strand>0) posjunc=true;
-					else if(rd.juncs[i-1]->strand<0) negjunc=true;
-					else {
-						int oidx=-1;
-						CJunction jn(rd.juncs[i-1]->start, rd.juncs[i-1]->end, 1);
-						if (junction.Found(&jn, oidx)) {
-							posjunc=true;
-						}
-						jn.strand=-1;
-						if (junction.Found(&jn, oidx)) {
-							negjunc=true;
-						}
-					}
-				}
-				if(posjunc && !negjunc) {
-					rd.strand=1;
-				}
-				else if(negjunc && !posjunc) {
-					rd.strand=-1;
-				}
-				else {
-					if(neg<1) neg=0;
-					if(pos<1) pos=0;
-					if(neg>pos) {rd.strand=-1;}
-					else if(pos>neg) { rd.strand=1;}
-				}
-				//fprintf(stderr,"read strand is:%d for pos=%f neg=%f\n",rd.strand,pos,neg);
-				if(rd.strand) {
-					for(int i=1;i<nex;i++)
-						if(!rd.juncs[i-1]->strand) {
-							// first check to see if the junction already exists
-							int oidx=-1;
-							CJunction *nj=NULL;
-							CJunction jn(rd.juncs[i-1]->start, rd.juncs[i-1]->end, rd.strand);
-							if (junction.Found(&jn, oidx)) {
-								nj=junction.Get(oidx);
-								//fprintf(stderr,"found strand junction at %p",nj);
-								nj->nreads+=rd.juncs[i-1]->nreads;
-								nj->nreads_good+=rd.juncs[i-1]->nreads_good;
-								nj->nm+=rd.juncs[i-1]->nm;
-								nj->mm+=rd.juncs[i-1]->mm;
-								nj->leftsupport+=rd.juncs[i-1]->leftsupport;
-								nj->rightsupport+=rd.juncs[i-1]->rightsupport;
-								rd.juncs[i-1]=nj;
-							}
-							else rd.juncs[i-1]->strand = rd.strand;
-					}
-				}
-			}
-		}
-	}
 }
 
 

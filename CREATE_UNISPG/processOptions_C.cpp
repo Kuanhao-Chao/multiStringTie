@@ -21,21 +21,6 @@ void processCreateOptions(GArgs& args) {
 	   exit(0);
 	}
 
-	if (args.getOpt("viral")) {
-		viral=true;
-	}
-
-	 longreads=(args.getOpt('L')!=NULL);
-	 if(longreads) {
-		 bundledist=0;
-		 singlethr=1.5;
-	 }
-	 mixedMode=(args.getOpt("mix")!=NULL);
-	 if(mixedMode) {
-		 bundledist=0;
-		 //isofrac=0.02; // allow mixedMode to be more conservative
-	 }
-
 	if (args.getOpt("conservative")) {
 	  isofrac=0.05;
 	  singlethr=4.75;
@@ -62,16 +47,11 @@ void processCreateOptions(GArgs& args) {
 		args.printCmdLine(stderr);
 	}
 
-	mergeMode=(args.getOpt("merge")!=NULL);
-	if(mergeMode) {
-		longreads=false; // these are not longreads
-	}
 	keepTempFiles=(args.getOpt("keeptmp")!=NULL);
 
 	//adaptive=!(args.getOpt('d')!=NULL);
 
 	//complete=!(args.getOpt('i')!=NULL);
-	// trim=!(args.getOpt('t')!=NULL);
 	includesource=!(args.getOpt('z')!=NULL);
 	//EM=(args.getOpt('y')!=NULL);
 	//weight=(args.getOpt('w')!=NULL);
@@ -79,13 +59,10 @@ void processCreateOptions(GArgs& args) {
 	GStr s=args.getOpt('m');
 	if (!s.is_empty()) {
 	mintranscriptlen=s.asInt();
-	if (!mergeMode) {
-		if (mintranscriptlen<30)
-			GError("Error: invalid -m value, must be >=30)\n");
-	}
+	if (mintranscriptlen<30)
+		GError("Error: invalid -m value, must be >=30)\n");
 	else if (mintranscriptlen<0) GError("Error: invalid -m value, must be >=0)\n");
 	}
-	else if(mergeMode) mintranscriptlen=50;
 
 	multiMode=(args.getOpt("multi")!=NULL);
 	if(multiMode) {
@@ -108,12 +85,6 @@ void processCreateOptions(GArgs& args) {
 		cram_ref=s;
 	}
 
-	//  traindir=args.getOpt("cds");
-	//  if(!traindir.is_empty()) {
-	// 	 if(gfasta==NULL) GError("Genomic sequence file is required for --cds option.\n");
-	// 	 load_cds_param(traindir,cds);
-	//  }
-
 	s=args.getOpt('x');
 	if (!s.is_empty()) {
 		//split by comma and populate excludeGSeqs
@@ -132,7 +103,7 @@ void processCreateOptions(GArgs& args) {
 			 sensitivitylevel=0;
 			 GMessage("sensitivity level out of range: setting sensitivity level at 0\n");
 		 }
-		 if(sensitivitylevel>3) {
+		 if(s>3) {
 			 sensitivitylevel=3;
 			 GMessage("sensitivity level out of range: setting sensitivity level at 2\n");
 		 }
@@ -157,29 +128,13 @@ void processCreateOptions(GArgs& args) {
 	s=args.getOpt('E');
 	if (!s.is_empty()) sserror=s.asInt();
 
-	rawreads=(args.getOpt('R')!=NULL);
-	if(rawreads) {
-		if(mixedMode) {
-			GError("Mixed mode and rawreads options are incompatible!\n");
-		}
-
-		if(!longreads) {
-			if(verbose) GMessage("Enable longreads processing\n");
-			longreads=true;
-			bundledist=0;
-		}
-		readthr=0;
-
-	}
-
 	s=args.getOpt('c');
 	if (!s.is_empty()) {
 		readthr=(float)s.asDouble();
-		if (readthr<0.001 && !mergeMode) {
+		if (readthr<0.001) {
 			GError("Error: invalid -c value, must be >=0.001)\n");
 		}
 	}
-	else if(mergeMode) readthr=0;
 
 
 	s=args.getOpt('g');
@@ -187,30 +142,25 @@ void processCreateOptions(GArgs& args) {
 		bundledist=s.asInt();
 		if(bundledist>runoffdist) runoffdist=bundledist;
 	}
-	else if(mergeMode) bundledist=250; // should figure out here a reasonable parameter for merge
 
 	s=args.getOpt('F');
 	if (!s.is_empty()) {
 		fpkm_thr=(float)s.asDouble();
 	}
-	//else if(mergeMode) fpkm_thr=0;
 
 	s=args.getOpt('T');
 	if (!s.is_empty()) {
 		tpm_thr=(float)s.asDouble();
 	}
-	//else if(mergeMode) tpm_thr=0;
 
 	s=args.getOpt('l');
 	if (!s.is_empty()) label=s;
-	else if(mergeMode) label="MSTRG";
 
 	s=args.getOpt('f');
 	if (!s.is_empty()) {
 		isofrac=(float)s.asDouble();
 		if(isofrac>=1) GError("Miminum isoform fraction (-f coefficient: %f) needs to be less than 1\n",isofrac);
 	}
-	else if(mergeMode) isofrac=0.01;
 	s=args.getOpt('M');
 	if (!s.is_empty()) {
 		mcov=(float)s.asDouble();
@@ -227,7 +177,7 @@ void processCreateOptions(GArgs& args) {
 	s=args.getOpt('s');
 	if (!s.is_empty()) {
 		singlethr=(float)s.asDouble();
-		if (readthr<0.001 && !mergeMode) {
+		if (readthr<0.001) {
 			GError("Error: invalid -s value, must be >=0.001)\n");
 		}
 	}
@@ -254,23 +204,12 @@ void processCreateOptions(GArgs& args) {
 	//  isunitig=(args.getOpt('U')!=NULL);
 
 	eonly=(args.getOpt('e')!=NULL);
-	if(eonly && rawreads) {
-		if(verbose) GMessage("Error: can not use -e and -R at the same time; parameter -e will be ignored\n");
-	}
-	else if(eonly && mergeMode) {
+	if(eonly) {
 		eonly=false;
 		includecov=true;
 	}
 	else if(eonly && !guided)
 		GError("Error: invalid -e usage, GFF reference not given (-G option required).\n");
-
-	ballgown_dir=args.getOpt('b');
-	ballgown=(args.getOpt('B')!=NULL);
-	if (ballgown && !ballgown_dir.is_empty()) {
-		GError("Error: please use either -B or -b <path> options, not both.");
-	}
-	if ((ballgown || !ballgown_dir.is_empty()) && !guided)
-		GError("Error: invalid -B/-b usage, GFF reference not given (-G option required).\n");
 
 	 /* s=args->getOpt('P');
 	 if (!s.is_empty()) {
@@ -375,20 +314,10 @@ void processCreateOptions(GArgs& args) {
 	 if (dbg_out==NULL) GError("Error creating debug output file %s\n", dbgfname.chars());
 #endif
 
-	 if(mergeMode) {
-		 f_out=stdout;
-		 if(outfname!="stdout") {
-			 f_out=fopen(outfname.chars(), "w");
-			 if (f_out==NULL) GError("Error creating output file %s\n", outfname.chars());
-		 }
-		 fprintf(f_out,"# ");
-		 args.printCmdLine(f_out);
-		 fprintf(f_out,"# StringTie version %s\n",VERSION);
-	 }
-	 else {
-		 tmpfname+=".tmp";
-		 f_out=fopen(tmpfname.chars(), "w");
-		 if (f_out==NULL) GError("Error creating output file %s\n", tmpfname.chars());
-	 }
+	tmpfname+=".tmp";
+	f_out=fopen(tmpfname.chars(), "w");
+	if (f_out==NULL) GError("Error creating output file %s\n", tmpfname.chars());
+
+	nomulti=(args.getOpt('u')!=NULL);
 }
 

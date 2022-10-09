@@ -23,11 +23,6 @@
  *******************************************/
 bool debugMode=false; // "debug" or "D" tag.
 bool verbose=false; // "verbose" / "v" tag.
-bool ballgown=false; // "B" tag.
-GStr ballgown_dir; // "b" tag.
-bool viral=false; // "viral" tag.
-bool mixedMode=false; // "mix" tag. both short and long read data alignments are provided
-bool mergeMode = false; // "merge" tag. For running StringTie Merge.
 bool multiMode=false; // "multi" tag.
 bool graph_bed=false; // "graph_bed" tag.
 bool keepTempFiles; // "keeptmp" tag.
@@ -38,10 +33,8 @@ bool rf_strand=false; // "rf" tag.
 bool includesource=true; // "z" tag.
 bool retained_intron=false; // "i" tag. set by parameter -i for merge option
 bool trim=true; // "t" tag. 
-bool eonly=false; // "e" tag. for mergeMode includes estimated coverage sum in the merged transcripts
-bool nomulti=false; // "u" tag.
-bool longreads=false; // "L" tag.
-bool rawreads=false; // "R" tag.
+bool eonly=false; // "e" tag. only estimate the abundance of given reference transcripts (requires -G)
+bool nomulti=false; // "u" tag. => changing the nh tag weight.
 GStrSet<> excludeGseqs; // "x" tag. hash of chromosomes/contigs to exclude (e.g. chrM)
 bool guided=false; // "G" tag.
 GStr guidegff; // "G" tag
@@ -82,7 +75,6 @@ GStr tmp_path;
 GStr cram_ref; //"ref" / "cram-ref" tag. Reference genome FASTA for CRAM input
 GStr tmpfname; // "o" tag.
 GStr genefname;
-GStr traindir; // "cds" tag. training directory for CDS option (removed)
 // Ratio file => for coverage comparison & visualization.
 ofstream cov_file_pos;
 ofstream cov_file_neg;
@@ -147,7 +139,10 @@ int main(int argc, char*argv[]) {
 
 	fprintf(stderr, "%d  %s  %s  %s  %s\n", argc, argv[0], argv[1], argv[2], argv[3]);
 	if (strcmp(argv[1], "CREATE_UNISPG") || strcmp(argv[1], "APPLY_UNISPG")) {
-		// fprintf(stderr, "This is mode: %s  %d\n", argv[1], strcmp(argv[1], "APPLY_UNISPG"));
+
+		/*******************************************
+		 ** Selecting which mode multiStringTie is running.
+		 *******************************************/
 		if (strcmp(argv[1], "CREATE_UNISPG") == 0) {
 			mode = CREATE_UNISPG;
 		}
