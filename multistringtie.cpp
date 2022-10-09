@@ -84,7 +84,7 @@ ofstream cov_file_neg_norm;
 /*******************************************
  ** Program-defined global parameter.
  *******************************************/
-multiStringTieMode mode;
+multiStringTieMode mode = UNKNOWN;
 bool NoMoreBundles=false;
 GffNames* gseqNames=NULL; //used as a dictionary for reference sequence names and ids
 int refseqCount=0; // number of reference sequences found in the guides file
@@ -158,9 +158,13 @@ int main(int argc, char*argv[]) {
 	}
    
 	if (mode == CREATE_UNISPG) {
+		fprintf(stderr, "Inside multistringtie_CREATE\n");
 		multistringtie_CREATE(argc, argv);
 	} else if (mode == APPLY_UNISPG) {
+		fprintf(stderr, "Inside multistringtie_APPLY\n");
 		multistringtie_APPLY(argc, argv);
+	} else if (mode == UNKNOWN) {
+        GError("multiStringTie must be run with 'CREATE_UNISPG' or  'APPLY_UNISPG'. \n");
 	}
     return 0;
 }

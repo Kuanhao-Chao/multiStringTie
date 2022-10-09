@@ -3,7 +3,8 @@
 
 enum multiStringTieMode {
     CREATE_UNISPG=0,
-    APPLY_UNISPG
+    APPLY_UNISPG,
+    UNKNOWN
 }; //on 4 bits: maximum 15 types
 
 #endif

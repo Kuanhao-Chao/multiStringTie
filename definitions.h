@@ -19,7 +19,7 @@ Options:\n\
 * Transcript CREATE_UNISPG mode: \n\
    multistringtie CREATE_UNISPG --multi [Options] { bam_list | sample1.bam ...}\n\
     --version : print just the version at stdout and exit\n\
- 	-o output path/file name for the assembled transcripts GTF (default: stdout)\n\n\
+    -o output path/file name for the assembled transcripts GTF (default: stdout)\n\n\
 * APPLY_UNISPG mode: \n\
    multistringtie APPLY_UNISPG [Options] { bam_list | sample1.bam ...}\n\
 "
