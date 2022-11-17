@@ -20,6 +20,10 @@ void printBitVecTest(GBitVec& bv) {
    }
 }
 
+void UnispgGp::ProcessSamples(GVec<GStr> sample_nams) {
+    this->samples = GVec<GStr>(sample_nams); //copy constructor
+}
+
 void UnispgGp::ProcessSample(GStr sample_name) {
     samples.Add(sample_name);
 }

@@ -549,7 +549,7 @@ struct CGraphnode:public GSeg {
 		// fprintf(stderr, "Copying node start!! //\n");
 		this->start = node->start;
 		this->end = node->end;
-		fprintf(stderr, "Start - end: %u - %u !!\n", this->start, this->end);
+		// fprintf(stderr, "Start - end: %u - %u !!\n", this->start, this->end);
 		nodeid = node->nodeid;
 		cov = node->cov;
 		capacity = node->capacity;
@@ -739,7 +739,7 @@ struct BundleData {
 	bool evalReadAln(GReadAlnData& alndata, char& strand);
 
 	void Clear() {
-		fprintf(stderr, "The bundle is cleared!!! \n");
+		// fprintf(stderr, "The bundle is cleared!!! \n");
 		keepguides.Clear();
 		ptfs.Clear();
 		pred.Clear();

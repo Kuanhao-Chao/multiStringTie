@@ -64,6 +64,7 @@ FILE* f_out=NULL; // get from "outfname" param.
  *******************************************/
 // Dot file => for reading in DOT format.
 GStr unispgdotfname_root; 
+GStr unispgdotfname; 
 GStr unispgdotfname_pos; 
 GStr unispgdotfname_neg; 
 // Annotation file => outputing in GFF format.

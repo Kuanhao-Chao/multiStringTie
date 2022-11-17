@@ -69,7 +69,7 @@ struct TInputFiles {
 	GList<TInputRecord> recs; //next record for each
 	TInputFiles():crec(NULL), readers(true), files(), tmpfiles(),
 			recs(true, true, true) { 
-				fprintf(stderr, "TInputFiles initialization\n");
+				// fprintf(stderr, "TInputFiles initialization\n");
 			}
 	void Add(const char* fn);
 	int count() { return files.Count(); }

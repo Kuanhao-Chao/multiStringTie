@@ -179,7 +179,7 @@ APPLY_UNISPG/processOptions_A.o: APPLY_UNISPG/processOptions_A.h definitions.h g
 CREATE_UNISPG/processOptions_C.o: CREATE_UNISPG/processOptions_C.h definitions.h global_params.h
 
 APPLY_UNISPG/processBundle_A.o: APPLY_UNISPG/processBundle_A.h definitions.h unispg.h rlink.h
-CREATE_UNISPG/processBundle_C.o: CREATE_UNISPG/processBundle_C.h definitions.h unispg.h rlink.h
+CREATE_UNISPG/processBundle_C.o: CREATE_UNISPG/processBundle_C.h CREATE_UNISPG/processBundle_C.cpp definitions.h unispg.h rlink.h
 
 
 rlink.o : rlink.h tablemaker.h $(GDIR)/GSam.h $(GDIR)/GBitVec.h
@@ -190,11 +190,11 @@ APPLY_UNISPG/rlink_A.o : APPLY_UNISPG/rlink_A.h
 
 t_record.o : rlink.h t_record.h
 tablemaker.o : tablemaker.h rlink.h
-dot_record.o : tablemaker.h rlink.h
+dot_record.o : dot_record.cpp dot_record.h tablemaker.h rlink.h
 
-unispg.o : tablemaker.h
-APPLY_UNISPG/unispg_A.o : tablemaker.h
-CREATE_UNISPG/unispg_C.o : tablemaker.h
+unispg.o : unispg.cpp unispg.h tablemaker.h
+APPLY_UNISPG/unispg_A.o : APPLY_UNISPG/unispg_A.cpp APPLY_UNISPG/unispg_A.h tablemaker.h
+CREATE_UNISPG/unispg_C.o : CREATE_UNISPG/unispg_C.h CREATE_UNISPG/unispg_C.cpp tablemaker.h
 
 
 APPLY_UNISPG/infer_tranx_A.o: APPLY_UNISPG/infer_tranx_A.h rlink.h

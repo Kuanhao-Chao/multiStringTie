@@ -30,8 +30,9 @@ extern GVec<FILE*> neg_dot_vec;
 extern GVec<GStr> neg_dotfname_vec; 
 extern FILE* dot;
 extern GStr dotfname; 
-extern GVec<FILE*>* dot_vec[2];
-extern GVec<GStr>* dotfname_vec[2]; 
+
+extern GVec<FILE*>* dots;
+extern GVec<GStr>* dotfnames; 
 
 /*****************************
  * Declaring BED file.

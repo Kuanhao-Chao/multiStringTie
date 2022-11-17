@@ -20,7 +20,7 @@ void parse_trf_unispg(int maxi,int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGr
 	 //float fragno=0;
 	 GVec<float> nodeflux;
 
-	//  /*
+	 /*
 	 { // DEBUG ONLY
 	 	 fprintf(stderr,"\n\n***Start parse_trf_unispg with maxi=%d and cov=%f\n",maxi,nodecov[maxi]);
 		 //fprintf(stderr,"Transcripts before path:");
@@ -33,7 +33,7 @@ void parse_trf_unispg(int maxi,int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGr
 // 	 	 GMessage("\t\tM(s):parse_trf_unispg memory usage: rsm=%6.1fMB vm=%6.1fMB\n",rsm/1024,vm/1024);
 // #endif
 	 }
-	//  */
+	 */
 
 
 	if(back_to_source_fast(maxi,path,pathpat,transfrag,no2gnode,nodecov,gno,gpos)) {
@@ -45,14 +45,14 @@ void parse_trf_unispg(int maxi,int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGr
 
 				 flux=push_max_flow(gno,path,istranscript,transfrag,no2gnode,nodeflux,pathpat,gpos,full);
 
-				//  /*
+				 /*
 	 			 { // DEBUG ONLY
 	 				 //printTime(stderr);
 	 				 fprintf(stderr,"flux=%g Path:",flux);
 	 				 for(int i=0;i<path.Count();i++) fprintf(stderr," %d",path[i]);
 	 				 fprintf(stderr,"***\n");
 	 			 }
-	 			//  */
+	 			 */
 	 		}
 			/*else {
 	 			//pathpat.reset();
@@ -70,14 +70,14 @@ void parse_trf_unispg(int maxi,int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGr
 		 bool included=true;
 		 float cov=store_transcript(pred,path,nodeflux,nodecov,no2gnode,geneno,first,strand,gno,gpos,included,prevpath);
 
-		//  /*
+		 /*
 		 { // DEBUG ONLY
 			 //fprintf(stderr,"Prevpath=");
 			 //printBitVec(prevpath);
 			 //fprintf(stderr,"\n");
 		 	 fprintf(stderr,"cov=%f maxcov=%f\n",cov,maxcov);
 		 }
-		//  */
+		 */
 
 		 float frac=isofrac;
 

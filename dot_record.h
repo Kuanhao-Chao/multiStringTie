@@ -60,7 +60,23 @@ class DOTReader {
          dotclose();
          GFREE(fname);
       }
-      
+
+      void set_samples(GVec<GStr>& samples) {
+         string line;  
+         if (getline(ifile_dot, line)) {
+            line.erase(0,1); // removes first character
+            string delimiter = ";";
+            size_t pos = 0;
+            string token;
+            while ((pos = line.find(delimiter)) != string::npos) {
+               token = line.substr(0, pos);
+               line.erase(0, pos + delimiter.length());
+               GStr sample_name = token.c_str();
+               samples.cAdd(sample_name);
+            }
+         }
+      }
+
       //the caller has to FREE the created UnispgGp_APPLY
       UnispgGp_APPLY* next() {
          // Three target Vector to be created.
@@ -89,7 +105,7 @@ class DOTReader {
             //    no2gnode[s] = new GPVec<CGraphnode>;
             // }
 
-
+            GStr refseq = "";
             int refstart = 0;
             int refend = 0;
             int s = 0;
@@ -101,17 +117,19 @@ class DOTReader {
                token = line.substr(0, pos);
                // std::cout << token << std::endl;
                // fprintf(stderr, "token: %s\n", token.c_str());
-               regex title_rgx("strict\\s+digraph\\s+(\\w+)_(\\w+)_(\\w+)_(\\w+)_(\\w+)");
+               regex title_rgx("strict\\s+digraph\\s+(\\w+)_(\\w+)_(\\w+)_(\\w+)_(\\w+)_(\\w+)");
                smatch match;
-               fprintf(stderr, "line: %s \n", line.c_str());
+               // fprintf(stderr, "line: %s \n", line.c_str());
                if (regex_search(token, match, title_rgx)) {
-                  refstart = stoi(match[1]);
-                  refend = stoi(match[2]);
-                  s = stoi(match[3]);
-                  g_idx = stoi(match[4]);
-                  g_num = stoi(match[5]);
+                  refseq = GStr(match[1].str().c_str());
+                  refstart = stoi(match[2]);
+                  refend = stoi(match[3]);
+                  s = stoi(match[4]);
+                  g_idx = stoi(match[5]);
+                  g_num = stoi(match[6]);
                   // Set back to 0 first.
                   g_idx = 0;
+                  // fprintf(stderr, "refseq: %s\n", refseq.chars());
                   // fprintf(stderr, "ref : %d - %d, %d, %d\n", refstart, refend, s, g_idx);
                   // fprintf(stderr, "refstart: %d\n", refend);
                   // fprintf(stderr, "s: %d\n", s);
@@ -123,10 +141,12 @@ class DOTReader {
             }
 
             // UnispgGp_APPLY* uni_splice_graph = new UnispgGp_APPLY();
-            fprintf(stderr, ">> boundaries: %u - %u\n ", refstart, refend);
-            UnispgGp_APPLY* uni_splice_graph = new UnispgGp_APPLY(refstart, refend, g_num);
+            // fprintf(stderr, ">> boundaries: %u - %u\n ", refstart, refend);
+            UnispgGp_APPLY* uni_splice_graph = new UnispgGp_APPLY(refstart, refend, g_num, refseq);
+            uni_splice_graph->s_single_dot = s;
 
-            uni_splice_graph->ProcessSample(fname);
+            // fprintf(stderr, ">> fname: %s\n", fname);
+            // uni_splice_graph->ProcessSample(fname);
 			   // uni_splice_graph->PrintGraphGp();
 
             // UniSpliceGraph* uni_splice_graph = new UniSpliceGraph(refstart, refend, s, g_idx);
@@ -134,8 +154,6 @@ class DOTReader {
             delimiter = ";";
             pos = 0;
             token = "";
-            uni_splice_graph->graphno_unispg[s] = 2;
-            uni_splice_graph->edgeno_unispg[s] = 0;
             int node_num = 0;
             int edge_num = 0;
             while ((pos = line.find(delimiter)) != string::npos) {
@@ -174,9 +192,9 @@ class DOTReader {
                   end = stoi(match[3]);
                   cov = stof(match[4]);
                   // fprintf(stderr, "node : %d\n", node);
-                  fprintf(stderr, "start : %d\n", start);
-                  fprintf(stderr, "end : %d\n", end);
-                  fprintf(stderr, "cov : %d\n", cov);
+                  // fprintf(stderr, "start : %d\n", start);
+                  // fprintf(stderr, "end : %d\n", end);
+                  // fprintf(stderr, "cov : %d\n", cov);
 
 
 
@@ -188,7 +206,6 @@ class DOTReader {
                   // delete source_gp[s];
                   CGraphnodeUnispg* new_node = new CGraphnodeUnispg(sample_num, start, end, node_id, NULL, NULL, NULL, true, cov, 0, 0);
                   uni_splice_graph->no2gnode_unispg[s][g_idx].Add(new_node);
-                  uni_splice_graph->graphno_unispg[s]++;
                }
                if (regex_search(token, match, edge_rgx)) {
                   // Add Sink
@@ -208,17 +225,18 @@ class DOTReader {
                   head = stoi(match[2]);
 
                   // Consturcting edge key.
+                  // fprintf(stderr, ">>> node_num during construction: %d;  edge_num: %d\n", node_num, edge_num);
 				      int key=edge(tail, head, node_num);
                   int *pos=uni_splice_graph->gpos[s][g_idx][key];
 
-						fprintf(stderr, ">>> @@ Adding edge (%d - %d);  g_node_num: %d\n", tail, head, node_num);
+						// fprintf(stderr, ">>> @@ Adding edge (%d - %d);  g_node_num: %d\n", tail, head, node_num);
 						// fprintf(stderr, ">>> *pos: %d\n", *pos);
 
                   if(pos==NULL) {
-                     uni_splice_graph->gpos[s][g_idx].Add(key,node_num-1+edge_num);
-						   fprintf(stderr, ">>> (1) *pos: %d\n", node_num-1+edge_num);
+                     uni_splice_graph->gpos[s][g_idx].Add(key, node_num-1+edge_num);
+						   // fprintf(stderr, ">>> (1) key: %d; *pos: %d\n", key, node_num-1+edge_num);
                   } else {
-						   fprintf(stderr, ">>> (2) *pos: %d\n", *pos);
+						   // fprintf(stderr, ">>> (2) key: %d; *pos: %d\n", key, *pos);
                   }
                   // uni_splice_graph->AddEdge(refstart, refend, tail, head);
 
@@ -226,7 +244,6 @@ class DOTReader {
                   uni_splice_graph->no2gnode_unispg[s][g_idx].Get(head)->parent.cAdd(tail);
 
                   //   node->parent.cAdd(new_parent);
-                  uni_splice_graph->edgeno_unispg[s]++;
                }
                line.erase(0, pos + delimiter.length());
 
@@ -234,6 +251,7 @@ class DOTReader {
             }
             // uni_splice_graph -> PrintGraph();
             uni_splice_graph->set_N_E_num(s, node_num, edge_num);
+            uni_splice_graph->graph_num[s] += 1;
             return uni_splice_graph;
          } else {    
             return NULL;        
@@ -267,6 +285,7 @@ struct DOTInputFile {
       // UniSpliceGraphGp* uni_splice_graphs;
    public:
       DOTReader* reader;
+		GVec<GStr> samples;
       GStr file; //same order
       GStr tmpfile; //all the temp files created by this
       DOTInputFile():rec(NULL), reader(), file(), tmpfile() {
@@ -277,6 +296,7 @@ struct DOTInputFile {
       // void Add(const char* fn);
       int count() { return 1; }
       bool start(const char* fn); //open all files, load 1 record from each
+      void set_samples();
       UnispgGp_APPLY* next();
       void stop();
 };

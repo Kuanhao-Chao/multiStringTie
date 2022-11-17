@@ -9,8 +9,6 @@
 #endif
 
 bool DOTInputFile::start(const char* fn) {
-
-	fprintf(stderr, "Inside start %s\n", fn);
     this -> file = fn;
     this -> tmpfile = fn;
 	//stringtie multi-BAM input
@@ -19,7 +17,6 @@ bool DOTInputFile::start(const char* fn) {
     bool is_dot_open;
 
 	is_dot_open = this -> reader -> dotopen(this -> file);
-	fprintf(stderr, "is_dot_open: %d\n", is_dot_open);
 	// if (is_dot_open) {
 	// 	this -> rec = this -> reader->next();
 	// }
@@ -27,6 +24,9 @@ bool DOTInputFile::start(const char* fn) {
     // UnispgGp_APPLY* brec=this -> reader->next();
 }
 
+void DOTInputFile::set_samples() {
+	reader->set_samples(this->samples);
+}
 
 UnispgGp_APPLY* DOTInputFile::next() {
 	//must free old current record first

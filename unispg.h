@@ -10,7 +10,7 @@
 // extern GVec<FILE*> neg_dot_vec;
 // extern GVec<GStr> neg_dotfname_vec; 
 
-// extern GVec<FILE*>* dot_vec[2];
+// extern GVec<FILE*>* dots[2];
 // extern GVec<GStr>* dotfname_vec[2];
 
 
@@ -138,12 +138,12 @@ struct CGraphnodeUnispg:public GSeg {
 	// CGraphnodeUnispg(int sample_num_i=0, int s=0,int e=0, int old_graph_id_i=0, int old_node_id_i=0, unsigned int id=MAX_NODE, GVec<bool>* is_passed_s_i=NULL, GVec<float>* cov_s_i=NULL, GVec<float>* capacity_s_i=NULL, bool is_passed=false, float cov=0, float capacity=0,float r=0):GSeg(s,e),sample_num(sample_num_i), old_graph_id(old_graph_id_i), old_node_id(old_node_id_i), nodeid(id),is_passed_s(is_passed_s_i),cov_s(cov_s_i),capacity_s(capacity_s_i),child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){
 	CGraphnodeUnispg(int sample_num_i=0, int s=0,int e=0, int id=MAX_NODE, GVec<bool> is_passed_s_i=NULL, GVec<float> cov_s_i=NULL, GVec<float> capacity_s_i=NULL, bool is_passed=false, float cov=0, float capacity=0,float r=0, bool set_g_n_idx=false, int g_idx=-1, int n_idx=-1):GSeg(s,e),sample_num(sample_num_i), nodeid(id),is_passed_s(is_passed_s_i),cov_s(cov_s_i),capacity_s(capacity_s_i), child(),parent(),childpat(),parentpat(),trf(),hardstart(false),hardend(false){
 
-		fprintf(stderr, "		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
-		fprintf(stderr, "		^^^ Creating graphnode id: %d (%u - %u) \n", id, s, e);
-		fprintf(stderr, "		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
-		fprintf(stderr, "		^^ is_passed: %d\n", is_passed);
-		fprintf(stderr, "		^^ cov      : %f\n", cov);
-		fprintf(stderr, "		^^ capacity : %f\n", capacity);
+		// fprintf(stderr, "		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+		// fprintf(stderr, "		^^^ Creating graphnode id: %d (%u - %u) \n", id, s, e);
+		// fprintf(stderr, "		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+		// fprintf(stderr, "		^^ is_passed: %d\n", is_passed);
+		// fprintf(stderr, "		^^ cov      : %f\n", cov);
+		// fprintf(stderr, "		^^ capacity : %f\n", capacity);
 
 		// if (is_passed_s_i == NULL) {
         //     GVec<bool> is_passed_source;
@@ -168,10 +168,10 @@ struct CGraphnodeUnispg:public GSeg {
         // GVec<float> rate_s;
 		//  = new GVec<float>(sample_num-1, 0.0f);
 
-		fprintf(stderr, "rate: %f\n", r);
+		// fprintf(stderr, "rate: %f\n", r);
 		rate_s.cAdd(r);
 
-		fprintf(stderr, "sample_num: %d\n", sample_num);
+		// fprintf(stderr, "sample_num: %d\n", sample_num);
 		cov_unispg_s = new float[sample_num];
 
 		if (set_g_n_idx) {
@@ -208,13 +208,12 @@ struct UnispgGp {
 	public:
 		int refstart = 0; // the start of the first node.
 		int refend = 0; // the end of the last node.
+		GStr refseq;
 		GPVec<CGraphnodeUnispg>* no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode_unispg[s][g][i] gives the node i
 
+		int graph_num[2] = {0};  // how many graph does a unispgs has.
 		GVec<int> node_nums[2];  // how many nodes are in a certain graph g, on strand s: graphno[s][g]
 		GVec<int> edge_nums[2];  // how many edges are in a certain graph g, on strand s: edgeno[s][g]
-
-		int graphno_unispg[2] = {0};  // how many nodes are in a certain graph g. Current processing graph only
-		int edgeno_unispg[2] = {0};  // how many edges are in a certain graph g. Current processing graph only
 
 		GVec<GStr> samples;
 		CGraphnodeUnispg* source_gp[2];
@@ -241,22 +240,14 @@ struct UnispgGp {
 			return refend;
 		}
 
-		void Clear() {
-		// fprintf(stderr, "**** Start Clearing !!!! \n ");
-			for(int i=0;i<2;i++) {
-				delete [] no2gnode_unispg[i];
-				no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
-			};
-		}
-
 		void Clear_no2gnode_unispg() {
-		fprintf(stderr, "**** Start Clear_no2gnode_unispg !!!! \n ");
 			for(int i=0;i<2;i++) {
 				delete [] no2gnode_unispg[i];
 				no2gnode_unispg[i] = new GPVec<CGraphnodeUnispg>[20000];
 			};
 		}
 
+		void ProcessSamples(GVec<GStr> sample_nams);
 		void ProcessSample(GStr sample_name);
 		void PrintGraphGp();
 		GPVec<CGraphnodeUnispg>** get_no2gnodeGp ();

@@ -4,14 +4,11 @@
 
 int find_transcripts_APPLY_UNISPG(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraphnodeUnispg>& no2gnode,GPVec<CTransfrag>& transfrag,int geneno,int strand, GVec<CGuide>& guidetrf,GPVec<GffObj>& guides,GVec<int>& guidepred,BundleData* bdata,GVec<int>& trflong) {
 	GList<CPrediction>& pred = bdata->pred;
-	fprintf(stderr, "find_transcripts_APPLY_UNISPG\n");
-
 	// process in and out coverages for each node
 	int maxi=0; // node with maximum coverage
 	GVec<float> nodecov; // node coverages
 
 	for(int i=0;i<gno;i++) {
-		fprintf(stderr, "i: %d\n", i);
 		CGraphnodeUnispg *inode=no2gnode[i]; // this is here only because of the DEBUG option below
 		nodecov.cAdd(0.0);
 
@@ -40,10 +37,6 @@ int find_transcripts_APPLY_UNISPG(int gno,int edgeno, GIntHash<int> &gpos,GPVec<
 		    if(abundin) inode->rate_s[0]=abundout/abundin;
 		    if(abundout) inode->capacity_s[0]=abundout+abundthrough; // node capacity tells me how much of that node coverage I can use given how many transfrags leave the node
 		    else inode->capacity_s[0]=abundin+abundthrough;
-
-			// fprintf(stderr, "abundout: %f;  abundin: %f\n", abundout, abundin);
-			// fprintf(stderr, "inode->capacity_s[0]: %f\n", inode->capacity_s.Get(0));
-			fprintf(stderr, "inode->rate_s[0]: %f;  inode->capacity_s[0]: %f;  inode->capacity_s[0]: %f\n", inode->rate_s[0], inode->capacity_s[0], inode->capacity_s[0]);
 		} // end if i
 
 		/*
@@ -75,7 +68,7 @@ int find_transcripts_APPLY_UNISPG(int gno,int edgeno, GIntHash<int> &gpos,GPVec<
 
 	bool first=true;
 
-	fprintf(stderr,"guide count=%d\n",guidetrf.Count());
+	// fprintf(stderr,"guide count=%d\n",guidetrf.Count());
 
 	if (eonly)
 		guides_pushmaxflow_APPLY_UNISPG(gno,edgeno,gpos,no2gnode,transfrag,guidetrf,geneno,strand,pred,nodecov,istranscript,pathpat,first,guides,guidepred,bdata);
@@ -88,13 +81,13 @@ int find_transcripts_APPLY_UNISPG(int gno,int edgeno, GIntHash<int> &gpos,GPVec<
 			// 1:
 			// parse_trf_weight_max_flow(gno,no2gnode,transfrag,geneno,strand,pred,nodecov,pathpat);
 			// 2:
-			fprintf(stderr, ">> In nodecov[maxi]: %f\n", nodecov[maxi]);
+			// fprintf(stderr, ">> In nodecov[maxi]: %f\n", nodecov[maxi]);
 			GBitVec usednode(gno+edgeno);
 			parse_trf_APPLY_UNISPG(maxi,gno,edgeno,gpos,no2gnode,transfrag,geneno,first,strand,pred,nodecov,istranscript,usednode,0,pathpat);
 		}
 	}
 
-    // /*
+    /*
     { // DEBUG ONLY
     	for(int i=0;i<pred.Count();i++) {
     		if(pred[i]->t_eq) fprintf(stderr,"%s ",pred[i]->t_eq->getID());
@@ -103,7 +96,7 @@ int find_transcripts_APPLY_UNISPG(int gno,int edgeno, GIntHash<int> &gpos,GPVec<
     		fprintf(stderr,"\n");
     	}
     }
-    // */
+    */
 	return(geneno);
 }
 
@@ -750,7 +743,7 @@ void parse_trf_APPLY_UNISPG(int maxi,int gno,int edgeno, GIntHash<int> &gpos,GPV
 	 //float fragno=0;
 	 GVec<float> nodeflux;
 
-	//  /*
+	 /*
 	 { // DEBUG ONLY
 	 	 fprintf(stderr,"\n\n***Start parse_trf with maxi=%d and cov=%f\n",maxi,nodecov[maxi]);
 		 //fprintf(stderr,"Transcripts before path:");
@@ -763,11 +756,10 @@ void parse_trf_APPLY_UNISPG(int maxi,int gno,int edgeno, GIntHash<int> &gpos,GPV
 	 	 GMessage("\t\tM(s):parse_trf memory usage: rsm=%6.1fMB vm=%6.1fMB\n",rsm/1024,vm/1024);
 #endif
 	 }
-	//  */
+	 */
 
 
 	if(back_to_source_fast_APPLY_UNISPG(maxi,path,pathpat,transfrag,no2gnode,nodecov,gno,gpos)) {
-		fprintf(stderr, ">> back_to_source_fast_APPLY_UNISPG\n");
 		 	 if(includesource) path.cAdd(0);
 	 		 path.Reverse(); // back to source adds the nodes at the end to avoid pushing the list all the time
 
@@ -797,19 +789,18 @@ void parse_trf_APPLY_UNISPG(int maxi,int gno,int edgeno, GIntHash<int> &gpos,GPV
 
 	 //bool cont=true;
 
-	fprintf(stderr, ">> flux: %f\n", flux);
 	 if(flux>epsilon) {
 		 bool included=true;
 		 float cov=store_transcript_APPLY_UNISPG(pred,path,nodeflux,nodecov,no2gnode,geneno,first,strand,gno,gpos,included,prevpath);
 
-		//  /*
+		 /*
 		 { // DEBUG ONLY
 			 //fprintf(stderr,"Prevpath=");
 			 //printBitVec(prevpath);
 			 //fprintf(stderr,"\n");
 		 	 fprintf(stderr,"cov=%f maxcov=%f\n",cov,maxcov);
 		 }
-		//  */
+		 */
 
 		 float frac=isofrac;
 		 if(included || cov<frac*maxcov) {
@@ -1165,7 +1156,6 @@ float store_transcript_APPLY_UNISPG(GList<CPrediction>& pred,GVec<int>& path,GVe
 		GBitVec& prevpath, bool full,BundleData *bdata, //float fragno, char* id=NULL) {
 		   GffObj* t) {
 
-	fprintf(stderr, ">> Inside store_transcript_APPLY_UNISPG\n");
 	float cov=0;
 	int len=0;
 	CGraphnodeUnispg *prevnode=NULL;
@@ -1176,11 +1166,11 @@ float store_transcript_APPLY_UNISPG(GList<CPrediction>& pred,GVec<int>& path,GVe
 	uint refstart=0;
 	if(bdata) refstart=(uint)bdata->start;
 
-	// /*
+	/*
 	fprintf(stderr,"store transcript path[0]=%d",path[0]);
 	if(t) fprintf(stderr," with id=%s",t->getID());
 	fprintf(stderr,"\n");
-	// */
+	*/
 
 	int s=0;
 	if(!path[0]) s=1;
@@ -1708,7 +1698,6 @@ CTransfrag *find_guide_partial_pat_APPLY_UNISPG(GffObj *guide,GPVec<CGraphnodeUn
 int store_guide_transcript_APPLY_UNISPG(GList<CPrediction>& pred,GVec<int>& path,GVec<float>& nodeflux,GVec<float>& nodecov,
 		GPVec<CGraphnodeUnispg>& no2gnode,int& geneno,bool& first,int gno, GffObj* t,bool update) {
 
-	fprintf(stderr, ">> store_guide_transcript_APPLY_UNISPG! \n");
 	// first create the prediction based on the GffObj and then update it's coverage
 	GVec<GSeg> exons;
 	GVec<float> exoncov;
@@ -1750,11 +1739,11 @@ bool back_to_source_fast_APPLY_UNISPG(int i,GVec<int>& path,GBitVec& pathpat,GPV
 
 	// fprintf(stderr, ">> nparents: %d\n", nparents);
 
-	// /*
+	/*
 	fprintf(stderr,"Parents of node %d are:",i);
 	for(int p=0;p<nparents;p++) fprintf(stderr," %d",inode->parent[p]);
 	fprintf(stderr,"\n");
-	// */
+	*/
 
 	if(!nparents) {
 		// fprintf(stderr, ">> 'back_to_source_fast_APPLY_UNISPG' return true\n");

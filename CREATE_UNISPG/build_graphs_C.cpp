@@ -41,7 +41,6 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 	/****************
 	 **  These are parameters initialized to build graphs. 
 	 ****************/
-	fprintf(stderr,"build_graphs with %d guides\n",guides.Count());
 
     /*****************************
 	 ** Step 0: this part is for setting guides for introns are covered by at least one read. 
@@ -123,7 +122,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 	char leftcons=-1;
 	char rightcons=-1;
 	for(int i=0;i<junction.Count();i++) {
-		fprintf(stderr,"check junction:%d-%d:%d leftsupport=%f rightsupport=%f nm=%f nreads=%f\n",junction[i]->start,junction[i]->end,junction[i]->strand,junction[i]->leftsupport,junction[i]->rightsupport,junction[i]->nm,junction[i]->nreads);
+		// fprintf(stderr,"check junction:%d-%d:%d leftsupport=%f rightsupport=%f nm=%f nreads=%f\n",junction[i]->start,junction[i]->end,junction[i]->strand,junction[i]->leftsupport,junction[i]->rightsupport,junction[i]->nm,junction[i]->nreads);
 
 		if((!higherr) && junction[i]->strand && junction[i]->nm==junction[i]->nreads && !junction[i]->guide_match) {
 			higherr=true;
@@ -179,14 +178,14 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 						leftcons=0;
 					}
 				}
-				fprintf(stderr,"junction:%d-%d:%d is %c%c-%c%c\n",junction[i]->start,junction[i]->end,junction[i]->strand,bdata->gseq[junction[i]->start+1-refstart],bdata->gseq[junction[i]->start+2-refstart],bdata->gseq[junction[i]->end-2-refstart],bdata->gseq[junction[i]->end-1-refstart]);
+				// fprintf(stderr,"junction:%d-%d:%d is %c%c-%c%c\n",junction[i]->start,junction[i]->end,junction[i]->strand,bdata->gseq[junction[i]->start+1-refstart],bdata->gseq[junction[i]->start+2-refstart],bdata->gseq[junction[i]->end-2-refstart],bdata->gseq[junction[i]->end-1-refstart]);
 			}
 		}
 		else if(junction[i]->strand) leftsupport[(1+junction[i]->strand)/2]+=junction[i]->leftsupport;
-		fprintf(stderr,"leftsupport[%d]=%f\n",(1+junction[i]->strand)/2,leftsupport[(1+junction[i]->strand)/2]);
+		// fprintf(stderr,"leftsupport[%d]=%f\n",(1+junction[i]->strand)/2,leftsupport[(1+junction[i]->strand)/2]);
 
 
-		fprintf(stderr,"check ejunction:%d-%d:%d leftsupport=%f rightsupport=%f nm=%f nreads=%f\n",ejunction[i]->start,ejunction[i]->end,ejunction[i]->strand,ejunction[i]->leftsupport,ejunction[i]->rightsupport,ejunction[i]->nm,ejunction[i]->nreads);
+		// fprintf(stderr,"check ejunction:%d-%d:%d leftsupport=%f rightsupport=%f nm=%f nreads=%f\n",ejunction[i]->start,ejunction[i]->end,ejunction[i]->strand,ejunction[i]->leftsupport,ejunction[i]->rightsupport,ejunction[i]->nm,ejunction[i]->nreads);
 		if(ejunction[i]->end!=end) { // I do not check if I deleted the junction here for support
 
 			int j=i-1;
@@ -226,16 +225,16 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 						rightcons=0;
 					}
 				}
-				fprintf(stderr,"ejunction:%d-%d:%d is %c%c-%c%c\n",ejunction[i]->start,ejunction[i]->end,ejunction[i]->strand,bdata->gseq[ejunction[i]->start+1-refstart],bdata->gseq[ejunction[i]->start+2-refstart],bdata->gseq[ejunction[i]->end-2-refstart],bdata->gseq[ejunction[i]->end-1-refstart]);
+				// fprintf(stderr,"ejunction:%d-%d:%d is %c%c-%c%c\n",ejunction[i]->start,ejunction[i]->end,ejunction[i]->strand,bdata->gseq[ejunction[i]->start+1-refstart],bdata->gseq[ejunction[i]->start+2-refstart],bdata->gseq[ejunction[i]->end-2-refstart],bdata->gseq[ejunction[i]->end-1-refstart]);
 			}
 
 		}
 		else if(ejunction[i]->strand) rightsupport[(1+ejunction[i]->strand)/2]+=ejunction[i]->rightsupport;
-		fprintf(stderr,"rightsupport[%d]=%f\n",(1+ejunction[i]->strand)/2,rightsupport[(1+ejunction[i]->strand)/2]);
+		// fprintf(stderr,"rightsupport[%d]=%f\n",(1+ejunction[i]->strand)/2,rightsupport[(1+ejunction[i]->strand)/2]);
 	}
 	// end adjusting leftsupport and rightsupport
 
-	fprintf(stderr,"junction support computed\n");
+	// fprintf(stderr,"junction support computed\n");
 
 	/*****************************
 	 ** Step 2: there are some reads that contain very bad junctions -> need to find better closest junctions
@@ -387,7 +386,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 			}
 		}
 	} //if higherr
-	// /*
+	/*
 	{ // DEBUG ONLY
 		for(int i=0;i<junction.Count();i++) {
 			if(junction[i]->guide_match) fprintf(stderr,"G");
@@ -398,7 +397,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 					junction[i]->nreads_good,junction[i]->leftsupport,junction[i]->rightsupport);
 		}
 	}
-	// */
+	*/
 	//int **readgroup = new int*[readlist.Count()];
 /*
 #ifdef GMEMTRACE
@@ -427,16 +426,16 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 		bool keep=true;
 		int i=0;
 
-		// /*
+		/*
 		fprintf(stderr,"check read[%d]:%d-%d:%d refstart=%d w/exons:",n,rd.start,rd.end,rd.strand,refstart);
 		for(i=0;i<rd.juncs.Count();i++) { fprintf(stderr," %d-%d:%d",rd.segs[i].start,rd.segs[i].end,rd.juncs[i]->strand);}
 		fprintf(stderr," %d-%d\n",rd.segs[i].start,rd.segs[i].end);
 		i=0;
-		// */
+		*/
 
 		while(i<rd.juncs.Count()) {
 			CJunction& jd=*(rd.juncs[i]);
-			fprintf(stderr, " read junc %d-%d:%d nreads=%f nreads_good=%f nm=%f support=%f,%f between exons:%d-%d and %d-%d\n", jd.start, jd.end, jd.strand,jd.nreads,jd.nreads_good,jd.nm,jd.leftsupport,jd.rightsupport,rd.segs[i].start,rd.segs[i].end,rd.segs[i+1].start,rd.segs[i+1].end);
+			// fprintf(stderr, " read junc %d-%d:%d nreads=%f nreads_good=%f nm=%f support=%f,%f between exons:%d-%d and %d-%d\n", jd.start, jd.end, jd.strand,jd.nreads,jd.nreads_good,jd.nm,jd.leftsupport,jd.rightsupport,rd.segs[i].start,rd.segs[i].end,rd.segs[i+1].start,rd.segs[i+1].end);
 
 			bool changeright=jd.nreads_good<0;
 			bool changeleft=jd.nreads<0;
@@ -581,7 +580,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 							}
 						}
 					}
-					fprintf(stderr, "read[%d] adjusted to junction:%d-%d\n",n,rd.segs[i].end,rd.segs[i+1].start);
+					// fprintf(stderr, "read[%d] adjusted to junction:%d-%d\n",n,rd.segs[i].end,rd.segs[i+1].start);
 				}
 
 				// because read might be poorly mapped I also have to unpair it
@@ -650,19 +649,19 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 		}
 
 
-		if(rd.juncs.Count()) fprintf(stderr,"read[%d] keep=%d\n",n,keep);
-		if(rd.strand) fprintf(stderr,"read[%d] has strand %d\n",n,rd.strand);
+		// if(rd.juncs.Count()) fprintf(stderr,"read[%d] keep=%d\n",n,keep);
+		// if(rd.strand) fprintf(stderr,"read[%d] has strand %d\n",n,rd.strand);
 
 
 		//if(keep) { // if it's a good read that needs to be kept
 
 
-			// /*
+			/*
 			fprintf(stderr,"add read %d:%d-%d w/count=%g for color=%d with npairs=%d\n",n,readlist[n]->start,readlist[n]->end,readlist[n]->read_count,color,readlist[n]->pair_idx.Count());
 			fprintf(stderr,"add read[%d]:%d-%d:%d w/count=%g w/exons:",n,readlist[n]->start,readlist[n]->end,readlist[n]->strand,readlist[n]->read_count);
 			for(i=0;i<rd.juncs.Count();i++) { fprintf(stderr," %d-%d:%d",rd.segs[i].start,rd.segs[i].end,rd.juncs[i]->strand);}
 			fprintf(stderr," %d-%d\n",rd.segs[i].start,rd.segs[i].end);
-			// */
+			*/
 
 			color=add_read_to_group(n,readlist,color,group,currgroup,startgroup,readgroup,equalcolor,merge);
 
@@ -681,7 +680,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 												    // a super-read -> I might want to re-estimate this from coverage and have some input for read length; or I might only use TPM
 			}
 
-			fprintf(stderr,"now color=%d\n",color);
+			// fprintf(stderr,"now color=%d\n",color);
 		//}
 		//else { fprintf(stderr,"read[%d] is not kept\n",n);}
 		//else clean_read_junctions(readlist[n]);
@@ -731,7 +730,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 		boundaryleft.Clear();
 		boundaryright.Clear();
 	}
-	// /*
+	/*
 	{ // DEBUG ONLY
 		fprintf(stderr,"%d groups created!\n",group.Count());
 	    for(int sno=0;sno<3;sno++) {
@@ -744,7 +743,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 	    	fprintf(stderr,"\n");
 	    }
 	}
-	// */
+	*/
 /*
 #ifdef GMEMTRACE
 	//double vm,rsm;
@@ -776,12 +775,12 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 
 		int grcol = currgroup[nextgr]->color;    // set smallest color for currgroup[$nextgr]
 
-		fprintf(stderr, ">> grcol before: %d\n", grcol);			fprintf(stderr, ">> eqposcol count: %d\n", eqposcol.Count());
+		// fprintf(stderr, ">> grcol before: %d\n", grcol);			fprintf(stderr, ">> eqposcol count: %d\n", eqposcol.Count());
 		while(equalcolor[grcol]!=grcol) {
 			grcol=equalcolor[grcol];
-			fprintf(stderr, ">> grcol in while: %d\n", grcol);
+			// fprintf(stderr, ">> grcol in while: %d\n", grcol);
 		}
-		fprintf(stderr, ">> grcol after: %d\n", grcol);
+		// fprintf(stderr, ">> grcol after: %d\n", grcol);
 
 		// while(equalcolor[grcol]!=grcol) {
 		// 	grcol=equalcolor[grcol];
@@ -793,21 +792,21 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 		if(nextgr == 1) { // unknown strand group
 
 			if(prevgroup[0]!=NULL && currgroup[nextgr]->start <= prevgroup[0]->end+bundledist) { // overlaps previous negative group ; this needs bundledist
-				fprintf(stderr,"\tovlp to neg group: %u-%u\n",prevgroup[0]->start,prevgroup[0]->end);
+				// fprintf(stderr,"\tovlp to neg group: %u-%u\n",prevgroup[0]->start,prevgroup[0]->end);
 				set_strandcol(currgroup[nextgr],prevgroup[0],prevgroup[0]->color,eqnegcol,equalcolor);
 				uint maxstart = currgroup[nextgr]->start > prevgroup[0]->start ? currgroup[nextgr]->start : prevgroup[0]->start;
 				uint minend = currgroup[nextgr]->end < prevgroup[0]->end ? currgroup[nextgr]->end : prevgroup[0]->end;
 				if(minend<maxstart) minend=maxstart; // this can only happen if bundledist >0
 
-				fprintf(stderr, "## prevgroup[0]->cov_sum: %f\n", prevgroup[0]->cov_sum);
-				fprintf(stderr, "## currgroup[nextgr]->neg_prop: %f\n", currgroup[nextgr]->neg_prop);
-				fprintf(stderr, "## prevgroup[0]->cov_sum*(minend-maxstart+1)/prevgroup[0]->len(): %f\n", prevgroup[0]->cov_sum*(minend-maxstart+1)/prevgroup[0]->len());
+				// fprintf(stderr, "## prevgroup[0]->cov_sum: %f\n", prevgroup[0]->cov_sum);
+				// fprintf(stderr, "## currgroup[nextgr]->neg_prop: %f\n", currgroup[nextgr]->neg_prop);
+				// fprintf(stderr, "## prevgroup[0]->cov_sum*(minend-maxstart+1)/prevgroup[0]->len(): %f\n", prevgroup[0]->cov_sum*(minend-maxstart+1)/prevgroup[0]->len());
 
 				currgroup[nextgr]->neg_prop+=prevgroup[0]->cov_sum*(minend-maxstart+1)/prevgroup[0]->len();
 			}
 
 			while(currgroup[0]!=NULL && currgroup[nextgr]->start <= currgroup[0]->end+bundledist && currgroup[0]->start <= currgroup[nextgr]->end +bundledist) { // overlaps current negative strand group
-				fprintf(stderr,"\tovlp to neg group: %u-%u\n",currgroup[0]->start,currgroup[0]->end);
+				// fprintf(stderr,"\tovlp to neg group: %u-%u\n",currgroup[0]->start,currgroup[0]->end);
 
 				int grcol = currgroup[0]->color;    // set smallest color for currgroup[$nextgr]
 				while(equalcolor[grcol]!=grcol) {
@@ -821,9 +820,9 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 				uint minend = currgroup[nextgr]->end < currgroup[0]->end ? currgroup[nextgr]->end : currgroup[0]->end;
 				if(minend<maxstart) minend=maxstart;
 
-				fprintf(stderr, "## currgroup[0]->cov_sum: %f\n", currgroup[0]->cov_sum);
-				fprintf(stderr, "## currgroup[nextgr]->neg_prop: %f\n", currgroup[nextgr]->neg_prop);
-				fprintf(stderr, "## currgroup[0]->cov_sum*(minend-maxstart+1)/currgroup[0]->len(): %f\n", currgroup[0]->cov_sum*(minend-maxstart+1)/currgroup[0]->len());
+				// fprintf(stderr, "## currgroup[0]->cov_sum: %f\n", currgroup[0]->cov_sum);
+				// fprintf(stderr, "## currgroup[nextgr]->neg_prop: %f\n", currgroup[nextgr]->neg_prop);
+				// fprintf(stderr, "## currgroup[0]->cov_sum*(minend-maxstart+1)/currgroup[0]->len(): %f\n", currgroup[0]->cov_sum*(minend-maxstart+1)/currgroup[0]->len());
 
 
 				currgroup[nextgr]->neg_prop+=currgroup[0]->cov_sum*(minend-maxstart+1)/currgroup[0]->len();
@@ -835,7 +834,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 
 			float pos_prop=0;
 			if(prevgroup[2]!=NULL && currgroup[nextgr]->start <= prevgroup[2]->end + bundledist) { // overlaps positive strand group
-				fprintf(stderr,"\tovlp to pos group: %u-%u\n",prevgroup[2]->start,prevgroup[2]->end);
+				// fprintf(stderr,"\tovlp to pos group: %u-%u\n",prevgroup[2]->start,prevgroup[2]->end);
 				set_strandcol(currgroup[nextgr],prevgroup[2],prevgroup[2]->color,eqposcol,equalcolor);
 				if(currgroup[nextgr]->neg_prop) {
 					uint maxstart = currgroup[nextgr]->start > prevgroup[2]->start ? currgroup[nextgr]->start : prevgroup[2]->start;
@@ -846,7 +845,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 			}
 
 			while(currgroup[2]!=NULL && currgroup[nextgr]->start <= currgroup[2]->end +bundledist && currgroup[2]->start <= currgroup[nextgr]->end + bundledist) { // overlaps positive strand group
-				fprintf(stderr,"\tovlp to pos group: %u-%u\n",currgroup[2]->start,currgroup[2]->end);
+				// fprintf(stderr,"\tovlp to pos group: %u-%u\n",currgroup[2]->start,currgroup[2]->end);
 
 				int grcol = currgroup[2]->color;    // set smallest color for currgroup[$nextgr]
 				while(equalcolor[grcol]!=grcol) {
@@ -870,7 +869,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 				currgroup[nextgr]->neg_prop/=(currgroup[nextgr]->neg_prop+pos_prop);
 			}
 			else if(currgroup[nextgr]->neg_prop) currgroup[nextgr]->neg_prop=1;
-			fprintf(stderr,"neg_prop=%g pos_prop=%g\n",currgroup[nextgr]->neg_prop,pos_prop);
+			// fprintf(stderr,"neg_prop=%g pos_prop=%g\n",currgroup[nextgr]->neg_prop,pos_prop);
 		}
 		else if(nextgr == 0) { // negative strand group
 			currgroup[nextgr]->neg_prop=1;
@@ -879,7 +878,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 		currgroup[nextgr]=currgroup[nextgr]->next_gr;
     }
 
-	// /*
+	/*
     { // DEBUG ONLY
     	fprintf(stderr,"Colors assigned!\n");
     	for(int sno=0;sno<3;sno++) {
@@ -913,7 +912,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     	}
     	//exit(0);
     }
-    // */
+    */
 
 
 	/*****************************
@@ -1050,7 +1049,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 				get_covered(guides[g],bundle[1],bnode[1],junction,bnodeguides,g);
 		}
 
-	// /*
+	/*
 	{ // DEBUG ONLY
 		printTime(stderr);
 		fprintf(stderr, "There are %d unstranded bundles %d negative bundles and %d positive bundles\n",bundle[1].Count(),bundle[0].Count(),bundle[2].Count());
@@ -1072,7 +1071,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 			}
 		}
 	}
-	// */
+	*/
 	int geneno=0;
 
 	/*****************************
@@ -1104,8 +1103,6 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 				/****************
 				 **  KH Adding 
 				****************/
-				fprintf(stderr, "New writing out place!! Start writing out DOT file!!\n");
-				fprintf(stderr,"after traverse:\n");
 				// graphno[s][b]: number of nodes in graph.
                 // fprintf(node_unispg_unstrand_bed, "chr22\t%d\t%d\t%d\t%f\t%s\n", currbnode->start,currbnode->end, currbnode->bid, currbnode->cov, ".");
 
@@ -1266,7 +1263,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     		int s=sno/2; // adjusted strand due to ignoring neutral strand
 
 			int graph_no = bundle[sno].Count();
-			fprintf(stderr, "** graph_no: %d\n", graph_no);
+			// fprintf(stderr, "** graph_no: %d\n", graph_no);
 			// bundle[sno].Count();
 
     		char strnd='-';
@@ -1279,7 +1276,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     		tr2no[s]=NULL;
     		gpos[s]=NULL;
 
-			fprintf(stderr, "0 bundle[sno].Count(): %d\n", bundle[sno].Count());
+			// fprintf(stderr, "0 bundle[sno].Count(): %d\n", bundle[sno].Count());
     		if(graph_no) {
     			transfrag[s]=new GPVec<CTransfrag>[graph_no]; // for each bundle I have a graph ? only if I don't ignore the short bundles
     			no2gnode[s]=new GPVec<CGraphnode>[graph_no];
@@ -1294,9 +1291,9 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     				lastgpos[s].cAdd(0);
     				// I am overestmating the edgeno below, hopefully not by too much
 
-    				fprintf(stderr,"Bundle is: %d - %d start at g=%d sno=%d b=%d\n",bnode[sno][bundle[sno][b]->startnode]->start,bnode[sno][bundle[sno][b]->lastnodeid]->end,g,sno,b);
-					fprintf(stderr, "bnode[%d][bundle[%d][%d]->startnode]->start: %d \n", sno, sno, b, bnode[sno][bundle[sno][b]->startnode]->start);
-					fprintf(stderr, "bnode[%d][bundle[%d][%d]->lastnodeid]->end: %d \n", sno, sno, b, bnode[sno][bundle[sno][b]->lastnodeid]->end);
+    				// fprintf(stderr,"Bundle is: %d - %d start at g=%d sno=%d b=%d\n",bnode[sno][bundle[sno][b]->startnode]->start,bnode[sno][bundle[sno][b]->lastnodeid]->end,g,sno,b);
+					// fprintf(stderr, "bnode[%d][bundle[%d][%d]->startnode]->start: %d \n", sno, sno, b, bnode[sno][bundle[sno][b]->startnode]->start);
+					// fprintf(stderr, "bnode[%d][bundle[%d][%d]->lastnodeid]->end: %d \n", sno, sno, b, bnode[sno][bundle[sno][b]->lastnodeid]->end);
 
     				while(g<ng && guides[g]->end<bnode[sno][bundle[sno][b]->startnode]->start) g++;
 
@@ -1307,9 +1304,9 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 					 **  This is reference guide. Ignore first.
 					 ****************/
     				while(cg<ng && guides[cg]->start<=bnode[sno][bundle[sno][b]->lastnodeid]->end) { // this are potential guides that might overlap the current bundle, and they might introduce extra edges
-    					fprintf(stderr,"...consider guide cg=%d with strand=%c and in_bundle=%d\n",cg,guides[cg]->strand,((RC_TData*)(guides[cg]->uptr))->in_bundle);
+    					// fprintf(stderr,"...consider guide cg=%d with strand=%c and in_bundle=%d\n",cg,guides[cg]->strand,((RC_TData*)(guides[cg]->uptr))->in_bundle);
     					if((guides[cg]->strand==strnd || guides[cg]->strand=='.') && ((RC_TData*)(guides[cg]->uptr))->in_bundle>=2) {
-    						fprintf(stderr,"Add guide g=%d with start=%d end=%d\n",cg,guides[cg]->start,guides[cg]->end);
+    						// fprintf(stderr,"Add guide g=%d with start=%d end=%d\n",cg,guides[cg]->start,guides[cg]->end);
     						edgeno[s][b]+=2; // this is an overestimate: possibly I have both an extra source and an extra sink link
     						nolap++;
     					}
@@ -1320,7 +1317,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 					 ****************/
 
 
-    				// /*
+    				/*
     				{ // DEBUG ONLY
         				fprintf(stderr,"edgeno[%d][%d]=%d\n",s,b,edgeno[s][b]);
     					if(bundle[sno][b]->cov) {
@@ -1329,7 +1326,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     								bundle[sno][b]->len,nolap);
     					}
     				}
-    				// */
+    				*/
 
     				// here I can add something in stringtie to lower the mintranscript len if there are guides?
 					/*****************************
@@ -1375,8 +1372,8 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     			}
     		}
     	}
-    	fprintf(stderr,"Done creating graphs\n");
-    	// /*
+    	// fprintf(stderr,"Done creating graphs\n");
+    	/*
     	{ // DEBUG ONLY
     		printTime(stderr);
     		for(int s=0;s<2;s++) {
@@ -1396,7 +1393,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     		}
 			fprintf(stderr,"\n");
     	}
-    	// */
+    	*/
 /*
 #ifdef GMEMTRACE
     	double vm,rsm;
@@ -1422,7 +1419,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     		}
     		else {*/
     			float single_count=readlist[n]->read_count;
-				fprintf(stderr, ">> single_count: %f\n", single_count);
+				// fprintf(stderr, ">> single_count: %f\n", single_count);
     			for(int j=0; j<readlist[n]->pair_idx.Count();j++) {
     				int np=readlist[n]->pair_idx[j];
     				if(np>-1) {
@@ -1451,7 +1448,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 				/*****************************
 				 ** 3-2. Write out global splice graph in DOT format
 				*****************************/
-				unispg_gp->AddGraph(fidx, s, no2gnode[s], bundle[sno].Count());
+				unispg_gp->AddGraph(fidx, s, bdata->refseq, no2gnode[s], bundle[sno].Count());
 
 				// unispg_gp->construct_transfrag_unispg(fidx, s);
 
@@ -1462,6 +1459,11 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 				// 1. construct_treepat_unispg
 				// 2. get_fragment_pattern
             }
+
+			unispg_gp->WriteUNISPG_DOT(fidx, bdata->refseq);
+			unispg_gp->graph_num[0] = 0;
+			unispg_gp->graph_num[1] = 0;
+			unispg_gp->Clear_no2gnode_unispg();
         }
 
 		/*****************************
@@ -1500,7 +1502,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     				// include source to guide starts links
     				GVec<CGuide> guidetrf;
 
-    				// /*
+    				/*
     				{ // DEBUG ONLY
     					fprintf(stderr,"process refguides for s=%d b=%d edgeno=%d gno=%d lastgpos=%d guidescount=%d\n",s,b,edgeno[s][b],graphno[s][b],lastgpos[s][b],guides.Count());
     					fprintf(stderr,"There are %d nodes for graph[%d][%d]:\n",graphno[s][b],s,b);
@@ -1513,7 +1515,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     						fprintf(stderr,"\n");
     					}
     				}
-    				// */
+    				*/
 
     				if(guides.Count()) process_refguides(graphno[s][b],edgeno[s][b],gpos[s][b],lastgpos[s][b],no2gnode[s][b],transfrag[s][b],s,guidetrf,bdata);
 
@@ -1525,7 +1527,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     				//get_trf_long_unispg(graphno[s][b],edgeno[s][b], gpos[s][b],no2gnode[s][b],transfrag[s][b],geneno,s,pred,trflong);
 
 
-    				// /*
+    				/*
     				{ //DEBUG ONLY
     					//printTime(stderr);
     					fprintf(stderr,">>> There are %d nodes for graph[%d][%d]:\n",graphno[s][b],s,b);
@@ -1564,7 +1566,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 
     					fprintf(stderr,"\n\n");
     				}
-    				// */
+    				*/
 
 /*
 #ifdef GMEMTRACE
@@ -1574,7 +1576,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 #endif
 */
 
-    				fprintf(stderr,"guidetrf no=%d\n",guidetrf.Count());
+    				// fprintf(stderr,"guidetrf no=%d\n",guidetrf.Count());
 
     				// find transcripts now
 
@@ -1584,12 +1586,12 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     				//}
     				for(int g=0;g<guidetrf.Count();g++) delete guidetrf[g].trf;
 
-    				// /*
+    				/*
     				{ //DEBUG ONLY
     					printTime(stderr);
     					fprintf(stderr,"Processed transcripts for s=%d b=%d\n",s,b);
     				}
-    				// */
+    				*/
 
 /*
 #ifdef GMEMTRACE
@@ -1630,7 +1632,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 #endif
 */
 
-    // /*
+    /*
     { // DEBUG ONLY
     	for(int i=0;i<pred.Count();i++) {
     		if(pred[i]->t_eq) fprintf(stderr,"%s ",pred[i]->t_eq->getID());
@@ -1639,7 +1641,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     		fprintf(stderr,"\n");
     	}
     }
-    // */
+    */
 
     // don't forget to clean up the allocated data here
     return(geneno);

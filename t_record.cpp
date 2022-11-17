@@ -102,8 +102,6 @@ int TInputFiles::start() {
 
 void TInputFiles::start_fidx(int fidx) {
 	//stringtie multi-BAM input
-	fprintf(stderr, "** Inside start_fidx. Process file: %d\n", fidx);
-	fprintf(stderr, "this->bamfiles[fidx].chars(): %s\n", this->bamfiles[fidx].chars());
 	// for (int i=0;i<bamfiles.Count();++i) {
 	GSamReader* bamreader=new GSamReader(this->bamfiles[fidx].chars(), cram_ref.is_empty() ? NULL : cram_ref.chars());
 	readers.Add(bamreader);

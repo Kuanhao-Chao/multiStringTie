@@ -166,9 +166,9 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 	/****************
 	 **  KH Adding 
 	****************/
-	fprintf(stdout, "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
-	fprintf(stdout, "&&&&&& Start 'create_graph_unispg'\n");
-	fprintf(stdout, "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
+	// fprintf(stdout, "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
+	// fprintf(stdout, "&&&&&& Start 'create_graph_unispg'\n");
+	// fprintf(stdout, "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
 	/****************
 	 **  END KH Adding 
 	****************/
@@ -179,7 +179,6 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 	no2gnode[s][g].Add(source);
 	CGraphnode* sink=new CGraphnode();
 	int njunctions=junction.Count();
-	fprintf(stderr,"&&&&&&&&&&& Start graph[%d][%d] with %d edgeno and lastgpos=%d\n",s,g,edgeno,lastgpos);
 
 	/*
 	{ // DEBUG ONLY
@@ -219,8 +218,6 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 	int njs=0; // index of sorted junction starts
 	int nje=0; // index of sorted junction ends
 
-	fprintf(stderr,"&&&&&&&&&&& process bundle %d-%d:%d bpcov_count=%d refstart=%d\n",bdata->start,bdata->end,s,bpcov->Count(),refstart);
-
 	int graphno=1; // number of nodes in graph
 	//GHash<GVec<int>* > ends; // keeps ids of all nodes ending at a certain position; OR ALL NODES THAT ARE LINKED BY JUNCTIONS TO A CERTAIN POSITION
     GIntHash< GVec<int>* > ends;
@@ -255,7 +252,6 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 	***************************/
 
 	while(bundlenode!=NULL) {
-		fprintf(stderr,"process bundlenode %d-%d:%d bpcov_count=%d refstart=%d\n",bundlenode->start,bundlenode->end,s,bpcov->Count(),refstart);
 
 		uint currentstart=bundlenode->start; // current start is bundlenode's start
 		uint endbundle=bundlenode->end; // initialize end with bundlenode's end for now
@@ -309,7 +305,7 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 					graphnode->parent.Add(node->nodeid); // this node has as parent the previous node
 					// COUNT EDGE HERE
 					edgeno++;
-					fprintf(stderr,"1 Edge %d-%d, edgeno=%d\n",node->nodeid,graphnode->nodeid,edgeno);
+					// fprintf(stderr,"1 Edge %d-%d, edgeno=%d\n",node->nodeid,graphnode->nodeid,edgeno);
 				}
 			}
 			else { // I haven't seen nodes before that finish here (maybe due to error correction?) => link to source
@@ -317,7 +313,7 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 				graphnode->parent.Add(source->nodeid); // this node has source as parent
 				// COUNT EDGE HERE
 				edgeno++;
-				fprintf(stderr,"2 Edge 0-%d, edgeno=%d\n",graphnode->nodeid,edgeno);
+				// fprintf(stderr,"2 Edge 0-%d, edgeno=%d\n",graphnode->nodeid,edgeno);
 			}
 		}
 		else { // this node comes from source directly
@@ -325,7 +321,7 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 			graphnode->parent.Add(source->nodeid); // this node has source as parent
 			// COUNT EDGE HERE
 			edgeno++;
-			fprintf(stderr,"3 Edge 0-%d, edgeno=%d\n",graphnode->nodeid,edgeno);
+			// fprintf(stderr,"3 Edge 0-%d, edgeno=%d\n",graphnode->nodeid,edgeno);
 		}
 
 
@@ -353,7 +349,7 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 			}
 
 			// fprintf(stderr,"minjunction=%d\n",minjunction);
-			if(nje<njunctions) fprintf(stderr,"Found junction:%d-%d(%d)\n",ejunction[nje]->start,ejunction[nje]->end,ejunction[nje]->strand);
+			// if(nje<njunctions) fprintf(stderr,"Found junction:%d-%d(%d)\n",ejunction[nje]->start,ejunction[nje]->end,ejunction[nje]->strand);
 
 
 			if(minjunction == 0 ) { // found a start junction here
@@ -436,7 +432,7 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 						nextnode->parent.Add(graphnode->nodeid);// make graphnode a parent of nextnode
 						// COUNT EDGE HERE
 						edgeno++;
-						fprintf(stderr,"4 Edge %d-%d, edgeno=%d nextnode: %u-%u pos=%d\n",graphnode->nodeid,nextnode->nodeid,edgeno,nextnode->start,nextnode->end,pos);
+						// fprintf(stderr,"4 Edge %d-%d, edgeno=%d nextnode: %u-%u pos=%d\n",graphnode->nodeid,nextnode->nodeid,edgeno,nextnode->start,nextnode->end,pos);
 						graphnode=nextnode;
 					}
 				}
@@ -493,7 +489,7 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 
 					// COUNT EDGE HERE
 					edgeno++;
-					fprintf(stderr,"5 Edge %d-%d, edgeno=%d\n",graphnode->nodeid,nextnode->nodeid,edgeno);
+					// fprintf(stderr,"5 Edge %d-%d, edgeno=%d\n",graphnode->nodeid,nextnode->nodeid,edgeno);
 
 					graphnode=nextnode;
 				}
@@ -507,7 +503,7 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 					graphnode->parent.Add(node->nodeid); // this node has as parent the previous node
 					// COUNT EDGE HERE
 					edgeno++;
-					fprintf(stderr,"6 Edge %d-%d, edgeno=%d\n",node->nodeid,graphnode->nodeid,edgeno);
+					// fprintf(stderr,"6 Edge %d-%d, edgeno=%d\n",node->nodeid,graphnode->nodeid,edgeno);
 				}
 			}
 		} while((nje<njunctions && (ejunction[nje]->end<=endbundle)) || (njs<njunctions && (junction[njs]->start<=endbundle)));
@@ -549,7 +545,7 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 			graphnode->end=endbundle;
 			// COUNT EDGE HERE (this is an edge to sink)
 			edgeno++;
-			fprintf(stderr,"7 Edge to sink from %d, edgeno=%d\n",graphnode->nodeid,edgeno);
+			// fprintf(stderr,"7 Edge to sink from %d, edgeno=%d\n",graphnode->nodeid,edgeno);
 		}
 	    bundlenode=bundlenode->nextnode; // advance to next bundle
 	} // end while(bundlenode!=NULL)
@@ -789,13 +785,13 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 			}
 			CTransfrag *tr=new CTransfrag(nodes,trpat,futuretr[i+2]);
 
-			// /*
+			/*
 			{ // DEBUG ONLY
 				fprintf(stderr,"Add future transfrag[%d][%d]= %d with %d nodes n1=%d n2=%d graphno=%d, abundance=%f and pattern",s,g,transfrag[s][g].Count(),tr->nodes.Count(),n1,n2,graphno,futuretr[i+2]);
 				//printBitVec(trpat);
 				fprintf(stderr,"\n");
 			}
-			// */
+			*/
 			transfrag[s][g].Add(tr);
 		}
 	}
@@ -809,11 +805,11 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 	visit.Resize(graphno);
 	GBitVec parents(graphno+edgeno);
 
-	fprintf(stderr,"traverse graph[%d][%d] now with %d nodes, %d edges and lastgpos=%d....\n",s,g,graphno,edgeno,lastgpos);//edgeno=0;
+	// fprintf(stderr,"traverse graph[%d][%d] now with %d nodes, %d edges and lastgpos=%d....\n",s,g,graphno,edgeno,lastgpos);//edgeno=0;
 	traverse_dfs_unispg(s,g,source,sink,parents,graphno,visit,no2gnode,transfrag,edgeno,gpos,lastgpos);
-	fprintf(stderr,"done traversing with edgeno=%d lastgpos=%d\n",edgeno,lastgpos);
+	// fprintf(stderr,"done traversing with edgeno=%d lastgpos=%d\n",edgeno,lastgpos);
 
-	// /*
+	/*
 	{ //DEBUG ONLY
 		fprintf(stderr,"after traverse:\n");
 		for(int i=0;i<graphno;i++) {
@@ -824,7 +820,7 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 			fprintf(stderr,"\n");
 		}
 	}
-	// */
+	*/
 
 	// delete variables created here, like e.g. ends; do I need to delete the GVec<int> elements created too?
 	ends.Clear();
@@ -893,7 +889,7 @@ CTreePat *construct_treepat_unispg(int gno, GIntHash<int>& gpos,GPVec<CTransfrag
  ****************************************/
 void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2gnode,GPVec<CTransfrag>& transfrag,CTreePat *tr2no,
 		GIntHash<int> &gpos,GVec<CGuide>& guidetrf,GList<CPrediction>& pred,GVec<int>& trflong) {
-	// /*
+	/*
 	{ // DEBUG ONLY
 		printTime(stderr);
 		fprintf(stderr,"\n***********************************************\n");
@@ -906,7 +902,7 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 			fprintf(stderr,"\n");
 		}
 	}
-	// */
+	*/
 	/****************************************
 	 ** Step 1:
 	 ** add all guide patterns to the set of transfrags so that I can have a "backbone" for each guide
@@ -963,7 +959,7 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 		srfrag.Clear();
 	}
 
-	// /*
+	/*
 	{ // DEBUG ONLY
 		//printTime(stderr);
 		fprintf(stderr,"\nThere are %d transfrags after clean up:\n",transfrag.Count());
@@ -973,7 +969,7 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 			fprintf(stderr,"\n");
 		}
 	}
-	// */
+	*/
 
 	GBitVec allpat(gno+edgeno);
 
@@ -1019,12 +1015,12 @@ void process_transfrags_unispg(int s, int gno,int edgeno,GPVec<CGraphnode>& no2g
 	if(trsort)
 		transfrag.Sort(trCmp);
 
-	// /*
+	/*
 	{ // DEBUG ONLY
 		printTime(stderr);
 		fprintf(stderr,"There are %d transfrags that remained\n",transfrag.Count());
 	}
-	// */
+	*/
 
 	/*
 	{ // DEBUG ONLY
@@ -1203,17 +1199,14 @@ int find_transcripts_unispg(int gno,int edgeno, GIntHash<int> &gpos,GPVec<CGraph
 	//if(guidetrf.Count()) maxi=guides_flow(gno,no2gnode,transfrag,guidetrf,geneno,strand,pred,nodecov,istranscript,pathpat);
 	bool first=true;
 
-	fprintf(stderr,"guide count=%d\n",guidetrf.Count());
 
 	/****************************************
 	 ** Step 3:
 	 ** Run maxflow algorithm
 	 ****************************************/
 	if (eonly) {
-		fprintf(stderr,"1\n");
 		guides_pushmaxflow_unispg(gno,edgeno,gpos,no2gnode,transfrag,guidetrf,geneno,strand,pred,nodecov,istranscript,pathpat,first,guides,guidepred,bdata);
 	} else { //if(!eonly) {
-		fprintf(stderr,"2\n");
 		
 		if(guidetrf.Count()) maxi=guides_pushmaxflow_unispg(gno,edgeno,gpos,no2gnode,transfrag,guidetrf,geneno,strand,pred,nodecov,istranscript,pathpat,first,guides,guidepred,bdata);
 		if(nodecov[maxi]>=1) { // sensitive mode only; otherwise >=readthr

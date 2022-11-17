@@ -11,7 +11,6 @@
 // }
 
 void processCreateOptions(GArgs& args) {
-   fprintf(stderr, "Inside 'processCreateOptions'\n");
 	if (args.getOpt('h') || args.getOpt("help")) {
 		fprintf(stdout,"%s",USAGE);
 	    exit(0);

@@ -16,9 +16,9 @@ int infer_transcripts_CREATE_UNISPG(BundleData* bundle, UnispgGp_CREATE* unispg_
 		geneno = build_graphs_CREATE_UNISPG(bundle, unispg_gp, fidx);
 		// geneno = build_graphs_unispg(bundle, unispg_gp);
 
-		fprintf(stderr, "#######################\n");
-		fprintf(stderr, "## Gene number: %d ##\n", geneno);
-		fprintf(stderr, "#######################\n");
+		// fprintf(stderr, "#######################\n");
+		// fprintf(stderr, "## Gene number: %d ##\n", geneno);
+		// fprintf(stderr, "#######################\n");
 	}
 
 /*

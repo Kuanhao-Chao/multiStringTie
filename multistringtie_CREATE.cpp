@@ -16,14 +16,13 @@ GStr unigraphfname;
 /*****************************
  * Declaring DOT file.
  *****************************/
-GVec<FILE*> pos_dot_vec = NULL;
-GVec<GStr> pos_dotfname_vec; 
-GVec<FILE*> neg_dot_vec = NULL;
-GVec<GStr> neg_dotfname_vec; 
 FILE* dot = NULL;
 GStr dotfname; 
-GVec<FILE*>* dot_vec[2];
-GVec<GStr>* dotfname_vec[2]; 
+// GVec<FILE*>* dots[2];
+// GVec<GStr>* dotfnames[2]; 
+
+GVec<FILE*>* dots;
+GVec<GStr>* dotfnames; 
 
 /*****************************
  * Declaring BED file.
@@ -80,14 +79,13 @@ void multistringtie_CREATE (int argc, char*argv[]) {
     GVec<int> alncounts(30); //keep track of the number of read alignments per chromosome [gseq_id]
 
     int bamcount=bamreader.start(); //setup and open input files
-    fprintf(stderr, "&& bamcount number: %d\n", bamcount);
 
     /*******************************************
      ** Initiating all file-related parameters.
      *******************************************/
+    dots = new GVec<FILE*>[bamcount];
+    dotfnames = new GVec<GStr>[bamcount];
     for(int s=0;s<2;s++) { // skip neutral bundles -> those shouldn't have junctions
-        dot_vec[s] = new GVec<FILE*>[bamcount];
-        dotfname_vec[s] = new GVec<GStr>[bamcount];
         if (graph_bed) {
             // Local graph (lclg)
             node_lclg_bed_vec[s] = new GVec<FILE*>[bamcount];
@@ -310,15 +308,20 @@ void multistringtie_CREATE (int argc, char*argv[]) {
     bool skipGseq=false;
     
     /*******************************************
+     ** Writing out filenames in DOT files.
+     *******************************************/
+    GStr dot_samples = "#";
+    /*******************************************
      ** Processing BAM files one by one.
      *******************************************/
     for (int file_idx = 0; file_idx < bamcount; file_idx++) {
-        /*
+        // /*
         { //DEBUG ONLY
             fprintf(stderr, "bamreader.files.Get(file_idx): %s\n", bamreader.files.Get(file_idx).chars());
         }
-        */
+        // */
         unispg_gp->ProcessSample(bamreader.files.Get(file_idx));
+        dot_samples = dot_samples + bamreader.files.Get(file_idx) + ";";
         GStr direction("");
 
         // Ouput unstranded graphs into bed file.
@@ -329,18 +332,21 @@ void multistringtie_CREATE (int argc, char*argv[]) {
         }	
 
         // Ouput stranded graphs into DOT / BED file.
+
+        dotfname = outfname_prefix + "_"+GStr(file_idx)+"_unispg.dot";
+        dot = fopen(dotfname.chars(), "w");
+
+        dotfnames->Add(dotfname);
+        dots->Add(dot);
+        fprintf(dot, dot_samples.chars());
+        fprintf(dot, "\n");
+
         for (int s=0; s<2; s++) {
             if (s == 0) {
                 direction = "neg";
             } else if (s == 1) {
                 direction = "pos";
             }
-            dotfname = outfname_prefix + "_"+direction.chars()+"_"+GStr(file_idx)+"_unispg.dot";
-            dot = fopen(dotfname.chars(), "w");
-
-            dotfname_vec[s]->Add(dotfname);
-            dot_vec[s]->Add(dot);
-
             if (graph_bed) {
                 // Initializing BED files.
                 nodecovfname = outfname_node+"/"+direction.chars()+"_lclg_"+GStr(file_idx)+".bed";
@@ -348,9 +354,9 @@ void multistringtie_CREATE (int argc, char*argv[]) {
                 node_cov_bed = fopen(nodecovfname.chars(), "w");				
                 edge_cov_bed = fopen(edgecovfname.chars(), "w");
                 fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-                fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+                // fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
                 fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-                fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+                // fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
                 nodelclgfname_vec[s]->Add(nodecovfname);
                 edgelclgfname_vec[s]->Add(edgecovfname);
                 node_lclg_bed_vec[s]->Add(node_cov_bed);
@@ -362,9 +368,9 @@ void multistringtie_CREATE (int argc, char*argv[]) {
                 node_cov_bed = fopen(nodecovfname.chars(), "w");				
                 edge_cov_bed = fopen(edgecovfname.chars(), "w");
                 fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-                fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+                // fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
                 fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-                fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+                // fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
                 nodenovpfname_vec[s]->Add(nodecovfname);
                 edgenovpfname_vec[s]->Add(edgecovfname);
                 node_novp_bed_vec[s]->Add(node_cov_bed);
@@ -376,9 +382,9 @@ void multistringtie_CREATE (int argc, char*argv[]) {
                 node_cov_bed = fopen(nodecovfname.chars(), "w");				
                 edge_cov_bed = fopen(edgecovfname.chars(), "w");
                 fprintf(node_cov_bed, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-                fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+                // fprintf(stderr, "track name=Sample_"+GStr(file_idx)+"_node_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
                 fprintf(edge_cov_bed, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
-                fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
+                // fprintf(stderr, "track name=junctions Sample_"+GStr(file_idx)+"_edge_"+direction.chars()+"_cov color=255,0,0 altColor=0,0,255\n");
                 nodeunispgfname_vec[s]->Add(nodecovfname);
                 edgeunispgfname_vec[s]->Add(edgecovfname);
                 node_unispg_bed_vec[s]->Add(node_cov_bed);
@@ -424,7 +430,7 @@ void multistringtie_CREATE (int argc, char*argv[]) {
                 refseqName=brec->refName();
                 xstrand=brec->spliceStrand(); // tagged strand gets priority
 
-                fprintf(stderr, "** Before setting strand: %c\n", xstrand);
+                // fprintf(stderr, "** Before setting strand: %c\n", xstrand);
                 if(xstrand=='.' && (fr_strand || rf_strand)) { // set strand if stranded library
                     if(brec->isPaired()) { // read is paired
                         if(brec->pairOrder()==1) { // first read in pair
@@ -441,7 +447,7 @@ void multistringtie_CREATE (int argc, char*argv[]) {
                         else xstrand='-';
                     }
                 }
-                fprintf(stderr, "** After setting strand: %c\n", xstrand);
+                // fprintf(stderr, "** After setting strand: %c\n", xstrand);
 
                 /*
                 if (xstrand=='.' && brec->exons.Count()>1) {
@@ -694,11 +700,11 @@ void multistringtie_CREATE (int argc, char*argv[]) {
                 }
             } //adjusted currentend and checked for overlapping reference transcripts
             GReadAlnData alndata(brec, 0, nh, hi, tinfo);
-            fprintf(stderr, "brec: %d\n", brec->mapped_len);
-            fprintf(stderr, "brec: %d - %d\n", brec->start, brec->end);
-            fprintf(stderr, ">>> before evalReadAln xstrand: %c\n", xstrand);
+            // fprintf(stderr, "brec: %d\n", brec->mapped_len);
+            // fprintf(stderr, "brec: %d - %d\n", brec->start, brec->end);
+            // fprintf(stderr, ">>> before evalReadAln xstrand: %c\n", xstrand);
             bool ovlpguide=bundle->evalReadAln(alndata, xstrand);
-            fprintf(stderr, ">>> after evalReadAln xstrand: %c\n", xstrand);
+            // fprintf(stderr, ">>> after evalReadAln xstrand: %c\n", xstrand);
 
             /*****************************
              * in eonly case consider read only if it overlaps guide
@@ -814,11 +820,6 @@ void multistringtie_CREATE (int argc, char*argv[]) {
                 if (Cov_Sum>0.00001) calc_tpm=tcov*1000000/Cov_Sum;
                     else calc_tpm=0.0;
                 if(istr) { // this is a transcript
-
-                    fprintf(stderr, ">> calc_tpm: %f\n", calc_tpm);
-                    fprintf(stderr, ">> calc_fpkm: %f\n", calc_fpkm);
-                    fprintf(stderr, ">> tcov: %f\n", tcov);
-
                     for(int i=0;i<nl;i++) {
                         fgetline(linebuf,linebuflen,ftmp_in);
                         if(!i) {

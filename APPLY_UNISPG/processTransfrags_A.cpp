@@ -3,21 +3,20 @@
 
 void process_transfrags_APPLY_UNISPG(int s, int gno,int edgeno,GPVec<CGraphnodeUnispg>& no2gnode,GPVec<CTransfrag>& transfrag,CTreePat *tr2no, GIntHash<int> &gpos, GList<CPrediction>& pred) {
 
-	// /*
+	/*
 	{ // DEBUG ONLY
 		printTime(stderr);
-		printTime(stderr);
-		fprintf(stderr,"\n***********************************************\n");
-		fprintf(stderr,"*********** Inside process_transfrags_unispg: \n");
-		fprintf(stderr,"***********************************************\n");
-		fprintf(stderr,"There are %d transfrags before clean up:\n",transfrag.Count());
+		// fprintf(stderr,"\n***********************************************\n");
+		// fprintf(stderr,"*********** Inside process_transfrags_unispg: \n");
+		// fprintf(stderr,"***********************************************\n");
+		// fprintf(stderr,"There are %d transfrags before clean up:\n",transfrag.Count());
 		for(int i=0;i<transfrag.Count();i++) {
-			fprintf(stderr,"transfrag[%d](%f,%f) long=%d short=%d usepath=%d:",i,transfrag[i]->abundance,transfrag[i]->srabund,transfrag[i]->longread,transfrag[i]->shortread,(int)transfrag[i]->usepath);
+			// fprintf(stderr,"transfrag[%d](%f,%f) long=%d short=%d usepath=%d:",i,transfrag[i]->abundance,transfrag[i]->srabund,transfrag[i]->longread,transfrag[i]->shortread,(int)transfrag[i]->usepath);
 			for(int j=0;j<transfrag[i]->nodes.Count();j++) fprintf(stderr," %d",transfrag[i]->nodes[j]);
-			fprintf(stderr,"\n");
+			// fprintf(stderr,"\n");
 		}
 	}
-	// */
+	*/
 
 	GPVec<CTransfrag> srfrag(false);
 	// eliminate transfrags below threshold (they represent noise) if they don't come from source
@@ -66,12 +65,12 @@ void process_transfrags_APPLY_UNISPG(int s, int gno,int edgeno,GPVec<CGraphnodeU
 	if(trsort)
 		transfrag.Sort(trCmp);
 
-	// /*
+	/*
 	{ // DEBUG ONLY
 		printTime(stderr);
 		fprintf(stderr,"There are %d transfrags that remained\n",transfrag.Count());
 	}
-	// */
+	*/
 
 	/*
 	{ // DEBUG ONLY
@@ -158,9 +157,6 @@ void process_transfrags_APPLY_UNISPG(int s, int gno,int edgeno,GPVec<CGraphnodeU
 
 			//if(nosplice) transfrag[t1]->abundance*=(1-isofrac);
 			//transfrag[t1]->abundance*=0.5;
-
-			fprintf(stderr, ">> there is no edge between node[n-1] and node[n]\n");
-
 			if(incomplete) incompletetrf.Add(t1);
 			else transfrag[t1]->real=true;
 
@@ -172,7 +168,7 @@ void process_transfrags_APPLY_UNISPG(int s, int gno,int edgeno,GPVec<CGraphnodeU
 		*/
 	} // end for(int t1=0;t1<transfrag.Count();t1++)
 
-	fprintf(stderr, "After creating compatibilities!!\n");
+	// fprintf(stderr, "After creating compatibilities!!\n");
 
 	// set source-to-child transfrag abundances: optional in order not to keep these abundances too low:
 	// update the abundances of the transfrags coming in from source and going to a node that doesn't have other parents than source
@@ -196,9 +192,6 @@ void process_transfrags_APPLY_UNISPG(int s, int gno,int edgeno,GPVec<CGraphnodeU
 
 	for(int t=0;t<incompletetrf.Count();t++)
 		transfrag[incompletetrf[t]]->real=trf_real_APPLY_UNISPG(incompletetrf[t],no2gnode,transfrag,gpos,gno);
-
-
-	fprintf(stderr, "Done!!\n");
 }
 
 

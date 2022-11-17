@@ -9,7 +9,15 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/multistringtie",
-            "args": ["-o", "/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/results/Brain/chr22/multi.gtf", "--rf", "--multi", "/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/data/Brain/chr22/SUB_SRR1352706_chr22.bam", "/Users/chaokuan-hao/Documents/Projects/PR_MultiStringTie/data/Brain/chr22/SUB_SRR1352706_chr22.bam"]
+
+            // "args": ["CREATE_UNISPG", "-o", "../results/Brain/all/SRR1352706/CREATE_UNISPG/SRR1352706.gtf", "-v", "--multi", "--graph_bed", "../data/Brain/all/SRR1352706.bam"]
+
+
+            "args": ["APPLY_UNISPG", "--d", "../results/Brain/all/SRR1352706/CREATE_UNISPG/SRR1352706", "-o", "../results/Brain/all/SRR1352706/APPLY_UNISPG/SRR1352706.gtf",  "../data/Brain/all/SRR1352706.bam"]
+
+            // "args": ["APPLY_UNISPG", "--d", "../results/Brain/chr22/SUB_SRR1352706_chr22/CREATE_UNISPG/SUB_SRR1352706_chr22", "-o", "../results/Brain/chr22/SUB_SRR1352706_chr22/APPLY_UNISPG/SUB_SRR1352706_chr22.gtf", "../data/Brain/chr22/SUB_SRR1352706_chr22.bam"]
+            // "args": ["CREATE_UNISPG", "-o", "../results/Brain/chr22/SUB_SRR1352706_chr22/CREATE_UNISPG/SUB_SRR1352706_chr22.gtf", "-v", "--multi", "--graph_bed",  "../data/Brain/chr22/SUB_SRR1352706_chr22.bam"]
+
             // "logging": {
             //     "moduleLoad": true,
             //     "programOutput": true,

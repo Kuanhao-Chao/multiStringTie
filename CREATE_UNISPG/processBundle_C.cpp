@@ -5,7 +5,7 @@ void processBundle_CREATE_UNISPG(BundleData* bundle, UnispgGp_CREATE* unispg_gp,
 #ifndef NOTHREADS
 		GLockGuard<GFastMutex> lock(logMutex);
 #endif
-		printTime(stderr);
+		// printTime(stderr);
 		GMessage(">bundle %s:%d-%d [%lu alignments (%d distinct), %d junctions, %d guides] begins processing...\n",
 				bundle->refseq.chars(), bundle->start, bundle->end, bundle->numreads, bundle->readlist.Count(), bundle->junction.Count(),
                 bundle->keepguides.Count());
@@ -64,7 +64,7 @@ void processBundle_CREATE_UNISPG(BundleData* bundle, UnispgGp_CREATE* unispg_gp,
 		Frag_Len+=bundle->frag_len;
 		Cov_Sum+=bundle->sum_cov;
 
-		fprintf(stderr, ">> Num_Fragments: %f, Frag_Len: %f, Cov_Sum: %f\n", Num_Fragments, Frag_Len, Cov_Sum);
+		// fprintf(stderr, ">> Num_Fragments: %f, Frag_Len: %f, Cov_Sum: %f\n", Num_Fragments, Frag_Len, Cov_Sum);
 	}
 
 	if (verbose) {
@@ -82,7 +82,7 @@ void processBundle_CREATE_UNISPG(BundleData* bundle, UnispgGp_CREATE* unispg_gp,
 	  fprintf(stderr,"Number of fragments in bundle: %g with length %g\n",bundle->num_fragments,bundle->frag_len);
 	  fprintf(stderr,"Number of fragments in bundle: %g with sum %g\n",bundle->num_fragments,bundle->frag_len);
 	  */
-		printTime(stderr);
+		// printTime(stderr);
 		GMessage("^bundle %s:%d-%d done (%d processed potential transcripts).\n",bundle->refseq.chars(),
 				bundle->start, bundle->end, bundle->pred.Count());
 #ifdef GMEMTRACE

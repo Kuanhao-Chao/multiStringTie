@@ -81,6 +81,7 @@ extern FILE* f_out; // get from "outfname" param.
  *******************************************/
 // Dot file => for reading in DOT format.
 extern GStr unispgdotfname_root; 
+extern GStr unispgdotfname;
 extern GStr unispgdotfname_pos; 
 extern GStr unispgdotfname_neg; 
 // Annotation file => outputing in GFF format.

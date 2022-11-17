@@ -6,7 +6,7 @@ CTreePat *construct_treepat_APPLY_UNISPG(int node_num, GIntHash<int>& gpos, GPVe
 	CTreePat *root=new CTreePat(0,node_num-1); // if links from source to nodes are desired source==1 and all nodes are treated as +1
 
 	// now construct all child CTreePat's
-	fprintf(stderr,"There are %d transfrags\n",transfrag.Count());
+	// fprintf(stderr,"There are %d transfrags\n",transfrag.Count());
 	for(int t=0;t<transfrag.Count();t++)
 		if(transfrag[t]->nodes[0]){ // don't include transfrags from source -> not needed
 			CTreePat *tree=root;

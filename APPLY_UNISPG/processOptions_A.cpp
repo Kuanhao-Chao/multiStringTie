@@ -98,7 +98,6 @@ void processApplyOptions(GArgs& args) {
 	}
 
 	tmpfname=tmp_path+tmpfname;
-   	fprintf(stderr, "%s \n", tmpfname.chars());
 
 #ifdef B_DEBUG
 	GStr dbgfname(tmpfname);

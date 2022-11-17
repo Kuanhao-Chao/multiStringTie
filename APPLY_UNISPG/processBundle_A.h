@@ -6,7 +6,7 @@
 #include "global_params_A.h"
 #include "infer_tranx_A.h"
 
-void processBundle_APPLY_UNISPG(BundleData* bundle, GPVec<UnispgGp_APPLY>** graphs_vec);
+void processBundle_APPLY_UNISPG(BundleData* bundle, UnispgGp_APPLY* unispgs);
 
 void noMoreBundles();
 

@@ -1,7 +1,7 @@
 #include "processBundle_A.h"
 
-void processBundle_APPLY_UNISPG(BundleData* bundle, GPVec<UnispgGp_APPLY>** graphs_vec) {
-	fprintf(stderr, "Inside processBundle_APPLY_UNISPG!\n");
+void processBundle_APPLY_UNISPG(BundleData* bundle, UnispgGp_APPLY* unispgs) {
+	// fprintf(stderr, "Inside processBundle_APPLY_UNISPG!\n");
 	// if (verbose) {
 #ifndef NOTHREADS
 		GLockGuard<GFastMutex> lock(logMutex);
@@ -48,7 +48,7 @@ void processBundle_APPLY_UNISPG(BundleData* bundle, GPVec<UnispgGp_APPLY>** grap
 	}
 #endif
 
-	infer_transcripts_APPLY_UNISPG(bundle, graphs_vec);
+	infer_transcripts_APPLY_UNISPG(bundle, unispgs);
 
 	if (bundle->pred.Count()>0) {
 #ifndef NOTHREADS
@@ -57,7 +57,7 @@ void processBundle_APPLY_UNISPG(BundleData* bundle, GPVec<UnispgGp_APPLY>** grap
 		GeneNo=printResults(bundle, GeneNo, bundle->refseq);
 	}
 
-		fprintf(stderr, ">> bundle->num_fragments: %f, bundle->frag_len: %f, bundle->sum_cov: %f\n", bundle->num_fragments, bundle->frag_len, bundle->sum_cov);
+		// fprintf(stderr, ">> bundle->num_fragments: %f, bundle->frag_len: %f, bundle->sum_cov: %f\n", bundle->num_fragments, bundle->frag_len, bundle->sum_cov);
 
 	if (bundle->num_fragments) {
 		#ifndef NOTHREADS
@@ -66,7 +66,7 @@ void processBundle_APPLY_UNISPG(BundleData* bundle, GPVec<UnispgGp_APPLY>** grap
 		Num_Fragments+=bundle->num_fragments;
 		Frag_Len+=bundle->frag_len;
 		Cov_Sum+=bundle->sum_cov;
-		fprintf(stderr, ">> Num_Fragments: %f, Frag_Len: %f, Cov_Sum: %f\n", Num_Fragments, Frag_Len, Cov_Sum);
+		// fprintf(stderr, ">> Num_Fragments: %f, Frag_Len: %f, Cov_Sum: %f\n", Num_Fragments, Frag_Len, Cov_Sum);
 	}
 
 	if (verbose) {
