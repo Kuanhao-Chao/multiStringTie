@@ -8,6 +8,7 @@
 /*******************************************
  ** CREATE_UNISPG specific parameters.
  *******************************************/
+
 UnispgGp_CREATE* unispg_gp;
 bool universal_splice_graph = false;
 FILE* uinigraph_out = NULL;
@@ -56,15 +57,6 @@ GStr edgecovfname;
 GVec<GRefData> refguides; // plain vector with transcripts for each chromosome
 GArray<GRefPtData> refpts(true, true); // sorted,unique array of refseq point-features data
 
-// /*****************************
-//  * Declaring Ballgown related data structure
-//  *   table indexes for Ballgown Raw Counts data (-B/-b option)
-//  *****************************/
-// GPVec<RC_TData> guides_RC_tdata(true); //raw count data or other info for all guide transcripts
-// GPVec<RC_Feature> guides_RC_exons(true); //raw count data for all guide exons
-// GPVec<RC_Feature> guides_RC_introns(true);//raw count data for all guide introns
-
-
 
 void multistringtie_CREATE (int argc, char*argv[]) {
     /*******************************************
@@ -77,7 +69,6 @@ void multistringtie_CREATE (int argc, char*argv[]) {
     processCreateOptions(args);
 
     GVec<int> alncounts(30); //keep track of the number of read alignments per chromosome [gseq_id]
-
     int bamcount=bamreader.start(); //setup and open input files
 
     /*******************************************
@@ -115,6 +106,9 @@ void multistringtie_CREATE (int argc, char*argv[]) {
 #endif
     const char* ERR_BAM_SORT="\nError: the input alignment file is not sorted!\n";
 
+    /*******************************************
+     ** Initiating tje UnispgGp_CREATE instance.
+     *******************************************/
     unispg_gp = new UnispgGp_CREATE();
 
     outfname_prefix = outfname.copy();		
@@ -129,10 +123,8 @@ void multistringtie_CREATE (int argc, char*argv[]) {
         }
     }
 
-    GStr outfname_node;
-    GStr outfname_edge;
-    outfname_node = outfname_prefix+"/node"; 
-    outfname_edge = outfname_prefix+"/edge"; 
+    GStr outfname_node=outfname_prefix+"/node";
+    GStr outfname_edge=outfname_prefix+"/edge"; 
 
     if (fileExists(outfname_node.chars())==0) {
         //directory does not exist, create it
@@ -146,7 +138,6 @@ void multistringtie_CREATE (int argc, char*argv[]) {
             GError("Error: cannot create directory %s!\n", outfname_edge.chars());
         }
     }
-
 
     fprintf(stderr, "outfname: %s\n", outfname.chars());
     fprintf(stderr, "out_dir: %s\n", out_dir.chars());
@@ -241,8 +232,7 @@ void multistringtie_CREATE (int argc, char*argv[]) {
     GList<GffObj>* guides=NULL; //list of transcripts on a specific reference
     GList<GPtFeature>* refptfs=NULL; //list of point-features on a specific reference
     int currentstart=0, currentend=0;
-    int ng_start=0;
-    int ng_end=-1;
+    int ng_start=0, ng_end=-1;
     int ptf_idx=0; //point-feature current index in the current (*refptfs)[]
     int ng=0;
     GStr lastref;
@@ -315,11 +305,11 @@ void multistringtie_CREATE (int argc, char*argv[]) {
      ** Processing BAM files one by one.
      *******************************************/
     for (int file_idx = 0; file_idx < bamcount; file_idx++) {
-        // /*
+        /*
         { //DEBUG ONLY
             fprintf(stderr, "bamreader.files.Get(file_idx): %s\n", bamreader.files.Get(file_idx).chars());
         }
-        // */
+        */
         unispg_gp->ProcessSample(bamreader.files.Get(file_idx));
         dot_samples = dot_samples + bamreader.files.Get(file_idx) + ";";
         GStr direction("");
@@ -331,16 +321,14 @@ void multistringtie_CREATE (int argc, char*argv[]) {
             fprintf(node_unispg_unstrand_bed, "track name=Sample_"+GStr(file_idx)+"_node_unstranded_cov color=0,0,0 altColor=0,0,0\n");	
         }	
 
-        // Ouput stranded graphs into DOT / BED file.
-
-        dotfname = outfname_prefix + "_"+GStr(file_idx)+"_unispg.dot";
+        /*******************************************
+         ** Ouput stranded graphs into DOT / BED (nodes / edges) file.
+        *******************************************/
+        dotfname = outfname_prefix + "_" + GStr(file_idx) + "_unispg.dot";
         dot = fopen(dotfname.chars(), "w");
 
         dotfnames->Add(dotfname);
         dots->Add(dot);
-        fprintf(dot, dot_samples.chars());
-        fprintf(dot, "\n");
-
         for (int s=0; s<2; s++) {
             if (s == 0) {
                 direction = "neg";
@@ -428,9 +416,11 @@ void multistringtie_CREATE (int argc, char*argv[]) {
                 dbg_waln(brec);
     #endif
                 refseqName=brec->refName();
-                xstrand=brec->spliceStrand(); // tagged strand gets priority
 
-                // fprintf(stderr, "** Before setting strand: %c\n", xstrand);
+                /*******************************************
+                 ** Setting the strand.
+                *******************************************/
+                xstrand=brec->spliceStrand(); // tagged strand gets priority
                 if(xstrand=='.' && (fr_strand || rf_strand)) { // set strand if stranded library
                     if(brec->isPaired()) { // read is paired
                         if(brec->pairOrder()==1) { // first read in pair
@@ -447,7 +437,6 @@ void multistringtie_CREATE (int argc, char*argv[]) {
                         else xstrand='-';
                     }
                 }
-                // fprintf(stderr, "** After setting strand: %c\n", xstrand);
 
                 /*
                 if (xstrand=='.' && brec->exons.Count()>1) {
@@ -503,7 +492,6 @@ void multistringtie_CREATE (int argc, char*argv[]) {
             if (new_bundle || chr_changed) {
                 hashread.Clear();
                 if (bundle->readlist.Count()>0) { // process reads in previous bundle
-                    // (readthr, junctionthr, mintranscriptlen are globals)
                     if (refptfs) { //point-features defined for this reference
                         while (ptf_idx<refptfs->Count() && (int)(refptfs->Get(ptf_idx)->coord)<currentstart)
                             ptf_idx++;
@@ -710,7 +698,7 @@ void multistringtie_CREATE (int argc, char*argv[]) {
              * in eonly case consider read only if it overlaps guide
              * 	check for overlaps with ref transcripts which may set xstrand
              *****************************/
-            // eonly: for mergeMode includes estimated coverage sum in the merged transcripts
+            // eonly: only estimate the abundance of given reference transcripts
             if(!eonly || ovlpguide) {
                 if (xstrand=='+') alndata.strand=1;
                 else if (xstrand=='-') alndata.strand=-1;
@@ -858,9 +846,7 @@ void multistringtie_CREATE (int argc, char*argv[]) {
             remove(tmp_path);
         }
 
-
         gffnames_unref(gseqNames); //deallocate names collection
-
 
 #ifdef GMEMTRACE
         if(verbose) GMessage(" Max bundle memory: %6.1fMB for bundle %s\n", maxMemRS/1024, maxMemBundle.chars());

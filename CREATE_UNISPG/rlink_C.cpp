@@ -153,16 +153,6 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 		GList<CJunction>& junction,GList<CJunction>& ejunction,GVec<CGraphinfo> **bundle2graph,
 		GPVec<CGraphnode> **no2gnode,GPVec<CTransfrag> **transfrag,GIntHash<int> **gpos,BundleData* bdata,
 		int &edgeno,int &lastgpos,GArray<GEdge>& guideedge, int refend){
-
-	if (multiMode) {
-        // int uni_refstart = unispg_gp -> get_refstart();
-		// int uni_refend = unispg_gp -> get_refend();
-        // fprintf(stderr, "* uni_refstart: %d\n", uni_refstart);
-        // fprintf(stderr, "* uni_refend: %d\n", uni_refend);
-	}else {
-		// normalMode
-	}
-
 	/****************
 	 **  KH Adding 
 	****************/
@@ -201,6 +191,8 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 	int nge=0;
 	bool processguide=false;
 	CBundlenode *bundlenode=bnode[bundle->startnode];
+
+	// This is for reference-guide assembly too.
 	while(nge<guideedge.Count() && bundlenode!=NULL) {
 		uint start=guideedge[nge].val;
 		uint end=guideedge[nge].endval;
@@ -218,13 +210,13 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 	int njs=0; // index of sorted junction starts
 	int nje=0; // index of sorted junction ends
 
-	int graphno=1; // number of nodes in graph
-	//GHash<GVec<int>* > ends; // keeps ids of all nodes ending at a certain position; OR ALL NODES THAT ARE LINKED BY JUNCTIONS TO A CERTAIN POSITION
-    GIntHash< GVec<int>* > ends;
+	int graphno=1; // number of nodes in graph (source already included.)
+    GIntHash< GVec<int>* > ends; // keeps ids of all nodes ending at a certain position; OR ALL NODES THAT ARE LINKED BY JUNCTIONS TO A CERTAIN POSITION
 	GVec<float> futuretr; //future transfrags
 
 	/*****************************
 	 ** Step 2: I have a bunch of junctions at the start for which I need to create ends
+	 **  This is for mergeMode. Skip here.
 	 *****************************/
 
 	/*****************************
@@ -234,8 +226,8 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 	int f=0; // feature index
 	uint bundle_start=bundlenode->start;
 	uint bundle_end=bnode[bundle->lastnodeid]->end;
-	GHashMap<int, int> global2local_nodehash(false); //hash of pointers
-	global2local_nodehash.Add(0, 0);
+	// GHashMap<int, int> global2local_nodehash(false); //hash of pointers
+	// global2local_nodehash.Add(0, 0);
 	// I want to process bundles & compare the local to the global graph.
 	int nd_global=1;
 
@@ -252,7 +244,6 @@ int create_graph_unispg(int refstart,int s,int g,CBundle *bundle,GPVec<CBundleno
 	***************************/
 
 	while(bundlenode!=NULL) {
-
 		uint currentstart=bundlenode->start; // current start is bundlenode's start
 		uint endbundle=bundlenode->end; // initialize end with bundlenode's end for now
 		int end=0;

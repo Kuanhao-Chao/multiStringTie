@@ -11,14 +11,13 @@ int infer_transcripts_CREATE_UNISPG(BundleData* bundle, UnispgGp_CREATE* unispg_
 #endif
 */
 	if(bundle->keepguides.Count() || !eonly) {
-		//fprintf(stderr,"Process %d reads from %lu.\n",bundle->readlist.Count(),bundle->numreads);
+		fprintf(stderr,"Process %d reads from %lu.\n",bundle->readlist.Count(),bundle->numreads);
 		count_good_junctions(bundle);
 		geneno = build_graphs_CREATE_UNISPG(bundle, unispg_gp, fidx);
-		// geneno = build_graphs_unispg(bundle, unispg_gp);
 
 		// fprintf(stderr, "#######################\n");
 		// fprintf(stderr, "## Gene number: %d ##\n", geneno);
-		// fprintf(stderr, "#######################\n");
+		// fprintf(stderr, "#######################\n\n");
 	}
 
 /*

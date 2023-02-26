@@ -1,3 +1,4 @@
+#include <iostream>
 #include "unispg_C.h"
 // #include "GBitVec.h"
 // #include <float.h>
@@ -11,6 +12,7 @@
 void UnispgGp_CREATE::ProcessSample(GStr sample_name) {
     samples.cAdd(sample_name);
     for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
+        std::cout << "sno: " << sno << std::endl;
         int s=sno/2; // adjusted strand due to ignoring neutral strand
         current_gidx[s] = 0;
         new_gidx[s] = 0;
@@ -591,7 +593,6 @@ void UnispgGp_CREATE::MergeLCLG(int s, int sample_num, GPVec<CGraphnode>* no2gno
 
 void UnispgGp_CREATE::FirstUnispgAlgo(int fidx, int s, GStr refseq, int sample_num, GPVec<CGraphnode>* no2gnode, int lclg_limit, int& new_nonolp_lclg_idx, bool first_sample) {
     Clear_lclg_nonoverlap();
-
     // { // DEBUG ONLY
     //     fprintf(stderr, "\n*****************************\n");
     //     fprintf(stderr, "*********** FirstUnispgAlgo ********\n");
@@ -2075,52 +2076,6 @@ void UnispgGp_CREATE::AddGraph(int fidx, int s, GStr refseq, GPVec<CGraphnode>* 
     // fprintf(stderr, "*********** Inside 'AddGraph'********\n");
     // fprintf(stderr, "*******************************************\n"); 
     int sample_num = samples.Count();
-
-    // fprintf(stderr, "&& transfrag[%d].Count(): %d\n", s,lclg_limit);
-    // for (int i=0; i<transfrag->Count(); i++) {
-    // for (int i=0; i<lclg_limit; i++) {
-        // fprintf(stderr, "\t&& transfrag[%d][%d].Count(): %d\n", s, i, transfrag[i].Count());
-        // for (int j=0; j<transfrag[i].Count(); j++) {
-            
-        //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] nodes: ", s, i, j);
-        //     for (int n=0; n<transfrag[i][j]->nodes.Count(); n++) {
-        //         fprintf(stderr, "%d, ",transfrag[i][j]->nodes[n]);
-        //     }
-        //     fprintf(stderr, "\n");		
-        //     // printBitVec(pathpat);
-
-        //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] abundance: \n", s, i, j);
-        //     printBitVecTest(transfrag[i][j]->pattern);
-
-
-        //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] abundance: %f\n", s, i, j, transfrag[i][j]->abundance);
-        //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] srabund: %f\n", s, i, j, transfrag[i][j]->srabund);
-
-        //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] usepath: %f\n", s, i, j, transfrag[i][j]->usepath);
-        //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] weak: %d\n", s, i, j, transfrag[i][j]->weak);
-        //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] real: %d\n", s, i, j, transfrag[i][j]->real);
-        //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] longread: %d\n", s, i, j, transfrag[i][j]->longread);
-        //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] shortread: %d\n", s, i, j, transfrag[i][j]->shortread);
-        //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] guide: %d\n", s, i, j, transfrag[i][j]->guide);
-        //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] longstart: %u\n", s, i, j, transfrag[i][j]->longstart);
-        //     fprintf(stderr, "\t\t&& transfrag[%d][%d][%d] longend: %u\n", s, i, j, transfrag[i][j]->longend);
-        // }
-
-    //     GVec<int> nodes;
-	// GBitVec pattern;
-	// float abundance;
-	// float srabund; // keeps abundance associated to srfrag
-	// GVec<CPath> path; // stores all the possible paths that leave from a node to reach next node in a transfrag, and distributes the abundance of the transfrag between all possible continuations
-	// float usepath;
-	// int weak; // number of weak links
-	// bool real:1;
-	// bool longread:1; // there is at least a longread supporting transfrag
-	// bool shortread:1; // there is at least one short read supporting transfrag
-	// int guide;
-	// uint longstart; // for long reads: min start of all longreads sharing transfrag
-	// uint longend; // for long reads: max end of all longreads sharing transfrag
-    // }
-
     if (fidx == 0) {
         int new_nonolp_lclg_idx = 0;
         FirstUnispgAlgo(fidx, s, refseq, sample_num, no2gnode, lclg_limit, new_nonolp_lclg_idx, true);

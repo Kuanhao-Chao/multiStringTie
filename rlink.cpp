@@ -908,7 +908,7 @@ int merge_read_to_group(int n,int np, int p, float readcov, int sno,int readcol,
 		}
 
 		if(currgroup==NULL || readlist[n]->segs[0].end < currgroup->start) // currgroup is null only if we reached end of currgroup list
-																		   // because currgroup is not NULL initially and it starts BEFORE read
+			// because currgroup is not NULL initially and it starts BEFORE read
 			currgroup=lastgroup; // making sure read comes after currgroup
 
 		// now process each group of coordinates individually
@@ -1307,7 +1307,7 @@ int add_read_to_group(int n,GList<CReadAln>& readlist,int color,GPVec<CGroup>& g
 					}
 					group[readgroup[np][0]]->color=readcol;
 				}
-				else { // it's the first time I see the read in the fragment
+				else { // it's the first time I see a read in the fragment
 					//fragno+=readlist[n]->pair_count[p];
 					if(usedcol[sno]<0) { // I didn't use the color yet
 						usedcol[sno]=color;
@@ -12477,10 +12477,11 @@ int build_graphs(BundleData* bdata) {
 	eqnegcol.Resize(equalcolor.Count(),-1);
 
 
-	// each unstranded group needs to remember what proportion of stranded group it overlaps so that it can distribute reads later on
 	/*****************************
 	 ** Step 7: 'set_strandcol' function
      ** 	set the color of strands
+	 **     each unstranded group needs to remember what proportion of 
+	 **       stranded group it overlaps so that it can distribute reads later on
 	 *****************************/
 	// Iterate through all "- / . / +" group!
 	while(currgroup[0]!=NULL || currgroup[1]!=NULL || currgroup[2]!=NULL) { // there are still groups to process
@@ -12634,7 +12635,8 @@ int build_graphs(BundleData* bdata) {
 
 	/*****************************
 	 ** Step 8: 'add_group_to_bundle' & 'create_bundle' functions. 
-	 ** 	create bundles : bundles collect connected groups (with same color)
+	 ** 	create bundles : bundles collect connected groups (with same color)!
+	 **     Make sure overlapping spliced groups are in the same color.
 	 *****************************/
 	for (int i=0;i<3;i++) {
 		currgroup[i]=startgroup[i];

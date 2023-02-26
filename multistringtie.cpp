@@ -136,19 +136,32 @@ GFastMutex countMutex;
 #endif
 
 int main(int argc, char*argv[]) {
-	std::cout << "This is the multiStringTie program.\n" << std::endl;
-
-	fprintf(stderr, "%d  %s  %s  %s  %s\n", argc, argv[0], argv[1], argv[2], argv[3]);
-	if (strcmp(argv[1], "CREATE_UNISPG") || strcmp(argv[1], "APPLY_UNISPG")) {
-
+    GMessage(
+            "==========================================================================================\n"
+            "An accurate spliced alignment pruner and spliced junction predictor.\n"
+            "==========================================================================================\n");
+	const char *banner = R"""(
+	███╗   ███╗██╗   ██╗██╗  ████████╗██╗███████╗████████╗██████╗ ██╗███╗   ██╗ ██████╗████████╗██╗███████╗
+	████╗ ████║██║   ██║██║  ╚══██╔══╝██║██╔════╝╚══██╔══╝██╔══██╗██║████╗  ██║██╔════╝╚══██╔══╝██║██╔════╝
+	██╔████╔██║██║   ██║██║     ██║   ██║███████╗   ██║   ██████╔╝██║██╔██╗ ██║██║  ███╗  ██║   ██║█████╗  
+	██║╚██╔╝██║██║   ██║██║     ██║   ██║╚════██║   ██║   ██╔══██╗██║██║╚██╗██║██║   ██║  ██║   ██║██╔══╝  
+	██║ ╚═╝ ██║╚██████╔╝███████╗██║   ██║███████║   ██║   ██║  ██║██║██║ ╚████║╚██████╔╝  ██║   ██║███████╗
+	╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝   ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚═╝╚══════╝
+	)""";
+    GMessage("%s\n", banner);
+	if (argc == 1) {
+		GMessage("[ERROR] The command must be 'CREATE_UNISPG' or 'APPLY_UNISPG'.\n");
+		exit(0);
+	} else if (strcmp(argv[1], "CREATE_UNISPG") || strcmp(argv[1], "APPLY_UNISPG")) {
 		/*******************************************
 		 ** Selecting which mode multiStringTie is running.
 		 *******************************************/
 		if (strcmp(argv[1], "CREATE_UNISPG") == 0) {
 			mode = CREATE_UNISPG;
-		}
-		if (strcmp(argv[1], "APPLY_UNISPG") == 0) {
+		} else if (strcmp(argv[1], "APPLY_UNISPG") == 0) {
 			mode = APPLY_UNISPG;
+		} else {
+			mode = UNKNOWN;
 		}
 		for (int i=1; i<argc-1; i++) {
 			argv[i] = argv[i+1];
@@ -157,6 +170,7 @@ int main(int argc, char*argv[]) {
 		argc = argc-1;
 		fprintf(stderr, "%d  %s  %s  %s  %s\n", argc, argv[0], argv[1], argv[2], argv[3]);
 	}
+    GMessage("After assignment\n");
    
 	if (mode == CREATE_UNISPG) {
 		fprintf(stderr, "Inside multistringtie_CREATE\n");
@@ -166,6 +180,7 @@ int main(int argc, char*argv[]) {
 		multistringtie_APPLY(argc, argv);
 	} else if (mode == UNKNOWN) {
         GError("multiStringTie must be run with 'CREATE_UNISPG' or  'APPLY_UNISPG'. \n");
+		exit(0);
 	}
     return 0;
 }

@@ -23,14 +23,14 @@ struct UnispgGp_CREATE:public UnispgGp {
 		GPVec<CTransfrag>* lclg_nonoverlap_transfrag[2]; // for each transfrag t on a strand s, in a graph g, lclg_nonoverlap_transfrag[s][g][t] gives it's abundance and it's pattern
 
 		GPVec<CGraphnodeUnispg>* new_no2gnode_unispg[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
-		GVec<int> new_gidx; // graph id
-
-		GVec<int> current_gidx; // graph id
-		GVec<int> last_nidx; // node id
-		GVec<uint> prev_bdy;
-		GVec<int> lclg_bundle_num;
-		GVec<bool> has_unispg_tail;
-		GVec<int> new_unispg_nodeid;
+		
+		int new_gidx[2]; // graph id
+		int current_gidx[2];
+		int last_nidx[2]; // node id
+		uint prev_bdy[2];
+		int lclg_bundle_num[2];
+		bool has_unispg_tail[2];
+		int new_unispg_nodeid[2];
 
 		std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> lclg_nidx_2_new_nidx_ls_pos;
 		std::unordered_map<std::tuple<int, int, int>, GVec<int>, tuple_hash> unispg_nidx_2_new_nidx_ls_pos;

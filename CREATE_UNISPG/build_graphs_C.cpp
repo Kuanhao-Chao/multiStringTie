@@ -4,8 +4,6 @@
  * CREATE_UNISPG
  *****************************/
 int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, int fidx) {
-	// Clear the unispg_gp.
-	// unispg_gp->Clear();
 	int refstart = bdata->start;
 	int refend = bdata->end+1;
 	GList<CReadAln>& readlist = bdata->readlist;
@@ -28,16 +26,6 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 	// parameter -e ; for mergeMode includes estimated coverage sum in the merged transcripts
 	GVec<int> guidepred; // for eonly keeps the prediction number associated with a guide
 	GArray<GEdge> guideedge; // 0: negative starts; 1 positive starts
-	/*
-	GPVec<GPtFeature>& feature = bdata->ptfs; // these are point features (confirmed starts/stops)
-
-	for(int i=0;i<feature.Count();i++) {
-		if(feature[i]->ftype==GPFT_TSS)
-			fprintf(stderr,"TSS at position %d on strand %d\n",feature[i]->coord,feature[i]->strand);
-		if(feature[i]->ftype==GPFT_CPAS)
-			fprintf(stderr,"CPAS at position %d on strand %d\n",feature[i]->coord,feature[i]->strand);
-	}
-	*/
 	/****************
 	 **  These are parameters initialized to build graphs. 
 	 ****************/
@@ -122,8 +110,6 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 	char leftcons=-1;
 	char rightcons=-1;
 	for(int i=0;i<junction.Count();i++) {
-		// fprintf(stderr,"check junction:%d-%d:%d leftsupport=%f rightsupport=%f nm=%f nreads=%f\n",junction[i]->start,junction[i]->end,junction[i]->strand,junction[i]->leftsupport,junction[i]->rightsupport,junction[i]->nm,junction[i]->nreads);
-
 		if((!higherr) && junction[i]->strand && junction[i]->nm==junction[i]->nreads && !junction[i]->guide_match) {
 			higherr=true;
 		}
@@ -232,9 +218,6 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 		else if(ejunction[i]->strand) rightsupport[(1+ejunction[i]->strand)/2]+=ejunction[i]->rightsupport;
 		// fprintf(stderr,"rightsupport[%d]=%f\n",(1+ejunction[i]->strand)/2,rightsupport[(1+ejunction[i]->strand)/2]);
 	}
-	// end adjusting leftsupport and rightsupport
-
-	// fprintf(stderr,"junction support computed\n");
 
 	/*****************************
 	 ** Step 2: there are some reads that contain very bad junctions -> need to find better closest junctions
@@ -1077,17 +1060,15 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 	/*****************************
 	 ** Step 10: 'CPrediction': constructor
 	 **		predict transcripts for unstranded bundles here
+	 ** 	neutral bundles that do not overlap any signed reads
 	 *****************************/
 	//if(fraglen)
 	int g=0;
-	for(int b=0;b<bundle[1].Count();b++) { // these are neutral bundles that do not overlap any signed reads
-
-		// I need to address features here too -> TODO
+	for(int b=0;b<bundle[1].Count();b++) {
 		bool guide_ovlp=false;
 		while(g<guides.Count() && (guides[g]->exons.Count()>1 || guides[g]->end<bnode[1][bundle[1][b]->startnode]->start)) {
 			g++;
 		}
-		// now guides[g]->end>=bnode[1][bundle[1][b]->startnode]->start
 		if(g<guides.Count() && guides[g]->start<=bnode[1][bundle[1][b]->startnode]->end) guide_ovlp=true;
 
 		if(bundle[1][b]->cov && ((bundle[1][b]->multi/bundle[1][b]->cov)<=mcov*(1-ERROR_PERC) || guide_ovlp)) { // && (guides.Count() || adaptive || bundle[1][b]->len >= mintranscriptlen)) { // there might be small transfrags that are worth showing, but here I am ignoring them
@@ -1096,21 +1077,6 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     		int t=1;
 			// fprintf(node_unispg_unstrand_bed,"strict digraph %d_%d {", refstart, refend);
     		while(currbnode!=NULL) {
-
-				/*****************************
-				 ** 3. Write out global splice graph in DOT format
-				*****************************/
-				/****************
-				 **  KH Adding 
-				****************/
-				// graphno[s][b]: number of nodes in graph.
-                // fprintf(node_unispg_unstrand_bed, "chr22\t%d\t%d\t%d\t%f\t%s\n", currbnode->start,currbnode->end, currbnode->bid, currbnode->cov, ".");
-
-				// fprintf(node_unispg_unstrand_bed,"%d[start=%d end=%d cov=%f];",currbnode->bid,currbnode->start,currbnode->end,currbnode->cov);
-				/****************
-				 **  END KH Adding 
-				****************/
-
     			//int len=currbnode->end-currbnode->start+1;
     			//float cov=currbnode->cov/(currbnode->end-currbnode->start+1);
     			bool printguides=false;
@@ -1140,7 +1106,7 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     				}
     			}
 
-    			if(!printguides) { // && (adaptive || (cov>=readthr && len>=mintranscriptlen))) {
+    			if(!printguides) {
     				if(t==1) { geneno++;}
     				char sign='.';
 
@@ -1220,20 +1186,10 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 	 ** 	build graphs for stranded bundles here
 	 *****************************/
     if(startgroup[0]!=NULL || startgroup[2]!=NULL) {  // Condition 1: there are stranded groups to process
-		/*****************************
-		 ** I don't need the groups here anymore : I only use their numbers
-		*****************************/
-    	// group.Clear(); // I will need the proportions later on
-
-		// Create here!!
-    	GVec<CGraphinfo> *bundle2graph[2]; // should I keep the neutral strand for consistency ? -> remember not to delete it
-		// Create here!!
+    	GVec<CGraphinfo> *bundle2graph[2];
 		GPVec<CTransfrag> *transfrag[2]; // for each transfrag t on a strand s, in a graph g, transfrag[s][g][t] gives it's abundance and it's pattern
-		// Create here!!
     	CTreePat **tr2no[2]; // for each graph g, on a strand s, tr2no[s][g] keeps the tree pattern structure for quick retrieval of the index t of a tansfrag
-		// Create here!!
     	GIntHash<int> *gpos[2]; // for each graph g, on a strand s, gpos[s][g] keeps the hash between edges and positions in the bitvec associated to a pattern
-		// Create here!!
     	GVec<int> lastgpos[2];
 
 		// Input variable!!
@@ -1243,11 +1199,9 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     	// GVec<int> trnumber[2]; // how many transfrags are on a strand s, in a graph g -> I can find out this from transfrag[s][g].Count()
     	// int ngraph[2]={0,0};   // how many graphs are in each strand: negative (0), or positive(1) -> keep one for each bundle
 
-
 		// Input variable!!
     	GPVec<CGraphnode> *no2gnode[2]; // for each graph g, on a strand s, no2gnode[s][g][i] gives the node i
 		
-
     	int bno[2]={0,0};
 
 		/*****************************
@@ -1255,16 +1209,12 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 	 	 **     'create_graph_unispg', 'construct_treepat_unispg'
 		 *****************************/
     	for(int sno=0;sno<3;sno+=2) { // skip neutral bundles -> those shouldn't have junctions
-
         	// guides appear to be sorted by start --> CHECK THIS!!
         	int g=0;
         	int ng=guides.Count();
 
     		int s=sno/2; // adjusted strand due to ignoring neutral strand
-
 			int graph_no = bundle[sno].Count();
-			// fprintf(stderr, "** graph_no: %d\n", graph_no);
-			// bundle[sno].Count();
 
     		char strnd='-';
     		if(s) strnd='+';
@@ -1276,9 +1226,9 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     		tr2no[s]=NULL;
     		gpos[s]=NULL;
 
-			// fprintf(stderr, "0 bundle[sno].Count(): %d\n", bundle[sno].Count());
     		if(graph_no) {
-    			transfrag[s]=new GPVec<CTransfrag>[graph_no]; // for each bundle I have a graph ? only if I don't ignore the short bundles
+				// Each bundle => a graph (not ignoring short bundles)
+    			transfrag[s]=new GPVec<CTransfrag>[graph_no]; 
     			no2gnode[s]=new GPVec<CGraphnode>[graph_no];
     			gpos[s]=new GIntHash<int>[graph_no];
 
@@ -1291,18 +1241,12 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     				lastgpos[s].cAdd(0);
     				// I am overestmating the edgeno below, hopefully not by too much
 
-    				// fprintf(stderr,"Bundle is: %d - %d start at g=%d sno=%d b=%d\n",bnode[sno][bundle[sno][b]->startnode]->start,bnode[sno][bundle[sno][b]->lastnodeid]->end,g,sno,b);
-					// fprintf(stderr, "bnode[%d][bundle[%d][%d]->startnode]->start: %d \n", sno, sno, b, bnode[sno][bundle[sno][b]->startnode]->start);
-					// fprintf(stderr, "bnode[%d][bundle[%d][%d]->lastnodeid]->end: %d \n", sno, sno, b, bnode[sno][bundle[sno][b]->lastnodeid]->end);
-
-    				while(g<ng && guides[g]->end<bnode[sno][bundle[sno][b]->startnode]->start) g++;
-
-    				int cg=g;
-    				int nolap=0;
-
 					/****************
 					 **  This is reference guide. Ignore first.
 					 ****************/
+    				while(g<ng && guides[g]->end<bnode[sno][bundle[sno][b]->startnode]->start) g++;
+    				int cg=g;
+    				int nolap=0;
     				while(cg<ng && guides[cg]->start<=bnode[sno][bundle[sno][b]->lastnodeid]->end) { // this are potential guides that might overlap the current bundle, and they might introduce extra edges
     					// fprintf(stderr,"...consider guide cg=%d with strand=%c and in_bundle=%d\n",cg,guides[cg]->strand,((RC_TData*)(guides[cg]->uptr))->in_bundle);
     					if((guides[cg]->strand==strnd || guides[cg]->strand=='.') && ((RC_TData*)(guides[cg]->uptr))->in_bundle>=2) {
@@ -1327,14 +1271,14 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     					}
     				}
     				*/
-
     				// here I can add something in stringtie to lower the mintranscript len if there are guides?
 					/*****************************
 					 ** bundle is worth processing: it might be that there are small transfrags from source to sink that are worth processing
 					 *****************************/
     				if(bundle[sno][b]->cov &&
-    						(((bundle[sno][b]->multi/bundle[sno][b]->cov)<=mcov && bundle[sno][b]->len >= mintranscriptlen)
-    								||nolap)) { // bundle is worth processing: it might be that there are small transfrags from source to sink that are worth processing
+    						(((bundle[sno][b]->multi/bundle[sno][b]->cov)<=mcov && 
+							bundle[sno][b]->len >= mintranscriptlen) ||
+							nolap)) { // bundle is worth processing: it might be that there are small transfrags from source to sink that are worth processing
 
     					/*
     					// first identify drops/spikes in coverage points
@@ -1358,7 +1302,8 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
     					// create graph then
 
 						// no2gnode / transfrag / gpos
-    					graphno[s][b]=create_graph_unispg(refstart,s,b,bundle[sno][b],bnode[sno],junction,ejunction,
+    					graphno[s][b]=create_graph_unispg(refstart,s,b,bundle[sno][b],bnode[sno],
+								junction,ejunction,
     							bundle2graph,no2gnode,transfrag,gpos,bdata,edgeno[s][b],lastgpos[s][b],guideedge); // also I need to remember graph coverages somewhere -> probably in the create_graph procedure
 
 						// tr2no
@@ -1487,6 +1432,9 @@ int build_graphs_CREATE_UNISPG(BundleData* bdata, UnispgGp_CREATE* unispg_gp, in
 
     	// don't forget to clean up the allocated data here
     	delete [] readgroup;
+		/*****************************
+		 ** I don't need the groups here anymore : I only use their numbers
+		*****************************/
     	group.Clear();
 
 
